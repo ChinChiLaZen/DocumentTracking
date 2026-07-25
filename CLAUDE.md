@@ -53,7 +53,7 @@ These come from the MAR process and must be encoded in the app, not just display
 | State | **Zustand** | one store; all derived values are selectors, never stored |
 | Routing | **react-router-dom** | one route per tab (§7) |
 | Persistence | **localStorage** adapter behind a `PersistencePort` interface (§10) | swappable for a real API later — do not hard-code `localStorage` calls in components |
-| Auth | **Clerk** (`@clerk/clerk-react`), added 2026-07-25 | per-reviewer email+password accounts, invite-only (no public sign-up); gates `AppShell` via `SignedIn`/`SignedOut` — see §10 |
+| Auth | **Clerk** (`@clerk/react` + `@clerk/ui` for shadcn theming), added 2026-07-25 | per-reviewer email+password accounts, invite-only (no public sign-up); gates `AppShell` via `<Show when="signed-in"\|"signed-out">` — see §10. Project linked via `clerk init` (Clerk CLI) |
 | Tests | **Vitest** + **@testing-library/react** | derived-value logic in §6 must be unit-tested |
 | Lint/format | ESLint + Prettier | |
 
@@ -331,7 +331,7 @@ interface PersistencePort {
 - Default adapter: `localStorage` (key `airsafe-mar-tracker/v1`), debounced ~300 ms.
 - Components and the store depend on `PersistencePort`, **never** on `localStorage` directly, so a REST/tRPC adapter can drop in later without touching UI.
 - Provide a "Reset to seed" action (guarded by a confirm dialog).
-- ~~No secrets, no network calls in v1.~~ **Superseded 2026-07-25:** login is now required (§3, Auth row). `AppShell` wraps its content in Clerk's `SignedIn`/`SignedOut`, showing `<SignIn/>` when signed out. The Clerk publishable key (`VITE_CLERK_PUBLISHABLE_KEY`, see `.env.example`) is meant to be public/embeddable — it is not a secret; there is still no server-side secret in this repo. Reviewers are invited by email from the Clerk dashboard (invite-only, no public sign-up).
+- ~~No secrets, no network calls in v1.~~ **Superseded 2026-07-25:** login is now required (§3, Auth row). `AppShell` wraps its content in Clerk's `<Show when="signed-in"|"signed-out">`, showing `<SignIn/>` when signed out. The Clerk publishable key (`VITE_CLERK_PUBLISHABLE_KEY`, see `.env.example`) is meant to be public/embeddable — it is not a secret. `.env.local` (gitignored) also has `CLERK_SECRET_KEY`, provisioned by `clerk init` for a possible future backend — **not currently referenced by any app code** and must never be. Reviewers are invited by email from the Clerk dashboard (invite-only — `sign_up_mode` is explicitly set to `restricted` on the linked instance, since `clerk init`'s default is public sign-up).
 - **Known limitation:** this remains a pure static SPA with no backend — `checklist.seed.ts` compiles straight into the shipped JS bundle, which any HTTP request receives before Clerk's client-side check ever runs. Clerk genuinely gates *whether the UI renders*, but does not prevent the static bundle itself from being fetched directly (e.g. via `curl`). Closing that gap requires request-level gating at the host (e.g. Cloudflare Access in front of Cloudflare Pages, or Vercel/Netlify deployment protection) — a deploy-time configuration step, not an app-code change, and not yet done.
 
 ---
