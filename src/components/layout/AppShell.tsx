@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { SignedIn, SignedOut, SignIn, UserButton } from '@clerk/clerk-react'
+import { Show, SignIn, UserButton } from '@clerk/react'
 import { ResetToSeedDialog } from './ResetToSeedDialog'
 import { useTrackerStore } from '../../store/useTrackerStore'
 
@@ -24,12 +24,12 @@ export function AppShell() {
 
   return (
     <>
-      <SignedOut>
+      <Show when="signed-out">
         <div className="flex h-svh items-center justify-center bg-muted/40">
           <SignIn />
         </div>
-      </SignedOut>
-      <SignedIn>
+      </Show>
+      <Show when="signed-in">
         <div className="flex h-svh flex-col">
           <header className="no-print bg-header-band text-white">
             <div className="flex items-start justify-between px-6 py-4">
@@ -68,7 +68,7 @@ export function AppShell() {
             <Outlet />
           </main>
         </div>
-      </SignedIn>
+      </Show>
     </>
   )
 }

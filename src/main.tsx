@@ -1,7 +1,8 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { RouterProvider } from 'react-router-dom'
-import { ClerkProvider } from '@clerk/clerk-react'
+import { ClerkProvider } from '@clerk/react'
+import { shadcn } from '@clerk/ui/themes'
 import './index.css'
 import { router } from './routes.tsx'
 
@@ -20,7 +21,7 @@ if (!clerkPublishableKey) {
 } else {
   createRoot(rootElement).render(
     <StrictMode>
-      <ClerkProvider publishableKey={clerkPublishableKey}>
+      <ClerkProvider publishableKey={clerkPublishableKey} appearance={{ theme: shadcn }}>
         <RouterProvider router={router} />
       </ClerkProvider>
     </StrictMode>,
