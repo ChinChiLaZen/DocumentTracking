@@ -74,7 +74,7 @@ export function CheckboxTable({
                     <TableCell key={column.key}>
                       <div className="relative inline-flex size-4 items-center justify-center">
                         <Checkbox
-                          className="peer"
+                          className="peer data-[state=checked]:border-emerald-300 data-[state=checked]:bg-emerald-100 data-[state=checked]:text-emerald-700"
                           checked={checked}
                           onCheckedChange={() => onToggleCell(row.id, column.key)}
                           aria-label={`${sheet.title} — ${row.description} — ${column.label}`}

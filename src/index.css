@@ -5,17 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-
-  --color-status-submitted: #1e8449;
-  --color-status-inprogress: #2471a3;
-  --color-status-pending: #7f8c8d;
-  --color-status-needsrevision: #922b21;
-  --color-status-notavailable: #717d7e;
-
-  --color-priority-a: #c0392b;
-  --color-priority-b: #b9770e;
-  --color-priority-c: #1e8449;
+  /* Matches the reference prototypes' actual font stack (system-ui, no webfont load). */
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
   --color-header-band: #34495e;
 }
@@ -37,7 +28,7 @@
 @layer utilities {
   /* §9 — "derived/linked" cells: values pulled from a detail sheet, not hand-entered */
   .derived-cell {
-    @apply bg-slate-100 text-status-submitted;
+    @apply bg-slate-100 text-emerald-700;
   }
 }
 

@@ -303,12 +303,19 @@ Two-pane layout.
 
 ## 9. Design tokens
 
-- **Font:** a clean sans (Inter / system UI). Dense tables, 13–14px body.
-- **Status colours:** Submitted `#1E8449` (green) · In Progress `#2471A3` (blue) · Pending neutral grey · Needs Revision `#922B21` (red) · Not Available `#717D7E` (slate).
-- **Priority badges:** A red `#C0392B`, B amber `#B9770E`, C green `#1E8449` (or map to shadcn `destructive` / `warning` / `success`).
-- **Derived/linked cells** (Tracker status pulled from a sheet): subtle grey fill + green text, to echo the spreadsheet's "don't type here" convention.
-- **Header band:** dark slate `#34495E`, white text.
+> **Revised 2026-07-25:** the hex values originally specified below were this brief's best guess before the two Lovable prototypes were inspected directly. Pulling the prototypes' actual compiled CSS (`reference/lovable-dashboard-styles.css`, `reference/lovable-item-details-styles.css`) showed they use Tailwind's stock palette, not custom hex — the app now matches the prototypes exactly rather than the hex values below. Kept here for history; **`src/components/shared/statusStyles.ts` is the source of truth going forward.**
+
+- **Font:** system-ui stack (the prototypes load no webfont — Inter is not actually used). Dense tables, 13–14px body.
+- **Status colours (as actually implemented):** Submitted `emerald-50/700` · In Progress `amber-50/700` · Pending `slate-100/600` · Needs Revision `rose-50/700` · Not Available `slate-200/700`. Only In Progress and Pending are ever populated in the prototypes' seed data — Submitted/Needs Revision/Not Available are inferred from the same rose/amber/emerald/slate system.
+- **Priority badges (as actually implemented):** A `rose-100/800`, B `amber-100/800`, C `emerald-100/800` — confirmed from the live Dashboard's by-priority badges.
+- **Checked cells** in the Item Details checkbox table render `emerald-100/700` (confirmed from check-chime-charm.lovable.app); unchecked cells show a muted `·`.
+- **Derived/linked cells** (Tracker status pulled from a sheet): subtle grey fill + emerald text, to echo the spreadsheet's "don't type here" convention.
+- **Header band:** dark slate `#34495E`, white text — ⚠️ **not yet reconciled with the prototype**, which renders a plain white header with no colour band. Flagged as an open question, not yet changed.
 - Keep it flat and legible; this is an audit tool, not a marketing page.
+
+~~Original hex-based spec (superseded above):~~
+- ~~Status colours: Submitted `#1E8449` (green) · In Progress `#2471A3` (blue) · Pending neutral grey · Needs Revision `#922B21` (red) · Not Available `#717D7E` (slate).~~
+- ~~Priority badges: A red `#C0392B`, B amber `#B9770E`, C green `#1E8449`.~~
 
 ---
 

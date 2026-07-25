@@ -1,18 +1,22 @@
 import type { Priority, Status } from '../../data/types'
 
-/** §9 design tokens, mapped to Badge className overrides (shadcn has no matching variant names). */
+/**
+ * Matches the actual rendered palette of the two Lovable reference prototypes
+ * (pattern-to-page-pal, check-chime-charm) — Tailwind's stock rose/amber/emerald/slate
+ * scales, not the literal hex values in CLAUDE.md §9. Submitted, Needs Revision, and
+ * Not Available never appear in the prototypes' seed data, so their colors are inferred
+ * from the same rose/amber/emerald/slate system the observed statuses use.
+ */
 export const PRIORITY_BADGE_CLASS: Record<Priority, string> = {
-  A: 'border-priority-a/30 bg-priority-a/10 text-priority-a',
-  B: 'border-priority-b/30 bg-priority-b/10 text-priority-b',
-  C: 'border-priority-c/30 bg-priority-c/10 text-priority-c',
+  A: 'border-rose-200 bg-rose-100 text-rose-800',
+  B: 'border-amber-200 bg-amber-100 text-amber-800',
+  C: 'border-emerald-200 bg-emerald-100 text-emerald-800',
 }
 
 export const STATUS_BADGE_CLASS: Record<Status, string> = {
-  Submitted: 'border-status-submitted/30 bg-status-submitted/10 text-status-submitted',
-  'In Progress': 'border-status-inprogress/30 bg-status-inprogress/10 text-status-inprogress',
-  Pending: 'border-status-pending/30 bg-status-pending/10 text-status-pending',
-  'Needs Revision':
-    'border-status-needsrevision/30 bg-status-needsrevision/10 text-status-needsrevision',
-  'Not Available':
-    'border-status-notavailable/30 bg-status-notavailable/10 text-status-notavailable',
+  Submitted: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  'In Progress': 'border-amber-200 bg-amber-50 text-amber-700',
+  Pending: 'border-slate-200 bg-slate-100 text-slate-600',
+  'Needs Revision': 'border-rose-200 bg-rose-50 text-rose-700',
+  'Not Available': 'border-slate-300 bg-slate-200 text-slate-700',
 }
