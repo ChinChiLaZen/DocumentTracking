@@ -30,6 +30,7 @@ export function TrackerTable({ items }: { items: ItemWithStatus[] }) {
       <TableBody>
         {GROUP_DEFS.map((group) => {
           const groupItems = items.filter((item) => item.group === group.id)
+          if (groupItems.length === 0) return null
           return (
             <Fragment key={group.id}>
               <GroupHeaderRow group={group} colSpan={COLUMN_COUNT} />

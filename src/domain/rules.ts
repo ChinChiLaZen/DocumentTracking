@@ -24,7 +24,7 @@ export const PRIORITY_DEFS: PriorityDef[] = [
   {
     id: 'A',
     label: 'A — Essential',
-    description: 'Required *before* any approval review commences.',
+    description: 'Required before any approval review commences.',
   },
   {
     id: 'B',
