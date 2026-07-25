@@ -9,9 +9,9 @@ export function ByPriorityTable({ rollup }: { rollup: Rollup }) {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Priority</TableHead>
-          <TableHead>Total</TableHead>
-          <TableHead>Submitted</TableHead>
+          <TableHead scope="col">Priority</TableHead>
+          <TableHead scope="col">Total</TableHead>
+          <TableHead scope="col">Submitted</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>

@@ -45,6 +45,27 @@
   .no-print {
     display: none !important;
   }
+
+  @page {
+    size: landscape;
+  }
+
+  /* Tracker & Priority print as full, unclipped tables — not the fixed on-screen panel layout. */
+  html,
+  body,
+  #root,
+  main {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  table {
+    width: 100% !important;
+  }
+
+  thead {
+    position: static !important;
+  }
 }
 
 @theme inline {

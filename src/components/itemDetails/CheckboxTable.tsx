@@ -18,18 +18,28 @@ export function CheckboxTable({
 }: CheckboxTableProps) {
   const colSpan = 3 + sheet.columns.length + 1
 
+  if (sheet.rows.length === 0) {
+    return (
+      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+        No checks defined for this sheet.
+      </div>
+    )
+  }
+
   return (
     <div className="h-full overflow-auto">
       <Table>
         <TableHeader className="sticky top-0 z-10 bg-background">
           <TableRow>
-            <TableHead className="w-8" />
-            <TableHead>ARTICLE (TOR)</TableHead>
-            <TableHead>DESCRIPTION</TableHead>
+            <TableHead className="w-8" scope="col" />
+            <TableHead scope="col">ARTICLE (TOR)</TableHead>
+            <TableHead scope="col">DESCRIPTION</TableHead>
             {sheet.columns.map((column) => (
-              <TableHead key={column.key}>{column.label}</TableHead>
+              <TableHead key={column.key} scope="col">
+                {column.label}
+              </TableHead>
             ))}
-            <TableHead>REMARK</TableHead>
+            <TableHead scope="col">REMARK</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

@@ -17,14 +17,14 @@ export function TrackerTable({ items }: { items: ItemWithStatus[] }) {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>#</TableHead>
-          <TableHead>Group</TableHead>
-          <TableHead>Document Name</TableHead>
-          <TableHead>Standard</TableHead>
-          <TableHead>Requirement</TableHead>
-          <TableHead>Priority</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Remark</TableHead>
+          <TableHead scope="col">#</TableHead>
+          <TableHead scope="col">Group</TableHead>
+          <TableHead scope="col">Document Name</TableHead>
+          <TableHead scope="col">Standard</TableHead>
+          <TableHead scope="col">Requirement</TableHead>
+          <TableHead scope="col">Priority</TableHead>
+          <TableHead scope="col">Status</TableHead>
+          <TableHead scope="col">Remark</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
