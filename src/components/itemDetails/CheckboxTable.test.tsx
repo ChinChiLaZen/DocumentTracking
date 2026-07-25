@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { CheckboxTable } from './CheckboxTable'
 import type { DetailSheet } from '../../data/types'
 
@@ -25,6 +26,7 @@ describe('CheckboxTable', () => {
         selectedRowIds={new Set()}
         onToggleCell={vi.fn()}
         onToggleRowSelection={vi.fn()}
+        onRemarkChange={vi.fn()}
       />,
     )
     expect(screen.getByText('Foo Column')).toBeInTheDocument()
@@ -39,8 +41,25 @@ describe('CheckboxTable', () => {
         selectedRowIds={new Set()}
         onToggleCell={vi.fn()}
         onToggleRowSelection={vi.fn()}
+        onRemarkChange={vi.fn()}
       />,
     )
     expect(screen.getByLabelText('Fixture Sheet — Row 1 — Foo Column')).toBeInTheDocument()
+  })
+
+  it('lets the reviewer edit the Remark cell, e.g. to note a new document revision', async () => {
+    const onRemarkChange = vi.fn()
+    render(
+      <CheckboxTable
+        sheet={fixtureSheet()}
+        selectedRowIds={new Set()}
+        onToggleCell={vi.fn()}
+        onToggleRowSelection={vi.fn()}
+        onRemarkChange={onRemarkChange}
+      />,
+    )
+    const remarkInput = screen.getByLabelText('Fixture Sheet — Row 1 — Remark')
+    await userEvent.type(remarkInput, '!')
+    expect(onRemarkChange).toHaveBeenCalledWith('r1', '!')
   })
 })

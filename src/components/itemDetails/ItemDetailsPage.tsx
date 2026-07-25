@@ -14,6 +14,7 @@ export function ItemDetailsPage() {
   const sheets = useTrackerStore((s) => s.sheets)
   const selectedRowIds = useTrackerStore((s) => s.selectedRowIds)
   const toggleCell = useTrackerStore((s) => s.toggleCell)
+  const setRowRemark = useTrackerStore((s) => s.setRowRemark)
   const toggleRowSelection = useTrackerStore((s) => s.toggleRowSelection)
   const selectAllRows = useTrackerStore((s) => s.selectAllRows)
   const bulkSetCells = useTrackerStore((s) => s.bulkSetCells)
@@ -61,6 +62,7 @@ export function ItemDetailsPage() {
             selectedRowIds={rowSelection}
             onToggleCell={(rowId, columnKey) => toggleCell(sheet.id, rowId, columnKey)}
             onToggleRowSelection={(rowId) => toggleRowSelection(sheet.id, rowId)}
+            onRemarkChange={(rowId, remark) => setRowRemark(sheet.id, rowId, remark)}
           />
         </div>
       </div>

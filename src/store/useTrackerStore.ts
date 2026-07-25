@@ -10,6 +10,7 @@ export interface TrackerState {
   selectedRowIds: Record<string, Set<string>>
 
   toggleCell(sheetId: string, rowId: string, columnKey: string): void
+  setRowRemark(sheetId: string, rowId: string, remark: string): void
   setManualStatus(itemNo: number, status: Status | undefined): void
   toggleRowSelection(sheetId: string, rowId: string): void
   selectAllRows(sheetId: string, on: boolean): void
@@ -52,6 +53,20 @@ export function createTrackerStore(persistence: PersistencePort = createLocalSto
                       ? row
                       : { ...row, cells: { ...row.cells, [columnKey]: !row.cells[columnKey] } },
                   ),
+                },
+          ),
+        }))
+        persist()
+      },
+
+      setRowRemark(sheetId, rowId, remark) {
+        set((state) => ({
+          sheets: state.sheets.map((sheet) =>
+            sheet.id !== sheetId
+              ? sheet
+              : {
+                  ...sheet,
+                  rows: sheet.rows.map((row) => (row.id !== rowId ? row : { ...row, remark })),
                 },
           ),
         }))

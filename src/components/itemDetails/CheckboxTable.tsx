@@ -8,6 +8,7 @@ interface CheckboxTableProps {
   selectedRowIds: Set<string>
   onToggleCell: (rowId: string, columnKey: string) => void
   onToggleRowSelection: (rowId: string) => void
+  onRemarkChange: (rowId: string, remark: string) => void
 }
 
 export function CheckboxTable({
@@ -15,6 +16,7 @@ export function CheckboxTable({
   selectedRowIds,
   onToggleCell,
   onToggleRowSelection,
+  onRemarkChange,
 }: CheckboxTableProps) {
   const colSpan = 3 + sheet.columns.length + 1
 
@@ -89,7 +91,15 @@ export function CheckboxTable({
                     </TableCell>
                   )
                 })}
-                <TableCell className="text-muted-foreground">{row.remark ?? ''}</TableCell>
+                <TableCell>
+                  <input
+                    type="text"
+                    className="w-full min-w-32 rounded border border-transparent bg-transparent px-1 py-0.5 text-muted-foreground outline-none hover:border-input focus:border-ring focus:bg-background focus:ring-3 focus:ring-ring/50"
+                    value={row.remark ?? ''}
+                    onChange={(e) => onRemarkChange(row.id, e.target.value)}
+                    aria-label={`${sheet.title} — ${row.description} — Remark`}
+                  />
+                </TableCell>
               </TableRow>
             </Fragment>
           ))}
