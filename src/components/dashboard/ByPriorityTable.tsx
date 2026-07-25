@@ -1,0 +1,35 @@
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
+import { Badge } from '../ui/badge'
+import type { Rollup } from '../../domain/derive'
+import { PRIORITY_DEFS } from '../../domain/rules'
+import { PRIORITY_BADGE_CLASS } from '../shared/statusStyles'
+
+export function ByPriorityTable({ rollup }: { rollup: Rollup }) {
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Priority</TableHead>
+          <TableHead>Total</TableHead>
+          <TableHead>Submitted</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {PRIORITY_DEFS.map((def) => {
+          const { total, done } = rollup.byPriority[def.id]
+          return (
+            <TableRow key={def.id}>
+              <TableCell>
+                <Badge variant="outline" className={PRIORITY_BADGE_CLASS[def.id]}>
+                  {def.label}
+                </Badge>
+              </TableCell>
+              <TableCell>{total}</TableCell>
+              <TableCell>{done}</TableCell>
+            </TableRow>
+          )
+        })}
+      </TableBody>
+    </Table>
+  )
+}
