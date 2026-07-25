@@ -10,17 +10,17 @@ function setup() {
 describe('useTrackerStore', () => {
   it('toggling a cell updates the effective status via the selector', () => {
     const useStore = setup()
-    const sheet = selectSheetById(useStore.getState(), 'item-9')!
-    // Item 9 has a single row with 3 cells; toggle the first one on.
+    const sheet = selectSheetById(useStore.getState(), 'item-4')!
+    // Item 4 (LM-79) starts fully unticked in the seed; toggle the first cell on.
     const rowId = sheet.rows[0].id
     const columnKey = sheet.columns[0].key
 
-    const before = selectItemsWithStatus(useStore.getState()).find((i) => i.no === 9)!
+    const before = selectItemsWithStatus(useStore.getState()).find((i) => i.no === 4)!
     expect(before.status).toBe('Pending')
 
-    useStore.getState().toggleCell('item-9', rowId, columnKey)
+    useStore.getState().toggleCell('item-4', rowId, columnKey)
 
-    const after = selectItemsWithStatus(useStore.getState()).find((i) => i.no === 9)!
+    const after = selectItemsWithStatus(useStore.getState()).find((i) => i.no === 4)!
     expect(after.status).toBe('In Progress')
   })
 
@@ -43,21 +43,21 @@ describe('useTrackerStore', () => {
 
   it('clearing a manual override returns the item to its auto status', () => {
     const useStore = setup()
-    useStore.getState().setManualStatus(9, 'Needs Revision')
-    expect(selectItemsWithStatus(useStore.getState()).find((i) => i.no === 9)!.status).toBe(
+    useStore.getState().setManualStatus(4, 'Needs Revision')
+    expect(selectItemsWithStatus(useStore.getState()).find((i) => i.no === 4)!.status).toBe(
       'Needs Revision',
     )
 
-    useStore.getState().setManualStatus(9, undefined)
-    expect(selectItemsWithStatus(useStore.getState()).find((i) => i.no === 9)!.status).toBe(
+    useStore.getState().setManualStatus(4, undefined)
+    expect(selectItemsWithStatus(useStore.getState()).find((i) => i.no === 4)!.status).toBe(
       'Pending',
     )
   })
 
   it('reset restores the seeded 120/282 checkbox roll-up', () => {
     const useStore = setup()
-    const sheet = selectSheetById(useStore.getState(), 'item-9')!
-    useStore.getState().toggleCell('item-9', sheet.rows[0].id, sheet.columns[0].key)
+    const sheet = selectSheetById(useStore.getState(), 'item-4')!
+    useStore.getState().toggleCell('item-4', sheet.rows[0].id, sheet.columns[0].key)
 
     useStore.getState().resetToSeed()
 

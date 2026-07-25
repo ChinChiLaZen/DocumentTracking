@@ -49,7 +49,9 @@ describe('TrackerTable', () => {
         <TrackerTable items={rows} />
       </MemoryRouter>,
     )
-    const link = screen.getByRole('link', { name: 'Technical Datasheet / Product Catalogs' })
+    const link = screen.getByRole('link', {
+      name: 'Technical Datasheet / Product Catalogs — All Fixture Types',
+    })
     expect(link).toHaveAttribute('href', '/items?item=1')
   })
 })

@@ -22,7 +22,7 @@ export function AppShell() {
   }, [])
 
   return (
-    <div className="flex min-h-svh flex-col">
+    <div className="flex h-svh flex-col">
       <header className="no-print bg-header-band text-white">
         <div className="flex items-start justify-between px-6 py-4">
           <div>
