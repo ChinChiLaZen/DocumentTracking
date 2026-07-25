@@ -53,7 +53,7 @@ export function AppShell() {
           ))}
         </nav>
       </header>
-      <main className="flex-1 overflow-auto">
+      <main className="min-h-0 flex-1 overflow-hidden">
         <Outlet />
       </main>
     </div>
