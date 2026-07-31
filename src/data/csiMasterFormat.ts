@@ -1,541 +1,315 @@
-// CSI MasterFormat division/section list (Thai + English), transcribed verbatim
-// from the reference list supplied for the "Project Type" picker on Add Project
-// (added 2026-07-31). This is purely a classification field — independent of
-// TemplateKind/GroupId/checklist structure (§5 in CLAUDE.md); it never drives
-// derived logic in domain/derive.ts.
+// CSI MasterFormat 2020 division map + section list (Thai + English), generated from
+// masterfile/CSI_MasterFormat_Division_Map_and_Sections.xlsx ("Division Map" and
+// "Sections" sheets) — the authoritative source for the "Project Type" picker on Add
+// Project (added 2026-07-31, superseding the earlier hand-transcribed list). Purely a
+// classification field — independent of TemplateKind/GroupId/checklist structure (§5 in
+// CLAUDE.md); it never drives derived logic in domain/derive.ts.
 //
-// Entries with no English translation in the source keep nameEn === '' rather
-// than inventing one. Minor whitespace/paren normalization was applied (e.g.
-// collapsing stray double spaces, closing an unbalanced paren) but wording,
-// including source typos (e.g. "Stanpipes", "Speciaties"), was kept verbatim —
-// never fabricate or "correct" content that wasn't actually provided.
+// One duplicate code existed in the source (34 77 63, two different section names) — the
+// first occurrence was kept, the second dropped, rather than inventing a disambiguated
+// code. One row's own "Div." column disagreed with its section code's division prefix
+// (27 51 16 tagged Div=21) — the code prefix was trusted since it's what was actually
+// corrected in this revision of the source.
+export interface CsiDivision {
+  division: string
+  subgroupTh: string
+  subgroupEn: string
+  titleTh: string
+  titleEn: string
+}
+
+export const CSI_DIVISIONS: CsiDivision[] = [
+  { division: "00", subgroupTh: "จัดซื้อจัดจ้าง / สัญญา", subgroupEn: "Procurement & Contracting", titleTh: "ข้อกำหนดการจัดซื้อจัดจ้างและสัญญา", titleEn: "Procurement and Contracting Requirements" },
+  { division: "01", subgroupTh: "ข้อกำหนดทั่วไป", subgroupEn: "General Requirements", titleTh: "ข้อกำหนดทั่วไปของงาน", titleEn: "General Requirements" },
+  { division: "02", subgroupTh: "งานก่อสร้างอาคาร", subgroupEn: "Facility Construction", titleTh: "สภาพพื้นที่เดิม", titleEn: "Existing Conditions" },
+  { division: "03", subgroupTh: "งานก่อสร้างอาคาร", subgroupEn: "Facility Construction", titleTh: "งานคอนกรีต", titleEn: "Concrete" },
+  { division: "04", subgroupTh: "งานก่อสร้างอาคาร", subgroupEn: "Facility Construction", titleTh: "งานก่อ (อิฐ/บล็อก)", titleEn: "Masonry" },
+  { division: "05", subgroupTh: "งานก่อสร้างอาคาร", subgroupEn: "Facility Construction", titleTh: "งานโลหะ", titleEn: "Metals" },
+  { division: "06", subgroupTh: "งานก่อสร้างอาคาร", subgroupEn: "Facility Construction", titleTh: "งานไม้ พลาสติก และวัสดุประกอบ", titleEn: "Wood, Plastics, and Composites" },
+  { division: "07", subgroupTh: "งานก่อสร้างอาคาร", subgroupEn: "Facility Construction", titleTh: "งานป้องกันความร้อนและความชื้น", titleEn: "Thermal and Moisture Protection" },
+  { division: "08", subgroupTh: "งานก่อสร้างอาคาร", subgroupEn: "Facility Construction", titleTh: "งานช่องเปิด (ประตู–หน้าต่าง)", titleEn: "Openings" },
+  { division: "09", subgroupTh: "งานก่อสร้างอาคาร", subgroupEn: "Facility Construction", titleTh: "งานตกแต่งผิว", titleEn: "Finishes" },
+  { division: "10", subgroupTh: "งานก่อสร้างอาคาร", subgroupEn: "Facility Construction", titleTh: "งานเฉพาะทาง / สิ่งก่อสร้างพิเศษ", titleEn: "Specialties" },
+  { division: "11", subgroupTh: "งานก่อสร้างอาคาร", subgroupEn: "Facility Construction", titleTh: "เครื่องมือและอุปกรณ์เฉพาะงาน", titleEn: "Equipment" },
+  { division: "12", subgroupTh: "งานก่อสร้างอาคาร", subgroupEn: "Facility Construction", titleTh: "เครื่องเรือนและของตกแต่ง", titleEn: "Furnishings" },
+  { division: "13", subgroupTh: "งานก่อสร้างอาคาร", subgroupEn: "Facility Construction", titleTh: "งานก่อสร้างพิเศษ", titleEn: "Special Construction" },
+  { division: "14", subgroupTh: "งานก่อสร้างอาคาร", subgroupEn: "Facility Construction", titleTh: "งานระบบขนส่งภายในอาคาร (ลิฟต์/บันไดเลื่อน)", titleEn: "Conveying Equipment" },
+  { division: "15", subgroupTh: "งานก่อสร้างอาคาร", subgroupEn: "Facility Construction", titleTh: "— สงวนไว้ใช้ในอนาคต —", titleEn: "Reserved for Future Expansion" },
+  { division: "16", subgroupTh: "งานก่อสร้างอาคาร", subgroupEn: "Facility Construction", titleTh: "— สงวนไว้ใช้ในอนาคต —", titleEn: "Reserved for Future Expansion" },
+  { division: "17", subgroupTh: "งานก่อสร้างอาคาร", subgroupEn: "Facility Construction", titleTh: "— สงวนไว้ใช้ในอนาคต —", titleEn: "Reserved for Future Expansion" },
+  { division: "18", subgroupTh: "งานก่อสร้างอาคาร", subgroupEn: "Facility Construction", titleTh: "— สงวนไว้ใช้ในอนาคต —", titleEn: "Reserved for Future Expansion" },
+  { division: "19", subgroupTh: "งานก่อสร้างอาคาร", subgroupEn: "Facility Construction", titleTh: "— สงวนไว้ใช้ในอนาคต —", titleEn: "Reserved for Future Expansion" },
+  { division: "20", subgroupTh: "งานระบบประกอบอาคาร", subgroupEn: "Facility Services", titleTh: "— สงวนไว้ใช้ในอนาคต —", titleEn: "Reserved for Future Expansion" },
+  { division: "21", subgroupTh: "งานระบบประกอบอาคาร", subgroupEn: "Facility Services", titleTh: "ระบบดับเพลิง", titleEn: "Fire Suppression" },
+  { division: "22", subgroupTh: "งานระบบประกอบอาคาร", subgroupEn: "Facility Services", titleTh: "งานประปาและสุขาภิบาล", titleEn: "Plumbing" },
+  { division: "23", subgroupTh: "งานระบบประกอบอาคาร", subgroupEn: "Facility Services", titleTh: "ระบบปรับอากาศและระบายอากาศ (HVAC)", titleEn: "Heating, Ventilating, and Air Conditioning" },
+  { division: "24", subgroupTh: "งานระบบประกอบอาคาร", subgroupEn: "Facility Services", titleTh: "— สงวนไว้ใช้ในอนาคต —", titleEn: "Reserved for Future Expansion" },
+  { division: "25", subgroupTh: "งานระบบประกอบอาคาร", subgroupEn: "Facility Services", titleTh: "ระบบอัตโนมัติแบบบูรณาการ", titleEn: "Integrated Automation" },
+  { division: "26", subgroupTh: "งานระบบประกอบอาคาร", subgroupEn: "Facility Services", titleTh: "ระบบไฟฟ้า", titleEn: "Electrical" },
+  { division: "27", subgroupTh: "งานระบบประกอบอาคาร", subgroupEn: "Facility Services", titleTh: "ระบบสื่อสาร", titleEn: "Communications" },
+  { division: "28", subgroupTh: "งานระบบประกอบอาคาร", subgroupEn: "Facility Services", titleTh: "ระบบความปลอดภัยและรักษาความปลอดภัยอิเล็กทรอนิกส์", titleEn: "Electronic Safety and Security" },
+  { division: "29", subgroupTh: "งานระบบประกอบอาคาร", subgroupEn: "Facility Services", titleTh: "— สงวนไว้ใช้ในอนาคต —", titleEn: "Reserved for Future Expansion" },
+  { division: "30", subgroupTh: "งานภายนอก / โครงสร้างพื้นฐาน", subgroupEn: "Site & Infrastructure", titleTh: "— สงวนไว้ใช้ในอนาคต —", titleEn: "Reserved for Future Expansion" },
+  { division: "31", subgroupTh: "งานภายนอก / โครงสร้างพื้นฐาน", subgroupEn: "Site & Infrastructure", titleTh: "งานดิน", titleEn: "Earthwork" },
+  { division: "32", subgroupTh: "งานภายนอก / โครงสร้างพื้นฐาน", subgroupEn: "Site & Infrastructure", titleTh: "งานปรับปรุงพื้นที่ภายนอก", titleEn: "Exterior Improvements" },
+  { division: "33", subgroupTh: "งานภายนอก / โครงสร้างพื้นฐาน", subgroupEn: "Site & Infrastructure", titleTh: "งานสาธารณูปโภค", titleEn: "Utilities" },
+  { division: "34", subgroupTh: "งานภายนอก / โครงสร้างพื้นฐาน", subgroupEn: "Site & Infrastructure", titleTh: "งานระบบขนส่ง (รวมงาน airside: PBB/BHS/PCA/GPU/VDGS และไฟสนามบิน)", titleEn: "Transportation" },
+  { division: "35", subgroupTh: "งานภายนอก / โครงสร้างพื้นฐาน", subgroupEn: "Site & Infrastructure", titleTh: "งานทางน้ำและงานก่อสร้างทางทะเล", titleEn: "Waterway and Marine Construction" },
+  { division: "36", subgroupTh: "งานภายนอก / โครงสร้างพื้นฐาน", subgroupEn: "Site & Infrastructure", titleTh: "— สงวนไว้ใช้ในอนาคต —", titleEn: "Reserved for Future Expansion" },
+  { division: "37", subgroupTh: "งานภายนอก / โครงสร้างพื้นฐาน", subgroupEn: "Site & Infrastructure", titleTh: "— สงวนไว้ใช้ในอนาคต —", titleEn: "Reserved for Future Expansion" },
+  { division: "38", subgroupTh: "งานภายนอก / โครงสร้างพื้นฐาน", subgroupEn: "Site & Infrastructure", titleTh: "— สงวนไว้ใช้ในอนาคต —", titleEn: "Reserved for Future Expansion" },
+  { division: "39", subgroupTh: "งานภายนอก / โครงสร้างพื้นฐาน", subgroupEn: "Site & Infrastructure", titleTh: "— สงวนไว้ใช้ในอนาคต —", titleEn: "Reserved for Future Expansion" },
+  { division: "40", subgroupTh: "อุปกรณ์กระบวนการผลิต", subgroupEn: "Process Equipment", titleTh: "งานเชื่อมต่อระบบในกระบวนการผลิต", titleEn: "Process Interconnections" },
+  { division: "41", subgroupTh: "อุปกรณ์กระบวนการผลิต", subgroupEn: "Process Equipment", titleTh: "เครื่องจักรแปรรูปและลำเลียงวัสดุ", titleEn: "Material Processing and Handling Equipment" },
+  { division: "42", subgroupTh: "อุปกรณ์กระบวนการผลิต", subgroupEn: "Process Equipment", titleTh: "อุปกรณ์ให้ความร้อน ทำความเย็น และอบแห้งในกระบวนการผลิต", titleEn: "Process Heating, Cooling, and Drying Equipment" },
+  { division: "43", subgroupTh: "อุปกรณ์กระบวนการผลิต", subgroupEn: "Process Equipment", titleTh: "อุปกรณ์จัดการ ทำให้บริสุทธิ์ และจัดเก็บก๊าซ/ของเหลว", titleEn: "Process Gas and Liquid Handling, Purification, and Storage Equipment" },
+  { division: "44", subgroupTh: "อุปกรณ์กระบวนการผลิต", subgroupEn: "Process Equipment", titleTh: "อุปกรณ์ควบคุมมลพิษและของเสีย", titleEn: "Pollution and Waste Control Equipment" },
+  { division: "45", subgroupTh: "อุปกรณ์กระบวนการผลิต", subgroupEn: "Process Equipment", titleTh: "เครื่องจักรการผลิตเฉพาะอุตสาหกรรม", titleEn: "Industry-Specific Manufacturing Equipment" },
+  { division: "46", subgroupTh: "อุปกรณ์กระบวนการผลิต", subgroupEn: "Process Equipment", titleTh: "อุปกรณ์ระบบน้ำและน้ำเสีย", titleEn: "Water and Wastewater Equipment" },
+  { division: "47", subgroupTh: "อุปกรณ์กระบวนการผลิต", subgroupEn: "Process Equipment", titleTh: "— สงวนไว้ใช้ในอนาคต —", titleEn: "Reserved for Future Expansion" },
+  { division: "48", subgroupTh: "อุปกรณ์กระบวนการผลิต", subgroupEn: "Process Equipment", titleTh: "งานผลิตกระแสไฟฟ้า", titleEn: "Electrical Power Generation" },
+  { division: "49", subgroupTh: "อุปกรณ์กระบวนการผลิต", subgroupEn: "Process Equipment", titleTh: "— สงวนไว้ใช้ในอนาคต —", titleEn: "Reserved for Future Expansion" },
+]
+
 export interface CsiMasterFormatEntry {
   code: string
+  division: string
   nameTh: string
   nameEn: string
 }
 
 export const CSI_MASTER_FORMAT: CsiMasterFormatEntry[] = [
-  // Division 01 — General Requirements
-  { code: '01 00 00', nameTh: 'ความต้องการทั่วไป', nameEn: 'General Requirements' },
-  { code: '01 11 00', nameTh: 'ขอบเขตของงาน', nameEn: 'Summary of Work' },
-  { code: '01 30 00', nameTh: 'ความต้องการด้านงานธุรการและเอกสาร', nameEn: 'Administrative Requirements' },
-  {
-    code: '01 31 00',
-    nameTh: 'การบริหารโครงการและการประสานงาน',
-    nameEn: 'Project Management and Coordination',
-  },
-  {
-    code: '01 32 00',
-    nameTh: 'เอกสารรายงานความก้าวหน้างานก่อสร้าง',
-    nameEn: 'Construction Progress Documentation',
-  },
-  { code: '01 33 00', nameTh: 'ขั้นตอนของการส่งเอกสารต่างๆ', nameEn: 'Submittal Procedures' },
-  { code: '01 40 00', nameTh: 'ความต้องการด้านคุณภาพ', nameEn: 'Quality Requirements' },
-  { code: '01 42 00', nameTh: 'เอกสารอ้างอิงต่างๆ', nameEn: 'References' },
-  {
-    code: '01 50 00',
-    nameTh: 'สิ่งอำนวยความสะดวกชั่วคราวและการควบคุม',
-    nameEn: 'Temporary Facilities and Control',
-  },
-  {
-    code: '01 57 19',
-    nameTh: 'การควบคุมสิ่งแวดล้อมชั่วคราว',
-    nameEn: 'Temporary Environmental Controls',
-  },
-  { code: '01 60 00', nameTh: 'ความต้องการเกี่ยวกับผลิตภัณฑ์', nameEn: 'Product Requirements' },
-  {
-    code: '01 70 00',
-    nameTh: 'การบริหารเพื่อปิดงานนั้นๆ',
-    nameEn: 'Execution and Closeout Requirements',
-  },
-  { code: '01 77 00', nameTh: 'ขั้นตอนของการปิดงานส่วนต่างๆ', nameEn: 'Closeout Procedures' },
-
-  // Division 02 — Existing Conditions
-  { code: '02 00 00', nameTh: 'สภาพเดิมของหน่วยงานก่อสร้าง', nameEn: 'Existing Conditions' },
-  {
-    code: '02 22 00',
-    nameTh: 'การประเมินงานในพื้นที่เดิมก่อนการก่อสร้าง',
-    nameEn: 'Existing Condition Assessment',
-  },
-
-  // Division 03 — Concrete
-  { code: '03 00 00', nameTh: 'งานคอนกรีต', nameEn: 'Concrete' },
-  { code: '03 05 19', nameTh: 'อุปกรณ์ฝังยึดในคอนกรีตภายหลัง', nameEn: '' },
-  {
-    code: '03 11 13',
-    nameTh: 'ไม้แบบคอนกรีตโครงสร้างหล่อในที่',
-    nameEn: 'Structural CIP Concrete Forming',
-  },
-  { code: '03 21 00', nameTh: 'เหล็กเส้นเสริมคอนกรีต', nameEn: 'Reinforcement Bars' },
-  { code: '03 31 00', nameTh: 'คอนกรีตโครงสร้าง', nameEn: 'Structural Concrete' },
-  { code: '03 38 19', nameTh: 'งานพื้นคอนกรีตอัดแรงภายหลัง', nameEn: 'Bonded Post-Tensioed Slab' },
-  { code: '03 41 16', nameTh: 'งานพื้นคอนกรีตสำเร็จรูป', nameEn: '' },
-  {
-    code: '03 48 16',
-    nameTh: 'ผนังคอนกรีตมวลเบาสำเร็จรูป',
-    nameEn: 'Precast Lightweight Concrete Wall Panels',
-  },
-
-  // Division 04 — Masonry
-  { code: '04 00 00', nameTh: 'งานก่อ', nameEn: 'Masonry' },
-  { code: '04 20 00', nameTh: 'วัสดุก่อ', nameEn: 'Unit Masonry' },
-  {
-    code: '04 22 26',
-    nameTh: 'งานก่ออิฐมวลเบา',
-    nameEn: 'Autoclaved Aerated Concrete Unit Masonry',
-  },
-
-  // Division 05 — Metals
-  { code: '05 00 00', nameTh: 'งานโลหะ', nameEn: 'Metals' },
-  { code: '05 01 70', nameTh: 'การบำรุงรักษาโลหะเพื่องานตกแต่ง', nameEn: 'Maintenance of Decorative Metal' },
-  {
-    code: '05 05 19',
-    nameTh: 'อุปกรณ์ฝังยึดคอนกรีตชนิดติดตั้งภายหลัง',
-    nameEn: 'Post-Installed Concrete Anchors',
-  },
-  { code: '05 12 23', nameTh: 'งานเหล็กโครงสร้างอาคาร', nameEn: '' },
-  {
-    code: '05 15 19',
-    nameTh: 'การติดตั้งเชือกลวดเหล็กไร้สนิม',
-    nameEn: 'Stainless-Steel Wire Rope Assemblies',
-  },
-  { code: '05 52 13', nameTh: 'ราวบันไดและราวกันตก', nameEn: 'Pipe and Tube Railings' },
-  { code: '05 55 16', nameTh: 'จมูกบันได', nameEn: 'Metal Stair Nosings' },
-  { code: '05 59 00', nameTh: 'สแตนเลส', nameEn: 'Metal Specialties' },
-  { code: '05 70 00', nameTh: 'งานโลหะเพื่อการตกแต่ง', nameEn: 'Decorative Metal' },
-  { code: '05 75 00', nameTh: 'แผ่นอะลูมิเนียมอบสี', nameEn: 'Decorative Formed Metal' },
-
-  // Division 06 — Wood, Plastics and Composites
-  { code: '06 00 00', nameTh: 'งานไม้ พลาสติก และวัสดุประกอบ', nameEn: 'Wood, Plastics and Composites' },
-  { code: '06 40 00', nameTh: 'งานไม้สำหรับงานสถาปัตยกรรม', nameEn: 'Architectural Woodwork' },
-  {
-    code: '06 42 19',
-    nameTh: 'ผนังโครงคร่าวไม้กรุลามิเนท',
-    nameEn: 'Plastic Laminate Faced Wood Paneling',
-  },
-
-  // Division 07 — Thermal and Moisture Protection
-  {
-    code: '07 00 00',
-    nameTh: 'งานป้องกันความร้อนและป้องกันความชื้น',
-    nameEn: 'Thermal and Moisture Protection',
-  },
-  { code: '07 13 53', nameTh: 'แผ่นป้องกันซึมชนิดยืดหยุ่น', nameEn: 'Elastomeric Sheet Waterproofing' },
-  { code: '07 16 16', nameTh: 'ระบบกันซึมชนิดตกผลึก', nameEn: 'Crystalline Waterproofing' },
-  { code: '07 21 00', nameTh: 'งานฉนวนป้องกันความร้อน', nameEn: 'Thermal Insulation' },
-  { code: '07 41 13', nameTh: 'งานหลังคาโลหะ', nameEn: 'Metal Roof Panels' },
-  { code: '07 42 13', nameTh: 'งานผนังโลหะ', nameEn: 'Metal Wall Panels' },
-  { code: '07 80 00', nameTh: 'การป้องกันไฟและควัน', nameEn: 'Fire and Smoke Protection' },
-  { code: '07 84 00', nameTh: 'วัสดุป้องกันไฟและควันลาม', nameEn: 'Fire Stopping' },
-  { code: '07 92 00', nameTh: 'วัสดุอุดยาแนว', nameEn: 'Joint Sealants' },
-  { code: '07 95 13', nameTh: 'ฝาครอบรอยต่ออาคาร', nameEn: 'Expansion Joint Cover Assemblies' },
-
-  // Division 08 — Opening
-  { code: '08 00 00', nameTh: 'งานช่องเปิด', nameEn: 'Opening' },
-  { code: '08 11 13', nameTh: 'ประตูและวงกบโลหะแบบกลวง', nameEn: 'Hollow Metal Doors and Frames' },
-  { code: '08 11 16', nameTh: 'งานประตูและวงกบอะลูมิเนียม', nameEn: 'Aluminum Doors and Frames' },
-  { code: '08 14 00', nameTh: 'ประตูไม้', nameEn: 'Wood Doors' },
-  { code: '08 15 66', nameTh: 'ประตูเกล็ดพลาสติก', nameEn: 'Plastic Screen Doors' },
-  { code: '08 33 23', nameTh: 'ประตูเหล็กม้วน', nameEn: 'Overhead Coiling Doors' },
-  { code: '08 33 44', nameTh: 'ม่านทนไฟและม่านกั้นควัน', nameEn: 'Fire Curtains' },
-  { code: '08 44 00', nameTh: 'การประกอบผนังกระจก', nameEn: 'Curtain Wall and Glazed Assemblies' },
-  { code: '08 71 00', nameTh: 'อุปกรณ์ประตู', nameEn: 'Door Hardware' },
-  { code: '08 80 00', nameTh: 'งานกระจก', nameEn: 'Glazing' },
-  { code: '08 81 13', nameTh: 'กระจกตกแต่ง', nameEn: 'Decorative Glass Glazing' },
-  { code: '08 91 19', nameTh: 'งานเกล็ดติดตาย', nameEn: 'Fixed Louvers' },
-
-  // Division 09 — Finishes
-  { code: '09 00 00', nameTh: 'งานตกแต่งพื้นผิว', nameEn: 'Finishes' },
-  { code: '09 24 00', nameTh: 'งานฉาบปูน', nameEn: 'Cement Plastering' },
-  { code: '09 29 00', nameTh: 'งานยิปซั่มบอร์ด', nameEn: 'Gypsum Board' },
-  { code: '09 30 00', nameTh: 'กระเบื้อง', nameEn: 'Tiling' },
-  { code: '09 51 13', nameTh: 'ฝ้าเพดานแผ่นอคูสติก', nameEn: 'Acoustical Panel Ceilings' },
-  { code: '09 51 33', nameTh: 'ฝ้าเพดานโลหะชนิดป้องกันเสียง', nameEn: 'Acoustical Metal Pan Ceilings' },
-  { code: '09 54 00', nameTh: 'ฝ้าเพดานซีเมนต์บอร์ด', nameEn: 'Cement Board Ceiling' },
-  {
-    code: '09 54 33',
-    nameTh: 'ฝ้าเพดานแผ่นตกแต่งกรุแผ่นพลาสติกลามิเนท บนไม้อัดยาง',
-    nameEn: 'Decorative Panel Ceilings',
-  },
-  { code: '09 51 43', nameTh: 'ฝ้าเพดานหนังระบบขึง', nameEn: 'Stretched-Fabric Ceiling Systems' },
-  { code: '09 62 00', nameTh: 'พื้นชนิดพิเศษ', nameEn: 'Specialty Flooring' },
-  { code: '09 63 40', nameTh: 'งานพื้นหิน', nameEn: 'Stone Flooring' },
-  { code: '09 63 43', nameTh: 'พื้นหินธรรมชาติอัด', nameEn: 'Composition Stone Flooring' },
-  { code: '09 66 16', nameTh: 'กระเบื้องหินขัดปูพื้น', nameEn: 'Terrazzo Floor Tile' },
-  { code: '09 68 13', nameTh: 'พื้นพรมแผ่น', nameEn: 'Tile Carpeting' },
-  { code: '09 72 00', nameTh: 'วัสดุปิดผนัง', nameEn: 'Wall Coverings' },
-  { code: '09 91 00', nameTh: 'งานสี', nameEn: 'Painting' },
-  {
-    code: '09 96 46',
-    nameTh: 'การป้องกันไฟสำหรับโครงสร้างเหล็ก (ชนิด Intumescent Coating)',
-    nameEn: '',
-  },
-  {
-    code: '09 97 26',
-    nameTh: 'ฉนวนป้องกันไฟชนิดพ่นบนโครงสร้างเหล็ก',
-    nameEn: 'Cementitious Fireproofing On Steel Structure',
-  },
-
-  // Division 10 — Specialties
-  { code: '10 00 00', nameTh: 'สิ่งก่อสร้างพิเศษ', nameEn: 'Specialties' },
-  { code: '10 13 00', nameTh: 'ป้ายบอกรายละเอียด', nameEn: 'Directories' },
-  { code: '10 14 00', nameTh: 'ป้ายสัญลักษณ์', nameEn: 'Signage' },
-  { code: '10 14 43', nameTh: 'แถบเรืองแสงนำทาง', nameEn: 'Photoluminescent Path Marking' },
-  { code: '10 21 13', nameTh: 'ผนังกั้นส่วนห้องน้ำ', nameEn: 'Toilet Compartments' },
-  {
-    code: '10 22 23',
-    nameTh: 'ผนังเลื่อนกั้นห้อง',
-    nameEn: 'Portable Partitions, Screens, and Panels',
-  },
-  { code: '10 44 16', nameTh: 'เครื่องดับเพลิงมือถือ', nameEn: 'Portable Fire Extinguisher' },
-  { code: '10 51 00', nameTh: 'ตู้ล็อคเกอร์', nameEn: 'Lockers' },
-  {
-    code: '10 71 13',
-    nameTh: 'แผงอุปกรณ์ควบคุมแสงแดดภายนอกอาคาร',
-    nameEn: 'Exterior Sun Control Devices',
-  },
-
-  // Division 11 — Equipment
-  { code: '11 00 00', nameTh: 'อุปกรณ์', nameEn: 'Equipment' },
-  { code: '11 68 13', nameTh: 'พื้นยางสนามเด็กเล่น', nameEn: 'Playground Equipment' },
-
-  // Division 12 — Furnishings
-  { code: '12 00 00', nameTh: 'เครื่องตกแต่ง', nameEn: 'Furnishings' },
-  { code: '12 14 23', nameTh: 'ศิลปะแบบนูน', nameEn: 'Relief' },
-  { code: '12 17 00', nameTh: 'ศิลปะกระจก', nameEn: 'Art Glass' },
-  { code: '12 22 00', nameTh: 'ม่านจีบ', nameEn: 'Curtains & Drapes' },
-  { code: '12 28 00', nameTh: 'อุปกรณ์ประกอบ', nameEn: 'Toilet, Bath, and Laundry Accessories' },
-  {
-    code: '12 36 23.13',
-    nameTh: 'เคาน์เตอร์หุ้มพลาสติกลามิเนท',
-    nameEn: 'Plastic-Laminate-Clad Countertop',
-  },
-  { code: '12 36 40', nameTh: 'เคาน์เตอร์หิน', nameEn: 'Stone Countertop' },
-  { code: '12 36 61', nameTh: 'เคาน์เตอร์หินเทียม', nameEn: 'Simulated Stone Countertop' },
-  { code: '12 51 19', nameTh: 'ตู้ใส่ของ', nameEn: 'Filing Cabinets' },
-  { code: '12 51 23', nameTh: 'โต๊ะสำนักงาน', nameEn: 'Office Tables' },
-  { code: '12 52 13', nameTh: 'เก้าอี้', nameEn: 'Chairs' },
-  { code: '12 52 83', nameTh: 'ที่นั่งสั่งผลิต', nameEn: 'Custom Seating' },
-  { code: '12 60 00', nameTh: 'ที่นั่งแบบแถวเรียง', nameEn: 'Multiple Seating' },
-  { code: '12 92 13', nameTh: 'ต้นไม้ประดิษฐ์', nameEn: 'Interior Artificial Plants' },
-  { code: '12 92 33', nameTh: 'กระถางต้นไม้', nameEn: 'Interior Planters' },
-  {
-    code: '12 92 43',
-    nameTh: 'อุปกรณ์สำหรับงานสวนภายใน',
-    nameEn: 'Interior Landscape Accessories',
-  },
-  { code: '12 93 33', nameTh: 'กระถางสำเร็จรูป', nameEn: 'Manufactured Planters' },
-
-  // Division 14 — Conveying Equipment
-  { code: '14 00 00', nameTh: 'งานระบบอุปกรณ์ลำเลียง', nameEn: 'Conveying Equipment' },
-  { code: '14 20 00', nameTh: 'ลิฟต์', nameEn: 'Elevators' },
-  { code: '14 31 00', nameTh: 'บันไดเลื่อน', nameEn: 'Escalators' },
-  { code: '14 32 00', nameTh: 'ทางเลื่อนอัตโนมัติ', nameEn: 'Moving Walks' },
-
-  // Division 21 — Fire Suppression
-  { code: '21 00 00', nameTh: 'ระบบป้องกันเพลิงไหม้', nameEn: 'Fire Suppression' },
-  {
-    code: '21 11 00',
-    nameTh: 'สิ่งอำนวยความสะดวกของระบบดับเพลิง',
-    nameEn: 'Facility Fire-Suppression Water-Service Piping',
-  },
-  { code: '21 12 00', nameTh: 'ท่อยืนในระบบดับเพลิง', nameEn: 'Fire-Suppression Stanpipes' },
-  {
-    code: '21 13 13',
-    nameTh: 'ระบบดับเพลิงสปริงเกลอร์แบบท่อเปียก',
-    nameEn: 'Wet-Pipe Sprinkler Systems',
-  },
-  {
-    code: '21 16 00',
-    nameTh: 'เครื่องสูบน้ำรักษาแรงดัน',
-    nameEn: 'Fire Suppression Pressure Maintenance Pumps',
-  },
-  {
-    code: '21 22 00',
-    nameTh: 'ระบบดับเพลิงสารสะอาด',
-    nameEn: 'Clean-Agent Fire Extinguishing Systems',
-  },
-  {
-    code: '21 23 00',
-    nameTh: 'ระบบดับเพลิงแบบสารเคมีเปียก',
-    nameEn: 'Wet Chemical Fire-Extinguising Systems',
-  },
-  {
-    code: '21 31 13',
-    nameTh: 'เครื่องสูบน้ำดับเพลิงแบบหอยโข่งขับด้วยไฟฟ้า',
-    nameEn: 'Electric-Drive, Vertical- Turbine Fire Pumps',
-  },
-  {
-    code: '21 31 16',
-    nameTh: 'เครื่องสูบน้ำดับเพลิงแบบแนวตั้งขับด้วยเครื่องยนต์ดีเซล',
-    nameEn: 'Electric-Drive, Vertical-Turbine Fire Pumps',
-  },
-  {
-    code: '21 32 13',
-    nameTh: 'เครื่องสูบน้ำดับเพลิงแบบแนวตั้งขับด้วยไฟฟ้า',
-    nameEn: 'Electric-Drive, Vertical- Turbine Fire Pumps',
-  },
-  {
-    code: '21 32 16',
-    nameTh: 'เครื่องสูบน้ำดับเพลิงแบบแนวตั้งขับด้วยเครื่องยนต์ดีเซล',
-    nameEn: 'Electric-Drive, Vertical-Turbine Fire Pumps',
-  },
-
-  // Division 22 — Plumbing
-  { code: '22 00 00', nameTh: 'ระบบประปาและสุขาภิบาล', nameEn: 'Plumbing' },
-  { code: '22 08 00', nameTh: 'การทดสอบงานระบบประปาสุขาภิบาล', nameEn: 'Comissioning of Plumbing' },
-  { code: '22 11 16', nameTh: 'ท่อจ่ายน้ำประปา', nameEn: 'Domestic Water Pipe' },
-  {
-    code: '22 11 19',
-    nameTh: 'อุปกรณ์ประกอบท่อจ่ายน้ำประปา',
-    nameEn: 'Domestic Water Piping Specialties',
-  },
-  { code: '22 11 23', nameTh: 'เครื่องสูบน้ำระบบประปา', nameEn: 'Domestic Water Pump' },
-  { code: '22 13 16', nameTh: 'ท่อสุขาภิบาล', nameEn: 'Sanitary Waste and Vent Pipe' },
-  {
-    code: '22 13 19',
-    nameTh: 'อุปกรณ์ประกอบระบบท่อสุขาภิบาล',
-    nameEn: 'Sanitary Waste Piping Speciaties',
-  },
-  { code: '22 13 29', nameTh: 'เครื่องสูบน้ำระบบสุขาภิบาล', nameEn: 'Sanitary Sewerage Pump' },
-  { code: '22 14 16', nameTh: 'ท่อระบายน้ำฝน', nameEn: 'Rainwater Leaders' },
-  {
-    code: '22 14 26',
-    nameTh: 'สิ่งอำนวยความสะดวกด้านการระบายน้ำฝน',
-    nameEn: 'Facility Storm Drains',
-  },
-
-  // Division 23 — Heating, Ventilating and Air Conditioning (HVAC)
-  {
-    code: '23 00 00',
-    nameTh: 'ระบบปรับอากาศและระบายอากาศ',
-    nameEn: 'Heating, Ventilating and Air Conditioning (HVAC)',
-  },
-  { code: '23 07 13', nameTh: 'ฉนวนท่อลม', nameEn: 'Duct Insulation' },
-  { code: '23 07 19', nameTh: 'ฉนวนท่อระบบปรับอากาศ', nameEn: 'Hvac Piping Insulation' },
-  { code: '23 08 00', nameTh: 'การทดสอบการทำงานของระบบ', nameEn: 'Commissioning of Hvac' },
-  { code: '23 09 00', nameTh: 'เครื่องมือและอุปกรณ์ควมคุมระบบ', nameEn: '' },
-  { code: '23 21 00', nameTh: 'ท่อน้ำ', nameEn: 'Hydronic Piping' },
-  { code: '23 23 00', nameTh: 'ท่อน้ำยา', nameEn: 'Refrigerant Piping' },
-  { code: '23 31 00', nameTh: 'ระบบท่อลม', nameEn: 'HVAC Ducts and Casings' },
-  { code: '23 33 00', nameTh: 'อุปกรณ์ภายในท่อลม', nameEn: 'Air Duct Accessories' },
-  {
-    code: '23 33 14',
-    nameTh: 'ชุดแผ่นปรับลมสำหรับการระบายอากาศในอุโมงค์',
-    nameEn: 'Tunnel Ventilation Damper Units',
-  },
-  { code: '23 33 19', nameTh: 'อุปกรณ์ลดเสียง', nameEn: 'Sound Attenuators & Others' },
-  { code: '23 34 00', nameTh: 'พัดลมระบายอากาศ', nameEn: 'HVAC FANS' },
-  { code: '23 34 21', nameTh: 'พัดลมระบายอากาศในอุโมงค์', nameEn: 'Tunnel Ventilation Fans' },
-  { code: '23 35 19', nameTh: 'ระบบระบายควัน', nameEn: 'Smoke Exhaust System' },
-  { code: '23 35 20', nameTh: 'ระบบพัดลมอัดอากาศ', nameEn: 'Air Pressurized System' },
-  { code: '23 37 00', nameTh: 'อุปกรณ์จ่ายลม', nameEn: 'Air Outlets and Inlets' },
-  { code: '23 37 24', nameTh: 'เกล็ดระบายลมชนิดกันฝน', nameEn: 'Wind Driven Rain Louvers' },
-  { code: '23 41 00', nameTh: 'แผ่นกรองอากาศ', nameEn: 'Particulate Air Filtration' },
-  { code: '23 43 00', nameTh: 'เครื่องทำความสะอาดอากาศด้วยอิเล็กทรอนิกส์', nameEn: '' },
-  {
-    code: '23 72 00',
-    nameTh: 'อุปกรณ์แลกเปลี่ยนพลังงาน',
-    nameEn: 'Air-to-Air Energy Recovery Equipment',
-  },
-  {
-    code: '23 73 00',
-    nameTh: 'เครื่องส่งลมเย็นภายในอาคาร',
-    nameEn: 'Indoor Central-Station Air-Handling Unit',
-  },
-  { code: '23 82 19', nameTh: 'เครื่องเป่าลมเย็น', nameEn: 'Fan Coil Unit' },
-
-  // Division 26 — Electrical
-  { code: '26 00 00', nameTh: 'ระบบไฟฟ้า', nameEn: 'Electrical' },
-  {
-    code: '26 05 19',
-    nameTh: 'ตัวนำและสายไฟฟ้าแรงต่ำ',
-    nameEn: 'Low-Voltage Electrical Power Conductor and Cable',
-  },
-  {
-    code: '26 05 26',
-    nameTh: 'การต่อลงดินและการต่อฝากทางไฟฟ้า',
-    nameEn: 'Grounding and Bonding for Electrical Systems',
-  },
-  { code: '26 05 33.13', nameTh: 'ท่อร้อยสายไฟ', nameEn: 'Conduit for Electrical Systems' },
-  {
-    code: '26 05 33.16',
-    nameTh: 'กล่องและอุปกรณ์ประกอบสำหรับงานระบบไฟฟ้า',
-    nameEn: 'Boxes For Electrical Systms',
-  },
-  {
-    code: '26 05 33.23',
-    nameTh: 'ช่องเดินสายโลหะบนพื้นผิว',
-    nameEn: 'Surface Raceways for Electrical Systems',
-  },
-  {
-    code: '26 05 36',
-    nameTh: 'รางเคเบิลสำหรับการติดตั้งระบบไฟฟ้า',
-    nameEn: 'Cable Trays for Electrical Systems',
-  },
-  { code: '26 09 43.13', nameTh: 'ระบบควบคุมไฟฟ้าแสงสว่างแบบเครือข่ายดิจิตัล', nameEn: '' },
-  {
-    code: '26 09 43.14',
-    nameTh: 'ระบบเครือข่ายสำหรับควบคุมไฟฟ้าแสงสว่างลานจอดอากาศยาน',
-    nameEn: 'Apron Lighting Control System',
-  },
-  {
-    code: '26 09 43.15',
-    nameTh: 'ระบบแจ้งเตือนภัยในพื้นที่ลานจอดอากาศยาน',
-    nameEn: 'Warning System',
-  },
-  { code: '26 24 13', nameTh: 'แผงตู้ไฟฟ้าหลัก', nameEn: 'Switchboards' },
-  { code: '26 24 16', nameTh: 'แผงตู้ไฟฟ้าย่อย', nameEn: 'Panel Boards' },
-  { code: '26 25 00', nameTh: 'บัสเวย์', nameEn: 'Busway' },
-  { code: '26 17 13', nameTh: 'อุปกรณ์วัดทางระบบไฟฟ้า', nameEn: 'Electric Metering' },
-  { code: '26 28 16.13', nameTh: 'เซอร์กิจเบรคเกอร์', nameEn: 'Enclosed Circuit Breakers' },
-  { code: '26 28 16.16', nameTh: 'สวิทซ์ตัดวงจรไฟฟ้า', nameEn: 'Enclosed Switches' },
-  {
-    code: '26 32 13.13',
-    nameTh: 'เครื่องกำเนิดไฟฟ้าชนิดเครื่องยนต์ดีเซล',
-    nameEn: 'Diesel Engine Driven Generator Sets',
-  },
-  {
-    code: '26 32 33',
-    nameTh: 'เครื่องกำเนิดไฟฟ้าชนิดต่อเนื่องแบบหมุนรอบ',
-    nameEn: 'Rotary Uninptible Power Unit',
-  },
-  { code: '26 33 13', nameTh: 'แบตเตอรี่', nameEn: 'Batteries' },
-  {
-    code: '26 33 53',
-    nameTh: 'แหล่งจ่ายไฟแบบต่อเนื่อง',
-    nameEn: 'Static Uninterruptible Power Supply',
-  },
-  {
-    code: '26 35 13',
-    nameTh: 'คาปาซิเตอร์ และระบบควบคุมอัตโนมัติ',
-    nameEn: 'Capacitor And Power Factor Controller',
-  },
-  {
-    code: '26 36 23',
-    nameTh: 'สวิตซ์ถ่ายโอนชนิดทำงานอัตโนมัติ',
-    nameEn: 'Automatic Transfer Switches',
-  },
-  {
-    code: '26 41 13.13',
-    nameTh: 'ระบบการต่อลงดินและป้องกันฟ้าผ่า',
-    nameEn: 'Grounding and Lightning Protection',
-  },
-  {
-    code: '26 41 13.14',
-    nameTh: 'จุดต่อกราวด์สำหรับอากาศยาน',
-    nameEn: 'Aircraft Ground Receptacle',
-  },
-  {
-    code: '26 43 13',
-    nameTh: 'อุปกรณ์ป้องกันเสิร์จสำหรับระบบไฟฟ้าแรงต่ำ',
-    nameEn: 'Surge Protection Devices for Low Voltage Electrical Power',
-  },
-  {
-    code: '26 51 13',
-    nameTh: 'โคมไฟฟ้าแสงสว่างและอุปกรณ์ประกอบ สวิตช์ และเต้ารับ',
-    nameEn: 'Lighting Fixtures Switch and Receptacle',
-  },
-  { code: '26 52 00', nameTh: 'ระบบไฟฟ้าแสงสว่างฉุกเฉิน', nameEn: 'Emergency Light' },
-  { code: '26 53 00', nameTh: 'ระบบป้ายทางออกฉุกเฉิน', nameEn: 'Exit Sign' },
-  { code: '26 56 23', nameTh: 'ระบบไฟฟ้าส่องสว่างพื้นที่', nameEn: 'Area Lighting' },
-  { code: '26 60 00', nameTh: 'ระบบจัดเก็บค่าการใช้พลังงานไฟฟ้า', nameEn: 'Energy Billing System' },
-  {
-    code: '26 70 00',
-    nameTh: 'ระบบบริหารจัดการอาคาร',
-    nameEn: 'Building Management System (BMS)',
-  },
-  { code: '26 80 00', nameTh: 'ระบบตรวจสอบและวิเคราะห์ข้อมูล', nameEn: 'SCADA' },
-
-  // Division 27 — Communications
-  { code: '27 00 00', nameTh: 'ระบบสื่อสาร', nameEn: 'Communications' },
-  { code: '27 10 00', nameTh: 'ระบบข่ายสายสัญญาณ', nameEn: 'Structure Cabling System' },
-  { code: '27 21 00', nameTh: 'ระบบเครือข่ายสื่อสาร', nameEn: 'Gigabit Ethernet Network' },
-  { code: '27 32 13', nameTh: 'ระบบโทรศัพท์แบบไอพี', nameEn: 'IP Telephone System' },
-  { code: '27 32 43', nameTh: 'ระบบวิทยุสื่อสาร', nameEn: 'Trunk Radio System' },
-  {
-    code: '27 42 10',
-    nameTh: 'ระบบแสดงข้อมูลตารางการบิน',
-    nameEn: 'Flight Information Display System: FIDS',
-  },
-  { code: '21 51 16', nameTh: 'ระบบเสียงประกาศ', nameEn: 'Public Address System (PAS)' },
-  { code: '27 53 13', nameTh: 'ระบบมาตรฐานสัญญาณนาฬิกา', nameEn: 'Master Clock System' },
-  {
-    code: '27 54 00',
-    nameTh: 'ระบบกระจายสัญญาณโทรทัศน์แบบโครงข่าย',
-    nameEn: 'Internet Protocol Television System (IPTV)',
-  },
-
-  // Division 28 — Electronic Safety and Security
-  {
-    code: '28 00 00',
-    nameTh: 'ระบบความมั่นคงและความปลอดภัยอิเล็กทรอนิกส์',
-    nameEn: 'Electronic Safety and Security',
-  },
-  {
-    code: '28 13 00',
-    nameTh: 'ระบบควบคุมการเข้าออก',
-    nameEn: 'Controlled Access Security System (CASS)',
-  },
-  {
-    code: '28 13 10',
-    nameTh: 'ระบบควบคุมการเข้าออกสำหรับอุโมงค์',
-    nameEn: 'Controlled Access Security System for Tunnel (CASS)',
-  },
-  {
-    code: '28 20 00',
-    nameTh: 'ระบบกล้องโทรทัศน์วงจรปิด',
-    nameEn: 'Closed Circuit Television System (CCTV)',
-  },
-  {
-    code: '28 20 10',
-    nameTh: 'ระบบกล้องโทรทัศน์วงจรปิดในอุโมงค์',
-    nameEn: 'Closed Circuit Television System for Tunnel (CCTV)',
-  },
-  {
-    code: '28 31 00',
-    nameTh: 'ระบบแจ้งเหตุเพลิงไหม้',
-    nameEn: 'Fire Detection and Alarm System, FDAS',
-  },
-  {
-    code: '28 50 00',
-    nameTh: 'ระบบบริหารการรักษาความปลอดภัย',
-    nameEn: 'Security Management System (SMS)',
-  },
-
-  // Division 31 — Earth Work
-  { code: '31 00 00', nameTh: 'งานดิน', nameEn: 'Earth Work' },
-  { code: '31 01 20', nameTh: 'งานขุดดินและถมดิน', nameEn: '' },
-  { code: '31 11 00', nameTh: 'งานรื้อถอนและเตรียมพื้นที่', nameEn: '' },
-  { code: '31 31 00', nameTh: 'ระบบป้องกันการพังทลายของดิน', nameEn: '' },
-  { code: '31 62 13', nameTh: 'งานเสาเข็มตอก', nameEn: '' },
-  { code: '31 63 00', nameTh: 'งานเสาเข็มเจาะ', nameEn: '' },
-  { code: '31 63 23.13', nameTh: 'งานกําแพงกันดินชนิดขุดหล่อในที่', nameEn: '' },
-
-  // Division 32 — Exterior Improvements
-  { code: '32 00 00', nameTh: 'งานปรับปรุงพื้นที่ภายนอก', nameEn: 'Exterior Improvements' },
-  { code: '32 84 00', nameTh: 'ระบบชลประทานเพื่อการเพาะปลูก', nameEn: 'Planting Irrigation' },
-  { code: '32 90 00', nameTh: 'การเพาะปลูก', nameEn: 'Planting' },
-  { code: '32 91 00', nameTh: 'งานเตรียมการเพาะปลูก', nameEn: 'Planting Preparation' },
-  { code: '32 91 13', nameTh: 'งานเตรียมดิน', nameEn: 'Soil Preparation' },
-
-  // Division 34 — Transportation
-  { code: '34 00 00', nameTh: 'การขนส่ง', nameEn: 'Transportation' },
-  { code: '34 77 13', nameTh: 'สะพานเทียบอากาศยาน PBB', nameEn: '' },
-  { code: '34 77 33', nameTh: 'กระบวนการตรวจค้นอาวุธและวัตถุระเบิดสำหรับสัมภาระ HBSS', nameEn: '' },
-  { code: '34 77 39', nameTh: '', nameEn: 'Baggage Handling System' },
-  { code: '34 77 43', nameTh: 'งานระบบปรับอากาศสำหรับอากาศยาน PCA', nameEn: '' },
-  { code: '34 77 53', nameTh: 'งานระบบกำลังไฟฟ้าภาคพื้น 400 Hz GPU', nameEn: '' },
-  { code: '34 77 63', nameTh: 'งานระบบนำร่องอากาศยานเข้าจอด VDGS', nameEn: '' },
+  { code: "01 00 00", division: "01", nameTh: "ความต้องการทั่วไปของโครงการ", nameEn: "General Requirements" },
+  { code: "01 11 00", division: "01", nameTh: "ขอบเขตของงาน", nameEn: "Summary of Work" },
+  { code: "01 30 00", division: "01", nameTh: "ความต้องการด้านงานธุรการและเอกสาร", nameEn: "Administrative Requirements" },
+  { code: "01 31 00", division: "01", nameTh: "การบริหารโครงการและการประสานงาน", nameEn: "Project Management and Coordination" },
+  { code: "01 32 00", division: "01", nameTh: "เอกสารรายงานความก้าวหน้าของงานก่อสร้าง", nameEn: "Construction Progress Documentation" },
+  { code: "01 33 00", division: "01", nameTh: "ขั้นตอนการส่งเอกสาร (Submittal)", nameEn: "Submittal Procedures" },
+  { code: "01 40 00", division: "01", nameTh: "ความต้องการด้านคุณภาพ", nameEn: "Quality Requirements" },
+  { code: "01 42 00", division: "01", nameTh: "เอกสารและมาตรฐานอ้างอิง", nameEn: "References" },
+  { code: "01 50 00", division: "01", nameTh: "สิ่งอำนวยความสะดวกชั่วคราวและการควบคุมหน้างาน", nameEn: "Temporary Facilities and Controls" },
+  { code: "01 57 19", division: "01", nameTh: "การควบคุมสิ่งแวดล้อมชั่วคราว", nameEn: "Temporary Environmental Controls" },
+  { code: "01 60 00", division: "01", nameTh: "ความต้องการเกี่ยวกับผลิตภัณฑ์/วัสดุ", nameEn: "Product Requirements" },
+  { code: "01 70 00", division: "01", nameTh: "การดำเนินงานและการปิดงาน", nameEn: "Execution and Closeout Requirements" },
+  { code: "01 77 00", division: "01", nameTh: "ขั้นตอนการปิดงานแต่ละส่วน", nameEn: "Closeout Procedures" },
+  { code: "02 00 00", division: "02", nameTh: "สภาพพื้นที่เดิมของหน่วยงานก่อสร้าง", nameEn: "Existing Conditions" },
+  { code: "02 22 00", division: "02", nameTh: "การประเมินสภาพพื้นที่เดิมก่อนเริ่มก่อสร้าง", nameEn: "Existing Condition Assessment" },
+  { code: "03 00 00", division: "03", nameTh: "งานคอนกรีต", nameEn: "Concrete" },
+  { code: "03 05 19", division: "03", nameTh: "อุปกรณ์ฝังยึดในคอนกรีตชนิดติดตั้งภายหลัง", nameEn: "Post-Installed Anchors in Concrete" },
+  { code: "03 11 13", division: "03", nameTh: "ไม้แบบสำหรับคอนกรีตโครงสร้างหล่อในที่", nameEn: "Structural Cast-in-Place Concrete Forming" },
+  { code: "03 21 00", division: "03", nameTh: "เหล็กเส้นเสริมคอนกรีต", nameEn: "Reinforcement Bars" },
+  { code: "03 31 00", division: "03", nameTh: "คอนกรีตโครงสร้าง", nameEn: "Structural Concrete" },
+  { code: "03 38 19", division: "03", nameTh: "งานพื้นคอนกรีตอัดแรงชนิดยึดเหนี่ยว (Post-Tensioned)", nameEn: "Bonded Post-Tensioned Slab" },
+  { code: "03 41 16", division: "03", nameTh: "งานพื้นคอนกรีตสำเร็จรูป", nameEn: "Precast Concrete Slabs" },
+  { code: "03 48 16", division: "03", nameTh: "ผนังคอนกรีตมวลเบาสำเร็จรูป", nameEn: "Precast Lightweight Concrete Wall Panels" },
+  { code: "04 00 00", division: "04", nameTh: "งานก่อ", nameEn: "Masonry" },
+  { code: "04 20 00", division: "04", nameTh: "วัสดุก่อ", nameEn: "Unit Masonry" },
+  { code: "04 22 26", division: "04", nameTh: "งานก่ออิฐมวลเบา", nameEn: "Autoclaved Aerated Concrete Unit Masonry" },
+  { code: "05 00 00", division: "05", nameTh: "งานโลหะ", nameEn: "Metals" },
+  { code: "05 01 70", division: "05", nameTh: "การบำรุงรักษาโลหะเพื่องานตกแต่ง", nameEn: "Maintenance of Decorative Metal" },
+  { code: "05 05 19", division: "05", nameTh: "อุปกรณ์ฝังยึดคอนกรีตชนิดติดตั้งภายหลัง", nameEn: "Post-Installed Concrete Anchors" },
+  { code: "05 12 23", division: "05", nameTh: "งานเหล็กโครงสร้างอาคาร", nameEn: "Structural Steel" },
+  { code: "05 15 19", division: "05", nameTh: "การติดตั้งชุดเชือกลวดสลิงสเตนเลส", nameEn: "Stainless-Steel Wire Rope Assemblies" },
+  { code: "05 52 13", division: "05", nameTh: "ราวบันไดและราวกันตกชนิดท่อ", nameEn: "Pipe and Tube Railings" },
+  { code: "05 55 16", division: "05", nameTh: "จมูกบันไดโลหะ", nameEn: "Metal Stair Nosings" },
+  { code: "05 59 00", division: "05", nameTh: "งานโลหะเฉพาะทาง (สเตนเลส)", nameEn: "Metal Specialties" },
+  { code: "05 70 00", division: "05", nameTh: "งานโลหะเพื่อการตกแต่ง", nameEn: "Decorative Metal" },
+  { code: "05 75 00", division: "05", nameTh: "แผ่นอะลูมิเนียมขึ้นรูปอบสี", nameEn: "Decorative Formed Metal" },
+  { code: "06 00 00", division: "06", nameTh: "งานไม้ พลาสติก และวัสดุประกอบ", nameEn: "Wood, Plastics and Composites" },
+  { code: "06 40 00", division: "06", nameTh: "งานไม้สำหรับงานสถาปัตยกรรม", nameEn: "Architectural Woodwork" },
+  { code: "06 42 19", division: "06", nameTh: "ผนังโครงคร่าวไม้กรุแผ่นลามิเนต", nameEn: "Plastic Laminate Faced Wood Paneling" },
+  { code: "07 00 00", division: "07", nameTh: "งานป้องกันความร้อนและความชื้น", nameEn: "Thermal and Moisture Protection" },
+  { code: "07 13 53", division: "07", nameTh: "แผ่นกันซึมชนิดยืดหยุ่น", nameEn: "Elastomeric Sheet Waterproofing" },
+  { code: "07 16 16", division: "07", nameTh: "ระบบกันซึมชนิดตกผลึก", nameEn: "Crystalline Waterproofing" },
+  { code: "07 21 00", division: "07", nameTh: "งานฉนวนกันความร้อน", nameEn: "Thermal Insulation" },
+  { code: "07 41 13", division: "07", nameTh: "งานหลังคาแผ่นโลหะ", nameEn: "Metal Roof Panels" },
+  { code: "07 42 13", division: "07", nameTh: "งานผนังแผ่นโลหะ", nameEn: "Metal Wall Panels" },
+  { code: "07 80 00", division: "07", nameTh: "การป้องกันไฟและควัน", nameEn: "Fire and Smoke Protection" },
+  { code: "07 84 00", division: "07", nameTh: "วัสดุกันไฟลาม (Fire Stopping)", nameEn: "Fire Stopping" },
+  { code: "07 92 00", division: "07", nameTh: "วัสดุยาแนวรอยต่อ", nameEn: "Joint Sealants" },
+  { code: "07 95 13", division: "07", nameTh: "ฝาครอบรอยต่อเผื่อขยายของอาคาร", nameEn: "Expansion Joint Cover Assemblies" },
+  { code: "08 00 00", division: "08", nameTh: "งานช่องเปิด", nameEn: "Openings" },
+  { code: "08 11 13", division: "08", nameTh: "ประตูและวงกบเหล็กแบบกลวง", nameEn: "Hollow Metal Doors and Frames" },
+  { code: "08 11 16", division: "08", nameTh: "ประตูและวงกบอะลูมิเนียม", nameEn: "Aluminum Doors and Frames" },
+  { code: "08 14 00", division: "08", nameTh: "ประตูไม้", nameEn: "Wood Doors" },
+  { code: "08 15 66", division: "08", nameTh: "ประตูเกล็ดพลาสติก", nameEn: "Plastic Screen Doors" },
+  { code: "08 33 23", division: "08", nameTh: "ประตูเหล็กม้วน", nameEn: "Overhead Coiling Doors" },
+  { code: "08 33 44", division: "08", nameTh: "ม่านกันไฟและม่านกันควัน", nameEn: "Fire Curtains" },
+  { code: "08 44 00", division: "08", nameTh: "ผนังกระจกกรอบอะลูมิเนียม (Curtain Wall)", nameEn: "Curtain Wall and Glazed Assemblies" },
+  { code: "08 71 00", division: "08", nameTh: "อุปกรณ์ประตู (Door Hardware)", nameEn: "Door Hardware" },
+  { code: "08 80 00", division: "08", nameTh: "งานกระจก", nameEn: "Glazing" },
+  { code: "08 81 13", division: "08", nameTh: "กระจกตกแต่ง", nameEn: "Decorative Glass Glazing" },
+  { code: "08 91 19", division: "08", nameTh: "เกล็ดระบายอากาศชนิดติดตาย", nameEn: "Fixed Louvers" },
+  { code: "09 00 00", division: "09", nameTh: "งานตกแต่งผิว", nameEn: "Finishes" },
+  { code: "09 24 00", division: "09", nameTh: "งานฉาบปูน", nameEn: "Cement Plastering" },
+  { code: "09 29 00", division: "09", nameTh: "งานยิปซัมบอร์ด", nameEn: "Gypsum Board" },
+  { code: "09 30 00", division: "09", nameTh: "งานกระเบื้อง", nameEn: "Tiling" },
+  { code: "09 51 13", division: "09", nameTh: "ฝ้าเพดานแผ่นอะคูสติก", nameEn: "Acoustical Panel Ceilings" },
+  { code: "09 51 33", division: "09", nameTh: "ฝ้าเพดานโลหะชนิดกันเสียง", nameEn: "Acoustical Metal Pan Ceilings" },
+  { code: "09 51 43", division: "09", nameTh: "ฝ้าเพดานผ้าใบระบบขึงตึง", nameEn: "Stretched-Fabric Ceiling Systems" },
+  { code: "09 54 00", division: "09", nameTh: "ฝ้าเพดานซีเมนต์บอร์ด", nameEn: "Cement Board Ceiling" },
+  { code: "09 54 33", division: "09", nameTh: "ฝ้าเพดานแผ่นตกแต่งลามิเนตบนไม้อัด", nameEn: "Decorative Panel Ceilings" },
+  { code: "09 62 00", division: "09", nameTh: "งานพื้นชนิดพิเศษ", nameEn: "Specialty Flooring" },
+  { code: "09 63 40", division: "09", nameTh: "งานพื้นหิน", nameEn: "Stone Flooring" },
+  { code: "09 63 43", division: "09", nameTh: "งานพื้นหินสังเคราะห์ (หินอัด)", nameEn: "Composition Stone Flooring" },
+  { code: "09 66 16", division: "09", nameTh: "กระเบื้องหินขัดปูพื้น (Terrazzo)", nameEn: "Terrazzo Floor Tile" },
+  { code: "09 68 13", division: "09", nameTh: "พื้นพรมแผ่น", nameEn: "Tile Carpeting" },
+  { code: "09 72 00", division: "09", nameTh: "วัสดุปิดผนัง", nameEn: "Wall Coverings" },
+  { code: "09 91 00", division: "09", nameTh: "งานทาสี", nameEn: "Painting" },
+  { code: "09 96 46", division: "09", nameTh: "สีกันไฟชนิดพองตัวสำหรับโครงสร้างเหล็ก", nameEn: "Intumescent Fireproofing for Steel" },
+  { code: "09 97 26", division: "09", nameTh: "ฉนวนกันไฟชนิดพ่นซีเมนต์บนโครงสร้างเหล็ก", nameEn: "Cementitious Fireproofing on Steel Structure" },
+  { code: "10 00 00", division: "10", nameTh: "สิ่งก่อสร้างพิเศษ", nameEn: "Specialties" },
+  { code: "10 13 00", division: "10", nameTh: "ป้ายบอกรายละเอียด/ป้ายรวมข้อมูล", nameEn: "Directories" },
+  { code: "10 14 00", division: "10", nameTh: "ป้ายสัญลักษณ์", nameEn: "Signage" },
+  { code: "10 14 43", division: "10", nameTh: "แถบเรืองแสงนำทางหนีภัย", nameEn: "Photoluminescent Path Marking" },
+  { code: "10 21 13", division: "10", nameTh: "ผนังกั้นห้องน้ำ", nameEn: "Toilet Compartments" },
+  { code: "10 22 23", division: "10", nameTh: "ผนังเลื่อนกั้นห้องแบบเคลื่อนย้ายได้", nameEn: "Portable Partitions, Screens, and Panels" },
+  { code: "10 44 16", division: "10", nameTh: "เครื่องดับเพลิงมือถือ", nameEn: "Portable Fire Extinguisher" },
+  { code: "10 51 00", division: "10", nameTh: "ตู้ล็อกเกอร์", nameEn: "Lockers" },
+  { code: "10 71 13", division: "10", nameTh: "แผงบังแดดภายนอกอาคาร", nameEn: "Exterior Sun Control Devices" },
+  { code: "11 00 00", division: "11", nameTh: "อุปกรณ์เฉพาะงาน", nameEn: "Equipment" },
+  { code: "11 68 13", division: "11", nameTh: "พื้นยางสนามเด็กเล่น", nameEn: "Playground Equipment" },
+  { code: "12 00 00", division: "12", nameTh: "เครื่องเรือนและของตกแต่ง", nameEn: "Furnishings" },
+  { code: "12 14 23", division: "12", nameTh: "งานศิลปะแบบนูน", nameEn: "Relief" },
+  { code: "12 17 00", division: "12", nameTh: "งานศิลปะกระจก", nameEn: "Art Glass" },
+  { code: "12 22 00", division: "12", nameTh: "ม่านจีบ", nameEn: "Curtains & Drapes" },
+  { code: "12 28 00", division: "12", nameTh: "อุปกรณ์ประกอบห้องน้ำ/ซักล้าง", nameEn: "Toilet, Bath, and Laundry Accessories" },
+  { code: "12 36 23.13", division: "12", nameTh: "เคาน์เตอร์หุ้มลามิเนต", nameEn: "Plastic-Laminate-Clad Countertop" },
+  { code: "12 36 40", division: "12", nameTh: "เคาน์เตอร์หินธรรมชาติ", nameEn: "Stone Countertop" },
+  { code: "12 36 61", division: "12", nameTh: "เคาน์เตอร์หินสังเคราะห์", nameEn: "Simulated Stone Countertop" },
+  { code: "12 51 19", division: "12", nameTh: "ตู้เก็บเอกสาร", nameEn: "Filing Cabinets" },
+  { code: "12 51 23", division: "12", nameTh: "โต๊ะสำนักงาน", nameEn: "Office Tables" },
+  { code: "12 52 13", division: "12", nameTh: "เก้าอี้", nameEn: "Chairs" },
+  { code: "12 52 83", division: "12", nameTh: "ที่นั่งสั่งผลิตพิเศษ", nameEn: "Custom Seating" },
+  { code: "12 60 00", division: "12", nameTh: "ที่นั่งแบบแถวเรียง", nameEn: "Multiple Seating" },
+  { code: "12 92 13", division: "12", nameTh: "ต้นไม้ประดิษฐ์ภายในอาคาร", nameEn: "Interior Artificial Plants" },
+  { code: "12 92 33", division: "12", nameTh: "กระถางต้นไม้ภายในอาคาร", nameEn: "Interior Planters" },
+  { code: "12 92 43", division: "12", nameTh: "อุปกรณ์งานสวนภายในอาคาร", nameEn: "Interior Landscape Accessories" },
+  { code: "12 93 33", division: "12", nameTh: "กระถางสำเร็จรูป", nameEn: "Manufactured Planters" },
+  { code: "14 00 00", division: "14", nameTh: "งานระบบอุปกรณ์ลำเลียง/ขนส่งในอาคาร", nameEn: "Conveying Equipment" },
+  { code: "14 20 00", division: "14", nameTh: "ลิฟต์", nameEn: "Elevators" },
+  { code: "14 31 00", division: "14", nameTh: "บันไดเลื่อน", nameEn: "Escalators" },
+  { code: "14 32 00", division: "14", nameTh: "ทางเลื่อนอัตโนมัติ", nameEn: "Moving Walks" },
+  { code: "21 00 00", division: "21", nameTh: "ระบบป้องกันและระงับอัคคีภัย", nameEn: "Fire Suppression" },
+  { code: "21 11 00", division: "21", nameTh: "ระบบท่อน้ำดับเพลิงประจำอาคาร", nameEn: "Facility Fire-Suppression Water-Service Piping" },
+  { code: "21 12 00", division: "21", nameTh: "ท่อยืนในระบบดับเพลิง", nameEn: "Fire-Suppression Standpipes" },
+  { code: "21 13 13", division: "21", nameTh: "ระบบสปริงเกลอร์ดับเพลิงแบบท่อเปียก", nameEn: "Wet-Pipe Sprinkler Systems" },
+  { code: "21 16 00", division: "21", nameTh: "เครื่องสูบน้ำรักษาแรงดันในระบบดับเพลิง", nameEn: "Fire-Suppression Pressure Maintenance Pumps" },
+  { code: "21 22 00", division: "21", nameTh: "ระบบดับเพลิงด้วยสารสะอาด", nameEn: "Clean-Agent Fire-Extinguishing Systems" },
+  { code: "21 23 00", division: "21", nameTh: "ระบบดับเพลิงด้วยสารเคมีเปียก", nameEn: "Wet-Chemical Fire-Extinguishing Systems" },
+  { code: "21 31 13", division: "21", nameTh: "เครื่องสูบน้ำดับเพลิงแบบหอยโข่งขับด้วยไฟฟ้า", nameEn: "Electric-Drive, Horizontal Split-Case Fire Pump" },
+  { code: "21 31 16", division: "21", nameTh: "เครื่องสูบน้ำดับเพลิงแบบแนวตั้งขับด้วยเครื่องยนต์ดีเซล", nameEn: "Diesel Engine-Drive, Vertical-Turbine Fire Pump" },
+  { code: "21 32 13", division: "21", nameTh: "เครื่องสูบน้ำดับเพลิงแบบแนวตั้งขับด้วยไฟฟ้า", nameEn: "Electric-Drive, Vertical-Turbine Fire Pump" },
+  { code: "21 32 16", division: "21", nameTh: "เครื่องสูบน้ำดับเพลิงแบบแนวตั้งขับด้วยเครื่องยนต์ดีเซล", nameEn: "Diesel Engine-Drive, Vertical-Turbine Fire Pump" },
+  { code: "22 00 00", division: "22", nameTh: "งานประปาและสุขาภิบาล", nameEn: "Plumbing" },
+  { code: "22 08 00", division: "22", nameTh: "การทดสอบการทำงานของระบบประปาสุขาภิบาล", nameEn: "Commissioning of Plumbing" },
+  { code: "22 11 16", division: "22", nameTh: "ท่อจ่ายน้ำประปา", nameEn: "Domestic Water Pipe" },
+  { code: "22 11 19", division: "22", nameTh: "อุปกรณ์ประกอบท่อจ่ายน้ำประปา", nameEn: "Domestic Water Piping Specialties" },
+  { code: "22 11 23", division: "22", nameTh: "เครื่องสูบน้ำระบบประปา", nameEn: "Domestic Water Pump" },
+  { code: "22 13 16", division: "22", nameTh: "ท่อระบบสุขาภิบาลและท่ออากาศ", nameEn: "Sanitary Waste and Vent Pipe" },
+  { code: "22 13 19", division: "22", nameTh: "อุปกรณ์ประกอบท่อสุขาภิบาล", nameEn: "Sanitary Waste Piping Specialties" },
+  { code: "22 13 29", division: "22", nameTh: "เครื่องสูบน้ำระบบสุขาภิบาล", nameEn: "Sanitary Sewerage Pump" },
+  { code: "22 14 16", division: "22", nameTh: "ท่อระบายน้ำฝน", nameEn: "Rainwater Leaders" },
+  { code: "22 14 26", division: "22", nameTh: "ระบบระบายน้ำฝนประจำอาคาร", nameEn: "Facility Storm Drains" },
+  { code: "23 00 00", division: "23", nameTh: "ระบบปรับอากาศและระบายอากาศ (HVAC)", nameEn: "Heating, Ventilating and Air Conditioning" },
+  { code: "23 07 13", division: "23", nameTh: "ฉนวนหุ้มท่อลม", nameEn: "Duct Insulation" },
+  { code: "23 07 19", division: "23", nameTh: "ฉนวนหุ้มท่อระบบปรับอากาศ", nameEn: "HVAC Piping Insulation" },
+  { code: "23 08 00", division: "23", nameTh: "การทดสอบการทำงานของระบบ HVAC", nameEn: "Commissioning of HVAC" },
+  { code: "23 09 00", division: "23", nameTh: "เครื่องมือและอุปกรณ์ควบคุมระบบ", nameEn: "Instrumentation and Control for HVAC" },
+  { code: "23 21 00", division: "23", nameTh: "ท่อน้ำเย็น/น้ำร้อน", nameEn: "Hydronic Piping" },
+  { code: "23 23 00", division: "23", nameTh: "ท่อสารทำความเย็น", nameEn: "Refrigerant Piping" },
+  { code: "23 31 00", division: "23", nameTh: "ระบบท่อลม", nameEn: "HVAC Ducts and Casings" },
+  { code: "23 33 00", division: "23", nameTh: "อุปกรณ์ประกอบภายในท่อลม", nameEn: "Air Duct Accessories" },
+  { code: "23 33 14", division: "23", nameTh: "ชุดแดมเปอร์สำหรับระบายอากาศในอุโมงค์", nameEn: "Tunnel Ventilation Damper Units" },
+  { code: "23 33 19", division: "23", nameTh: "อุปกรณ์ลดเสียงในท่อลม", nameEn: "Sound Attenuators & Others" },
+  { code: "23 34 00", division: "23", nameTh: "พัดลมระบบปรับอากาศ/ระบายอากาศ", nameEn: "HVAC Fans" },
+  { code: "23 34 21", division: "23", nameTh: "พัดลมระบายอากาศในอุโมงค์", nameEn: "Tunnel Ventilation Fans" },
+  { code: "23 35 19", division: "23", nameTh: "ระบบระบายควัน", nameEn: "Smoke Exhaust System" },
+  { code: "23 35 20", division: "23", nameTh: "ระบบพัดลมอัดอากาศ (บันไดหนีไฟ)", nameEn: "Air Pressurized System" },
+  { code: "23 37 00", division: "23", nameTh: "อุปกรณ์จ่ายและดูดลม (หัวจ่าย/หัวดูด)", nameEn: "Air Outlets and Inlets" },
+  { code: "23 37 24", division: "23", nameTh: "เกล็ดระบายลมชนิดกันฝนสาด", nameEn: "Wind Driven Rain Louvers" },
+  { code: "23 41 00", division: "23", nameTh: "แผ่นกรองอากาศ", nameEn: "Particulate Air Filtration" },
+  { code: "23 43 00", division: "23", nameTh: "เครื่องฟอกอากาศด้วยไฟฟ้าสถิต", nameEn: "Electronic Air Cleaners" },
+  { code: "23 72 00", division: "23", nameTh: "อุปกรณ์แลกเปลี่ยนพลังงานความร้อนอากาศ", nameEn: "Air-to-Air Energy Recovery Equipment" },
+  { code: "23 73 00", division: "23", nameTh: "เครื่องส่งลมเย็นภายในอาคาร (AHU)", nameEn: "Indoor Central-Station Air-Handling Unit" },
+  { code: "23 82 19", division: "23", nameTh: "เครื่องเป่าลมเย็น (Fan Coil Unit)", nameEn: "Fan Coil Unit" },
+  { code: "26 00 00", division: "26", nameTh: "ระบบไฟฟ้า", nameEn: "Electrical" },
+  { code: "26 05 19", division: "26", nameTh: "ตัวนำและสายไฟฟ้าแรงต่ำ", nameEn: "Low-Voltage Electrical Power Conductors and Cables" },
+  { code: "26 05 26", division: "26", nameTh: "การต่อลงดินและการต่อฝากทางไฟฟ้า", nameEn: "Grounding and Bonding for Electrical Systems" },
+  { code: "26 05 33.13", division: "26", nameTh: "ท่อร้อยสายไฟ", nameEn: "Conduit for Electrical Systems" },
+  { code: "26 05 33.16", division: "26", nameTh: "กล่องและอุปกรณ์ประกอบงานไฟฟ้า", nameEn: "Boxes for Electrical Systems" },
+  { code: "26 05 33.23", division: "26", nameTh: "ช่องเดินสายโลหะบนพื้นผิว", nameEn: "Surface Raceways for Electrical Systems" },
+  { code: "26 05 36", division: "26", nameTh: "รางเคเบิลสำหรับงานไฟฟ้า", nameEn: "Cable Trays for Electrical Systems" },
+  { code: "26 09 43.13", division: "26", nameTh: "ระบบควบคุมไฟฟ้าแสงสว่างแบบเครือข่ายดิจิทัล", nameEn: "Network Digital Lighting Controls" },
+  { code: "26 09 43.14", division: "26", nameTh: "ระบบเครือข่ายควบคุมไฟฟ้าแสงสว่างลานจอดอากาศยาน", nameEn: "Apron Lighting Control System" },
+  { code: "26 09 43.15", division: "26", nameTh: "ระบบแจ้งเตือนภัยในพื้นที่ลานจอดอากาศยาน", nameEn: "Apron Warning System" },
+  { code: "26 17 13", division: "26", nameTh: "อุปกรณ์วัดหน่วยทางไฟฟ้า", nameEn: "Electric Metering" },
+  { code: "26 24 13", division: "26", nameTh: "แผงสวิตช์ไฟฟ้าหลัก (Switchboards)", nameEn: "Switchboards" },
+  { code: "26 24 16", division: "26", nameTh: "แผงจ่ายไฟฟ้าย่อย (Panelboards)", nameEn: "Panelboards" },
+  { code: "26 25 00", division: "26", nameTh: "บัสเวย์", nameEn: "Busway" },
+  { code: "26 28 16.13", division: "26", nameTh: "เซอร์กิตเบรกเกอร์แบบมีตู้หุ้ม", nameEn: "Enclosed Circuit Breakers" },
+  { code: "26 28 16.16", division: "26", nameTh: "สวิตช์ตัดวงจรไฟฟ้าแบบมีตู้หุ้ม", nameEn: "Enclosed Switches" },
+  { code: "26 32 13.13", division: "26", nameTh: "เครื่องกำเนิดไฟฟ้าเครื่องยนต์ดีเซล", nameEn: "Diesel Engine Driven Generator Sets" },
+  { code: "26 32 33", division: "26", nameTh: "เครื่องจ่ายไฟต่อเนื่องชนิดหมุน (Rotary UPS)", nameEn: "Rotary Uninterruptible Power Unit" },
+  { code: "26 33 13", division: "26", nameTh: "แบตเตอรี่", nameEn: "Batteries" },
+  { code: "26 33 53", division: "26", nameTh: "แหล่งจ่ายไฟต่อเนื่องชนิดสถิต (Static UPS)", nameEn: "Static Uninterruptible Power Supply" },
+  { code: "26 35 13", division: "26", nameTh: "คาปาซิเตอร์และชุดควบคุมเพาเวอร์แฟกเตอร์", nameEn: "Capacitor and Power Factor Controller" },
+  { code: "26 36 23", division: "26", nameTh: "สวิตช์ถ่ายโอนไฟอัตโนมัติ (ATS)", nameEn: "Automatic Transfer Switches" },
+  { code: "26 41 13.13", division: "26", nameTh: "ระบบต่อลงดินและป้องกันฟ้าผ่า", nameEn: "Grounding and Lightning Protection" },
+  { code: "26 41 13.14", division: "26", nameTh: "จุดต่อกราวด์สำหรับอากาศยาน", nameEn: "Aircraft Ground Receptacle" },
+  { code: "26 43 13", division: "26", nameTh: "อุปกรณ์ป้องกันเสิร์จสำหรับไฟฟ้าแรงต่ำ", nameEn: "Surge Protection Devices for Low-Voltage Power" },
+  { code: "26 51 13", division: "26", nameTh: "โคมไฟส่องสว่าง สวิตช์ และเต้ารับ", nameEn: "Lighting Fixtures, Switches and Receptacles" },
+  { code: "26 52 00", division: "26", nameTh: "ระบบไฟฟ้าแสงสว่างฉุกเฉิน", nameEn: "Emergency Lighting" },
+  { code: "26 53 00", division: "26", nameTh: "ระบบป้ายทางออกฉุกเฉิน", nameEn: "Exit Signs" },
+  { code: "26 56 23", division: "26", nameTh: "ระบบไฟฟ้าส่องสว่างพื้นที่ภายนอก", nameEn: "Area Lighting" },
+  { code: "26 60 00", division: "26", nameTh: "ระบบจัดเก็บค่าการใช้พลังงานไฟฟ้า", nameEn: "Energy Billing System" },
+  { code: "26 70 00", division: "26", nameTh: "ระบบบริหารจัดการอาคาร (BMS)", nameEn: "Building Management System (BMS)" },
+  { code: "26 80 00", division: "26", nameTh: "ระบบตรวจสอบและควบคุมข้อมูล (SCADA)", nameEn: "SCADA" },
+  { code: "27 00 00", division: "27", nameTh: "ระบบสื่อสาร", nameEn: "Communications" },
+  { code: "27 10 00", division: "27", nameTh: "ระบบสายสัญญาณโครงสร้าง (Structured Cabling)", nameEn: "Structured Cabling System" },
+  { code: "27 21 00", division: "27", nameTh: "ระบบเครือข่ายสื่อสาร (Gigabit Ethernet)", nameEn: "Gigabit Ethernet Network" },
+  { code: "27 32 13", division: "27", nameTh: "ระบบโทรศัพท์แบบ IP", nameEn: "IP Telephone System" },
+  { code: "27 32 43", division: "27", nameTh: "ระบบวิทยุสื่อสาร (Trunk Radio)", nameEn: "Trunk Radio System" },
+  { code: "27 42 10", division: "27", nameTh: "ระบบแสดงข้อมูลตารางการบิน (FIDS)", nameEn: "Flight Information Display System (FIDS)" },
+  { code: "27 51 16", division: "27", nameTh: "ระบบเสียงประกาศ (PA)", nameEn: "Public Address System (PAS)" },
+  { code: "27 53 13", division: "27", nameTh: "ระบบสัญญาณนาฬิกามาตรฐาน", nameEn: "Master Clock System" },
+  { code: "27 54 00", division: "27", nameTh: "ระบบกระจายสัญญาณโทรทัศน์ผ่านเครือข่าย (IPTV)", nameEn: "Internet Protocol Television System (IPTV)" },
+  { code: "28 00 00", division: "28", nameTh: "ระบบความปลอดภัยและรักษาความปลอดภัยอิเล็กทรอนิกส์", nameEn: "Electronic Safety and Security" },
+  { code: "28 13 00", division: "28", nameTh: "ระบบควบคุมการเข้าออก (CASS)", nameEn: "Controlled Access Security System (CASS)" },
+  { code: "28 13 10", division: "28", nameTh: "ระบบควบคุมการเข้าออกสำหรับอุโมงค์", nameEn: "Controlled Access Security System for Tunnel (CASS)" },
+  { code: "28 20 00", division: "28", nameTh: "ระบบกล้องโทรทัศน์วงจรปิด (CCTV)", nameEn: "Closed Circuit Television System (CCTV)" },
+  { code: "28 20 10", division: "28", nameTh: "ระบบกล้องโทรทัศน์วงจรปิดในอุโมงค์", nameEn: "CCTV for Tunnel" },
+  { code: "28 31 00", division: "28", nameTh: "ระบบแจ้งเหตุเพลิงไหม้ (FDAS)", nameEn: "Fire Detection and Alarm System (FDAS)" },
+  { code: "28 50 00", division: "28", nameTh: "ระบบบริหารการรักษาความปลอดภัย (SMS)", nameEn: "Security Management System (SMS)" },
+  { code: "31 00 00", division: "31", nameTh: "งานดิน", nameEn: "Earthwork" },
+  { code: "31 01 20", division: "31", nameTh: "งานขุดดินและถมดิน", nameEn: "Excavation and Fill" },
+  { code: "31 11 00", division: "31", nameTh: "งานรื้อถอนและเตรียมพื้นที่", nameEn: "Clearing and Grubbing" },
+  { code: "31 31 00", division: "31", nameTh: "ระบบป้องกันการพังทลายของดิน", nameEn: "Soil Erosion Protection" },
+  { code: "31 62 13", division: "31", nameTh: "งานเสาเข็มตอก", nameEn: "Driven Piles" },
+  { code: "31 63 00", division: "31", nameTh: "งานเสาเข็มเจาะ", nameEn: "Bored Piles" },
+  { code: "31 63 23.13", division: "31", nameTh: "งานกำแพงกันดินชนิดขุดหล่อในที่", nameEn: "Cast-in-Place Diaphragm Walls" },
+  { code: "32 00 00", division: "32", nameTh: "งานปรับปรุงพื้นที่ภายนอก", nameEn: "Exterior Improvements" },
+  { code: "32 84 00", division: "32", nameTh: "ระบบชลประทานเพื่อการเพาะปลูก", nameEn: "Planting Irrigation" },
+  { code: "32 90 00", division: "32", nameTh: "งานเพาะปลูก", nameEn: "Planting" },
+  { code: "32 91 00", division: "32", nameTh: "งานเตรียมการเพาะปลูก", nameEn: "Planting Preparation" },
+  { code: "32 91 13", division: "32", nameTh: "งานเตรียมดินปลูก", nameEn: "Soil Preparation" },
+  { code: "34 00 00", division: "34", nameTh: "งานระบบขนส่ง", nameEn: "Transportation" },
+  { code: "34 43 13", division: "34", nameTh: "ระบบไฟนำทางบนพื้นผิว", nameEn: "Airfield Ground Lighting (AGL)" },
+  { code: "34 43 26", division: "34", nameTh: "ระบบควบคุมและตรวจสอบไฟฟ้าแสงสว่างสนามบิน", nameEn: "AGL Control and Monitoring System（ALCMS), ILCMS, CCR" },
+  { code: "34 43 26.13", division: "34", nameTh: "อุปกรณ์ควบคุม AGL", nameEn: "AGL Control Equipment" },
+  { code: "34 43 26.14", division: "34", nameTh: "อุปกรณ์ควบคุม/ตรวจสอบระดับหลอดไฟแต่ละดวง", nameEn: "Individual Lamp Control and Monitoring System (ILCMS)" },
+  { code: "34 43 26.19", division: "34", nameTh: "อุปกรณ์ควบคุมกระแสไฟฟ้าคงที่สำหรับไฟฟ้าสนามบิน", nameEn: "Airfield Constant Current Regulator (CCR)" },
+  { code: "34 77 13", division: "34", nameTh: "สะพานเทียบอากาศยาน", nameEn: "Passenger Boarding Bridge (PBB)" },
+  { code: "34 77 33", division: "34", nameTh: "ระบบตรวจค้นอาวุธและวัตถุระเบิดสำหรับสัมภาระ", nameEn: "Hold Baggage Screening System (HBSS)" },
+  { code: "34 77 39", division: "34", nameTh: "ระบบลำเลียงกระเป๋าสัมภาระ", nameEn: "Baggage Handling System (BHS)" },
+  { code: "34 77 43", division: "34", nameTh: "ระบบปรับอากาศภาคพื้นสำหรับอากาศยาน", nameEn: "Pre-Conditioned Air (PCA)" },
+  { code: "34 77 53", division: "34", nameTh: "ระบบจ่ายไฟภาคพื้น 400 Hz", nameEn: "400 Hz Ground Power Unit (GPU)" },
+  { code: "34 77 63", division: "34", nameTh: "ระบบนำร่องอากาศยานเข้าจอด", nameEn: "Visual Docking Guidance System (VDGS)" },
 ]
 
-/** Human-readable label for a CSI entry: "CODE — Thai (English)", degrading gracefully when either name is blank. */
+/** Human-readable label for a CSI entry: "CODE — Thai (English)". */
 export function formatCsiEntry(entry: CsiMasterFormatEntry): string {
-  if (entry.nameTh && entry.nameEn) return `${entry.code} — ${entry.nameTh} (${entry.nameEn})`
-  if (entry.nameTh) return `${entry.code} — ${entry.nameTh}`
-  if (entry.nameEn) return `${entry.code} — ${entry.nameEn}`
-  return entry.code
+  return `${entry.code} — ${entry.nameTh} (${entry.nameEn})`
 }
 
 export function findCsiEntry(code: string | undefined): CsiMasterFormatEntry | undefined {
@@ -549,18 +323,19 @@ export interface CsiDivisionGroup {
   entries: CsiMasterFormatEntry[]
 }
 
-/** Groups entries by their 2-digit division prefix for use in a grouped <Select>. */
+/** Groups entries by division for use in a grouped <Select>, labeled from CSI_DIVISIONS
+ * (the authoritative Division Map) rather than inferred from any one section entry. */
 export function groupCsiByDivision(entries: CsiMasterFormatEntry[]): CsiDivisionGroup[] {
+  const divisionByCode = new Map(CSI_DIVISIONS.map((d) => [d.division, d]))
   const groups = new Map<string, CsiMasterFormatEntry[]>()
   for (const entry of entries) {
-    const division = entry.code.slice(0, 2)
-    const list = groups.get(division)
+    const list = groups.get(entry.division)
     if (list) list.push(entry)
-    else groups.set(division, [entry])
+    else groups.set(entry.division, [entry])
   }
   return Array.from(groups.entries()).map(([division, groupEntries]) => {
-    const root = groupEntries.find((e) => e.code === `${division} 00 00`)
-    const label = root ? `${division} — ${root.nameEn || root.nameTh}` : `Division ${division}`
+    const def = divisionByCode.get(division)
+    const label = def ? `${division} — ${def.titleEn}` : `Division ${division}`
     return { division, label, entries: groupEntries }
   })
 }

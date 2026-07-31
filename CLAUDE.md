@@ -83,6 +83,7 @@ src/
     doaTemplate.ts           # real 64-item DOA 3-airport document tracker, blank instance data (§5.4b)
     doaTemplate.test.ts      # locks the 64-item / 17-17-15-15 site-split + 12-21-31 docType-split invariants
     initialProjects.ts       # the 2 seeded ProjectRecords (real U-Tapao data + blank demo), templateKind:'mar'
+    csiMasterFormat.ts       # CSI MasterFormat divisions + sections for the "Project Type" picker — generated from masterfile/*.xlsx, see below
     types.ts                 # domain types incl. ProjectMeta/ProjectRecord (§5.1–5.3)
   domain/
     derive.ts                # ALL derived-value logic (§6) — pure, framework-free
@@ -244,6 +245,7 @@ interface ProjectMeta {
   vendor: string;        // "Airsafe Airport Equipment Co., Ltd."
   preparedDate: string;  // ISO yyyy-mm-dd
   templateKind?: TemplateKind; // optional for backward-compat with pre-existing persisted data; absent = 'mar'
+  projectType?: string; // CSI MasterFormat section code, e.g. "26 51 13" — see csiMasterFormat.ts note below. Optional; absent for pre-existing projects or left unset at creation
 }
 
 interface ProjectRecord {
@@ -355,6 +357,16 @@ Each item's real `G1`/`G2`/`G3` prefix (its source-folder phase group — Tender
 The DOA reference tracker has **no equivalent "critical cutoff" notice** to transcribe (unlike AOT's `AOT_CRITICAL_NOTICE` or MAR's `CRITICAL_SEQUENCE`) — `PhaseDashboardPage` simply omits the `CriticalCutoffBanner` for `templateKind === 'doa'` projects rather than inventing one. Locked invariants (64 items, 17/17/15/15 site split, 12/21/31 docType split, 33/12/19 phase split) are asserted in `doaTemplate.test.ts`.
 
 Same registry pattern (a template module + a `TemplateKind` case) applies to any future template.
+
+### 5.4c CSI MasterFormat project-type list (`csiMasterFormat.ts`, added 2026-07-31 — real data)
+
+`ProjectMeta.projectType` (§5.3a) is a free-standing classification field on Add Project — independent of `TemplateKind`/`GroupId`/checklist structure, never wired into derived logic. Its option list (`CSI_DIVISIONS`, `CSI_MASTER_FORMAT`) is generated from `masterfile/CSI_MasterFormat_Division_Map_and_Sections.xlsx` (not committed — a local reference file; ask the user for it again if regenerating), specifically its "Division Map" sheet (50 divisions 00–49, Thai+English titles) and "Sections " sheet (226 sections after cleanup, e.g. `26 51 13`). This **superseded a hand-transcribed list** built the same day from a pasted CSI reference before the actual spreadsheet was available — the spreadsheet is authoritative.
+
+Two source-data issues were resolved during generation, not silently ignored:
+- One duplicate section code in the source (`34 77 63`, two different section names — "Visual Docking Guidance System (VDGS)" vs. "Advanced ...") — the first occurrence was kept, the second dropped, rather than inventing a disambiguated code.
+- One row's own "Div." column disagreed with its section code's division prefix (`27 51 16` tagged `Div.=21`) — the code prefix was trusted, since it's what was actually corrected in that revision of the source; the Div./category columns just weren't updated to match.
+
+`groupCsiByDivision()` labels each `<SelectGroup>` from `CSI_DIVISIONS` (the authoritative Division Map) rather than inferring a label from any one section row — every division gets a real title even if it has zero sections in the list (e.g. the "Reserved for Future Expansion" divisions).
 
 ---
 

@@ -31,3 +31,6 @@ dist-ssr
 
 # Personal local overrides — not shared config (analogous to .env.local)
 .claude/settings.local.json
+
+# Local reference files (e.g. source spreadsheets for generated data files) — not shipped
+masterfile/
