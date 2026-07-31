@@ -17,7 +17,6 @@ const COLUMN_COUNT = 8
 
 interface PhaseItemsTableProps {
   items: Item[]
-  disabled: boolean
   /** Item numbers with unsaved staged edits (§ Save changes) — rows get a highlight. */
   dirtyNos?: Set<number>
   onWorkflowStatusChange(itemNo: number, status: WorkflowStatus | undefined): void
@@ -27,7 +26,6 @@ interface PhaseItemsTableProps {
 
 export function PhaseItemsTable({
   items,
-  disabled,
   dirtyNos,
   onWorkflowStatusChange,
   onPhaseChange,
@@ -98,7 +96,6 @@ export function PhaseItemsTable({
                   </TableCell>
                   <TableCell>
                     <Select
-                      disabled={disabled}
                       value={item.phase ?? UNSET}
                       onValueChange={(value) =>
                         onPhaseChange(item.no, value === UNSET ? undefined : (value as LifecyclePhase))
@@ -119,7 +116,6 @@ export function PhaseItemsTable({
                   </TableCell>
                   <TableCell>
                     <Select
-                      disabled={disabled}
                       value={item.workflowStatus ?? UNSET}
                       onValueChange={(value) =>
                         onWorkflowStatusChange(
@@ -144,7 +140,6 @@ export function PhaseItemsTable({
                   <TableCell>
                     <Input
                       type="date"
-                      disabled={disabled}
                       value={item.documentDate ?? ''}
                       aria-label={`${item.name} — document date`}
                       onChange={(e) => {
@@ -156,7 +151,6 @@ export function PhaseItemsTable({
                   <TableCell>
                     <Input
                       type="date"
-                      disabled={disabled}
                       value={item.expiryDate ?? ''}
                       aria-label={`${item.name} — expiry date`}
                       onChange={(e) => {
@@ -167,7 +161,6 @@ export function PhaseItemsTable({
                   </TableCell>
                   <TableCell>
                     <Input
-                      disabled={disabled}
                       value={item.responsiblePerson ?? ''}
                       placeholder="Name"
                       aria-label={`${item.name} — responsible person`}
@@ -181,7 +174,6 @@ export function PhaseItemsTable({
                   <TableCell>
                     <div className="flex items-center gap-1">
                       <Input
-                        disabled={disabled}
                         value={item.documentLink ?? ''}
                         placeholder="https://..."
                         aria-label={`${item.name} — document link`}

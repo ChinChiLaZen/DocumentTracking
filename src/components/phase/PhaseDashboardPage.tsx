@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { useUser } from '@clerk/react'
 import { useActiveProject } from '../../store/useActiveProject'
 import { selectOverallPhaseProgress, selectPhaseSummary } from '../../store/selectors'
 import { CRITICAL_SEQUENCE } from '../../domain/rules'
@@ -17,11 +16,12 @@ type PendingPatch = Partial<
   Pick<Item, 'phase' | 'workflowStatus' | 'documentDate' | 'expiryDate' | 'responsiblePerson' | 'documentLink'>
 >
 
+// No per-user auth (Clerk was removed) — audit history entries attribute to
+// this fixed label rather than a signed-in reviewer's identity.
+const CHANGED_BY = 'Reviewer'
+
 export function PhaseDashboardPage() {
   const { items, history, meta, setWorkflowStatus, setPhase, updateItemMeta } = useActiveProject()
-  const { user, isLoaded } = useUser()
-  const changedBy = user?.primaryEmailAddress?.emailAddress
-  const disabled = !isLoaded || !changedBy
 
   // Nothing in the table commits to the store until "Save changes" is
   // clicked — every edit (Phase, Workflow Status, both dates, Responsible
@@ -36,20 +36,19 @@ export function PhaseDashboardPage() {
   }
 
   function handleSave() {
-    if (!changedBy) return
     for (const [itemNoStr, patch] of Object.entries(pending)) {
       const itemNo = Number(itemNoStr)
       const original = items.find((i) => i.no === itemNo)
       if (!original) continue
-      if ('phase' in patch && patch.phase !== original.phase) setPhase(itemNo, patch.phase, changedBy)
+      if ('phase' in patch && patch.phase !== original.phase) setPhase(itemNo, patch.phase, CHANGED_BY)
       if ('workflowStatus' in patch && patch.workflowStatus !== original.workflowStatus) {
-        setWorkflowStatus(itemNo, patch.workflowStatus, changedBy)
+        setWorkflowStatus(itemNo, patch.workflowStatus, CHANGED_BY)
       }
       const metaPatch: ItemMetaPatch = {}
       for (const key of ['documentDate', 'expiryDate', 'responsiblePerson', 'documentLink'] as const) {
         if (key in patch && patch[key] !== original[key]) metaPatch[key] = patch[key]
       }
-      if (Object.keys(metaPatch).length > 0) updateItemMeta(itemNo, metaPatch, changedBy)
+      if (Object.keys(metaPatch).length > 0) updateItemMeta(itemNo, metaPatch, CHANGED_BY)
     }
     setPending({})
   }
@@ -87,7 +86,7 @@ export function PhaseDashboardPage() {
           >
             Discard
           </Button>
-          <Button disabled={disabled || pendingCount === 0} onClick={handleSave}>
+          <Button disabled={pendingCount === 0} onClick={handleSave}>
             Save changes{pendingCount > 0 ? ` (${pendingCount})` : ''}
           </Button>
           <HistoryDialog history={history} items={items} />
@@ -100,7 +99,6 @@ export function PhaseDashboardPage() {
 
       <PhaseItemsTable
         items={displayItems}
-        disabled={disabled}
         dirtyNos={dirtyNos}
         onWorkflowStatusChange={(itemNo, status) => stage(itemNo, { workflowStatus: status })}
         onPhaseChange={(itemNo, phase) => stage(itemNo, { phase })}

@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-import { UserButton } from '@clerk/react'
 import { useTrackerStore } from '../../store/useTrackerStore'
 import { selectAllProjectsSummary } from '../../store/selectors'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
@@ -23,7 +22,6 @@ export function ProjectsSummaryPage() {
         </div>
         <div className="flex items-center gap-3">
           <AddProjectDialog />
-          <UserButton />
         </div>
       </div>
 

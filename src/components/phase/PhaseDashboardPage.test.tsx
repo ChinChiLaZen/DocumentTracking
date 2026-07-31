@@ -1,16 +1,9 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { PhaseDashboardPage } from './PhaseDashboardPage'
 import { UTAPAO_PROJECT_ID } from '../../data/initialProjects'
-
-vi.mock('@clerk/react', () => ({
-  useUser: () => ({
-    isLoaded: true,
-    user: { primaryEmailAddress: { emailAddress: 'reviewer@example.com' } },
-  }),
-}))
 
 function renderPage() {
   render(

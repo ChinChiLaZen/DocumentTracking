@@ -1,13 +1,9 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { ProjectsSummaryPage } from './ProjectsSummaryPage'
 import { DEMO_PROJECT_ID, INITIAL_PROJECTS, UTAPAO_PROJECT_ID } from '../../data/initialProjects'
 import { useTrackerStore } from '../../store/useTrackerStore'
-
-// This page renders outside any ClerkProvider in these unit tests; stub the
-// one Clerk component it uses so we're testing project-listing behavior, not auth wiring.
-vi.mock('@clerk/react', () => ({ UserButton: () => null }))
 
 describe('ProjectsSummaryPage', () => {
   it('lists every initial project with its title/vendor/scope and a link into it', () => {

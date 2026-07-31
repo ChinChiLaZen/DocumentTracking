@@ -55,7 +55,6 @@ These come from the MAR process and must be encoded in the app, not just display
 | State | **Zustand** | one store; all derived values are selectors, never stored |
 | Routing | **react-router-dom** | `/` = Projects Summary; one tab per route nested under `/projects/:projectId/...` (§7) |
 | Persistence | **localStorage** adapter behind a `PersistencePort` interface (§10) | swappable for a real API later — do not hard-code `localStorage` calls in components |
-| Auth | **Clerk** (`@clerk/react` + `@clerk/ui` for shadcn theming), added 2026-07-25 | per-reviewer email+password accounts, invite-only (no public sign-up); gates `AppShell` via `<Show when="signed-in"\|"signed-out">` — see §10. Project linked via `clerk init` (Clerk CLI) |
 | Tests | **Vitest** + **@testing-library/react** | derived-value logic in §6 must be unit-tested |
 | Lint/format | ESLint + Prettier | |
 
@@ -85,7 +84,7 @@ src/
     persistence.ts           # PersistencePort + localStorage adapter (§10)
   components/
     layout/
-      AppShell.tsx           # Clerk auth gate + hydrate() only
+      AppShell.tsx           # hydrate() only — no auth gate
       ProjectShell.tsx       # project header + tab nav (MAR_TABS/AOT_TABS) + not-found gate (§7)
       ProjectIndexPage.tsx   # index-route switch: DashboardPage (MAR) vs PhaseDashboardPage (AOT)
     projects/
@@ -254,7 +253,7 @@ interface HistoryEntry {
   field: HistoryField;
   from: string | undefined;
   to: string | undefined;
-  changedBy: string;             // signed-in reviewer's email (Clerk), passed in by the caller — never read inside the store
+  changedBy: string;             // fixed 'Reviewer' label (no per-user auth), passed in by the caller — never read inside the store
 }
 ```
 One entry is appended per **actually-changed** field (no-op writes, e.g. re-picking the same value, are skipped). `resetToSeed` clears a project's `history` back to `[]` along with its workflow status/metadata.
@@ -503,8 +502,8 @@ interface PersistencePort {
 - **`ProjectMeta.templateKind` (added 2026-07-27, AOT template) also did NOT bump the storage key** — same reasoning: it's optional, and every read site treats an absent value as `'mar'` (the only kind that existed before this field), so pre-existing persisted projects keep behaving exactly as before.
 - Components and the store depend on `PersistencePort`, **never** on `localStorage` directly, so a REST/tRPC adapter can drop in later without touching UI.
 - Provide a "Reset to seed" action per project (guarded by a confirm dialog). Resets a project to its recorded initial state (the real seed for U-Tapao/Airsafe; the blank template for its own `templateKind` for the demo project and any project created via "Add Project" — MAR's 28-item blank template or AOT's 94-item one, whichever the project was built from).
-- ~~No secrets, no network calls in v1.~~ **Superseded 2026-07-25:** login is now required (§3, Auth row). `AppShell` wraps its content in Clerk's `<Show when="signed-in"|"signed-out">`, showing `<SignIn/>` when signed out. The Clerk publishable key (`VITE_CLERK_PUBLISHABLE_KEY`, see `.env.example`) is meant to be public/embeddable — it is not a secret. `.env.local` (gitignored) also has `CLERK_SECRET_KEY`, provisioned by `clerk init` for a possible future backend — **not currently referenced by any app code** and must never be. Reviewers are invited by email from the Clerk dashboard (invite-only — `sign_up_mode` is explicitly set to `restricted` on the linked instance, since `clerk init`'s default is public sign-up).
-- **Known limitation:** this remains a pure static SPA with no backend — `checklistTemplate.ts`/`initialProjects.ts` compile straight into the shipped JS bundle, which any HTTP request receives before Clerk's client-side check ever runs. Clerk genuinely gates *whether the UI renders*, but does not prevent the static bundle itself from being fetched directly (e.g. via `curl`). Closing that gap requires request-level gating at the host (e.g. Cloudflare Access in front of Cloudflare Pages, or Vercel/Netlify deployment protection) — a deploy-time configuration step, not an app-code change, and not yet done.
+- **No secrets, no network calls, no login.** Clerk-based auth (added 2026-07-25) was removed on 2026-07-31 — it blocked deployment (Clerk production instances require a domain the deployer actually controls DNS for, which wasn't available) and added an env-var dependency (`VITE_CLERK_PUBLISHABLE_KEY`) that isn't needed for an internal reference tool at this stage. `AppShell` now just calls `hydrate()`; there is no sign-in gate. If access control is needed later, prefer host-level gating (e.g. Cloudflare Access, Vercel/Netlify deployment protection) over re-adding an in-app auth provider, since this remains a pure static SPA with no backend to enforce anything server-side.
+- **Known limitation:** with no auth at all, anyone who can reach the deployed URL can view and edit every project — this is acceptable for now since the tool is an internal reference/communication aid (§1), not a system of record, but revisit before pointing it at anything sensitive.
 
 ---
 
