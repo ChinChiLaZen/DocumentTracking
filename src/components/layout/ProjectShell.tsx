@@ -1,5 +1,6 @@
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { ResetToSeedDialog } from './ResetToSeedDialog'
+import { UserMenu } from '../auth/UserMenu'
 import { useActiveProject } from '../../store/useActiveProject'
 import { findCsiEntry, formatCsiEntry } from '../../data/csiMasterFormat'
 
@@ -60,6 +61,7 @@ export function ProjectShell() {
           </div>
           <div className="flex items-center gap-3">
             <ResetToSeedDialog />
+            <UserMenu dark />
           </div>
         </div>
         <nav className="flex gap-1 px-6" aria-label="Tabs">

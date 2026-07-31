@@ -25,3 +25,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+.vercel
+.env*
+
+# Personal local overrides — not shared config (analogous to .env.local)
+.claude/settings.local.json

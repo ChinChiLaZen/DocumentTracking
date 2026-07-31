@@ -55,6 +55,7 @@ These come from the MAR process and must be encoded in the app, not just display
 | State | **Zustand** | one store; all derived values are selectors, never stored |
 | Routing | **react-router-dom** | `/` = Projects Summary; one tab per route nested under `/projects/:projectId/...` (§7) |
 | Persistence | **localStorage** adapter behind a `PersistencePort` interface (§10) | swappable for a real API later — do not hard-code `localStorage` calls in components |
+| Auth | **Custom** email+password (`api/auth/*` Vercel Serverless Functions + Vercel Postgres), added 2026-07-31 | bcrypt-hashed passwords, JWT session in an httpOnly cookie, invite-code-gated signup; gates `AppShell` via a session check — see §10. Third custom-built iteration of auth this session: Clerk (removed — production requires a domain the deployer controls DNS for, blocking a plain `*.vercel.app` deploy) → Supabase (dropped per explicit request to not depend on a third-party auth vendor) → this |
 | Tests | **Vitest** + **@testing-library/react** | derived-value logic in §6 must be unit-tested |
 | Lint/format | ESLint + Prettier | |
 
@@ -65,6 +66,15 @@ These come from the MAR process and must be encoded in the app, not just display
 ## 4. Repository structure
 
 ```
+api/
+  auth/
+    signup.ts                # POST — invite-code + email/password → bcrypt hash, inserts user, sets session cookie
+    login.ts                 # POST — verifies password, sets session cookie
+    logout.ts                # POST — clears session cookie
+    session.ts               # GET  — verifies session cookie, returns { user } or 401
+  _lib/
+    db.ts                    # @vercel/postgres `sql`, ensureSchema() (idempotent CREATE TABLE IF NOT EXISTS)
+    auth.ts                  # password hashing, JWT sign/verify, cookie helpers (§10)
 src/
   data/
     checklistTemplate.ts     # vendor-neutral 28 items + 14 detail sheets, blank (§5.4)
@@ -81,14 +91,19 @@ src/
   store/
     useTrackerStore.ts       # Zustand store, multi-project (projects/projectOrder) + selectors
     useActiveProject.ts      # resolves :projectId, pre-curries store actions for pages
+    useAuthStore.ts          # Zustand store wrapping fetch calls to api/auth/* (§10)
     persistence.ts           # PersistencePort + localStorage adapter (§10)
   components/
+    auth/
+      AuthPage.tsx            # /auth route — sign in / create account (email+password only, no OAuth)
+      UserMenu.tsx            # signed-in email + Sign out, used in both page headers
     layout/
-      AppShell.tsx           # hydrate() only — no auth gate
+      AppShell.tsx           # hydrate() + session gate via api/auth/session (§10)
       ProjectShell.tsx       # project header + tab nav (MAR_TABS/AOT_TABS) + not-found gate (§7)
       ProjectIndexPage.tsx   # index-route switch: DashboardPage (MAR) vs PhaseDashboardPage (AOT)
     projects/
-      ProjectsSummaryPage.tsx # landing page: list of all projects + rollup snapshot
+      ProjectsSummaryPage.tsx # post-login Dashboard: cross-project stat row + list of all projects
+      DashboardStatCards.tsx  # cross-project stat cards, driven by selectDashboardStats (§10)
       AddProjectDialog.tsx    # create-project form (clones checklistTemplate)
     phase/                   # Phase Progress tab (§7) — additive, independent of §6
       PhaseDashboardPage.tsx
@@ -253,7 +268,7 @@ interface HistoryEntry {
   field: HistoryField;
   from: string | undefined;
   to: string | undefined;
-  changedBy: string;             // fixed 'Reviewer' label (no per-user auth), passed in by the caller — never read inside the store
+  changedBy: string;             // signed-in reviewer's email (custom auth session), passed in by the caller — never read inside the store
 }
 ```
 One entry is appended per **actually-changed** field (no-op writes, e.g. re-picking the same value, are skipped). `resetToSeed` clears a project's `history` back to `[]` along with its workflow status/metadata.
@@ -403,7 +418,7 @@ So the sentence can never drift from the tick count (this fixed a real "6 of 18"
 
 ## 7. Tabs / routes
 
-`/` is the **Projects Summary** page (no header band, no tabs) — a card per project (title, vendor, scope, compact rollup) plus "Add Project". Opening a project navigates to `/projects/:projectId`, which renders the project's own header (title/scope/vendor/prepared date, a "← All Projects" link, Reset-to-seed, `UserButton`) and a tab bar that **depends on `meta.templateKind`** (`ProjectShell.tsx`'s `MAR_TABS` vs `AOT_TABS`). The table below is the **MAR** tab set (`templateKind` absent or `'mar'`); AOT-shaped projects (`templateKind === 'aot'`) get a **single "Dashboard" tab only** — see the AOT note after the table. The index route itself (`ProjectIndexPage.tsx`) renders `DashboardPage` for MAR or `PhaseDashboardPage` for AOT. Routes nested under `/projects/:projectId`:
+`/auth` (`AuthPage.tsx`, §10) is the only route outside the session gate — sign in / create account (invite-code required). Every other route is nested under `AppShell`, which redirects to `/auth` when signed out. `/` is the post-login **Dashboard** landing page (`ProjectsSummaryPage.tsx`, no header band, no tabs), added 2026-07-31 — a cross-project stat row (`DashboardStatCards.tsx` / `selectDashboardStats`: Projects, Total Items, Submitted, Overall Progress — plain sums of the same per-project `{done,total}` figures already on each card below, never a separately-computed number) plus the project card grid (title, vendor, scope, compact rollup) and "Add Project" and `UserMenu` (signed-in email + Sign out). Opening a project navigates to `/projects/:projectId`, which renders the project's own header (title/scope/vendor/prepared date, a "← All Projects" link, Reset-to-seed, `UserMenu`) and a tab bar that **depends on `meta.templateKind`** (`ProjectShell.tsx`'s `MAR_TABS` vs `AOT_TABS`). The table below is the **MAR** tab set (`templateKind` absent or `'mar'`); AOT-shaped projects (`templateKind === 'aot'`) get a **single "Dashboard" tab only** — see the AOT note after the table. The index route itself (`ProjectIndexPage.tsx`) renders `DashboardPage` for MAR or `PhaseDashboardPage` for AOT. Routes nested under `/projects/:projectId`:
 
 | Route | Tab | Content |
 |---|---|---|
@@ -502,8 +517,12 @@ interface PersistencePort {
 - **`ProjectMeta.templateKind` (added 2026-07-27, AOT template) also did NOT bump the storage key** — same reasoning: it's optional, and every read site treats an absent value as `'mar'` (the only kind that existed before this field), so pre-existing persisted projects keep behaving exactly as before.
 - Components and the store depend on `PersistencePort`, **never** on `localStorage` directly, so a REST/tRPC adapter can drop in later without touching UI.
 - Provide a "Reset to seed" action per project (guarded by a confirm dialog). Resets a project to its recorded initial state (the real seed for U-Tapao/Airsafe; the blank template for its own `templateKind` for the demo project and any project created via "Add Project" — MAR's 28-item blank template or AOT's 94-item one, whichever the project was built from).
-- **No secrets, no network calls, no login.** Clerk-based auth (added 2026-07-25) was removed on 2026-07-31 — it blocked deployment (Clerk production instances require a domain the deployer actually controls DNS for, which wasn't available) and added an env-var dependency (`VITE_CLERK_PUBLISHABLE_KEY`) that isn't needed for an internal reference tool at this stage. `AppShell` now just calls `hydrate()`; there is no sign-in gate. If access control is needed later, prefer host-level gating (e.g. Cloudflare Access, Vercel/Netlify deployment protection) over re-adding an in-app auth provider, since this remains a pure static SPA with no backend to enforce anything server-side.
-- **Known limitation:** with no auth at all, anyone who can reach the deployed URL can view and edit every project — this is acceptable for now since the tool is an internal reference/communication aid (§1), not a system of record, but revisit before pointing it at anything sensitive.
+- **Auth (custom, added 2026-07-31 — third iteration this session, after Clerk then Supabase were both ruled out).** Clerk's production instance requires a domain the deployer controls DNS for, which blocked deploying to a plain `*.vercel.app` URL; Supabase was then explicitly ruled out too (no third-party auth vendor). What's live now is hand-rolled: `api/auth/{signup,login,logout,session}.ts` are Vercel Serverless Functions (Node runtime, deployed alongside the static Vite build — no framework change needed) backed by Vercel Postgres (Neon). `api/_lib/auth.ts` hashes passwords with `bcryptjs` (cost 10), signs a JWT session (`{sub, email}`, 7-day expiry, HS256) with `jose` using the server-only `AUTH_SECRET` env var, and sets/reads it as an httpOnly, `SameSite=Lax`, `Secure`-in-production cookie via the `cookie` package. `api/_lib/db.ts`'s `ensureSchema()` runs `CREATE TABLE IF NOT EXISTS users (...)` idempotently on cold start — no manual migration step. `POSTGRES_URL` etc. are auto-injected once a Postgres/Neon store is linked to the Vercel project (Storage tab); nothing to configure by hand beyond that link.
+- **Signup is gated by a shared invite code** (`SIGNUP_INVITE_CODE` env var, checked in `api/auth/signup.ts`) — since there's no vendor-provided invite/allowlist system anymore, this is the only thing stopping anyone who reaches `/auth` from creating an account with full read/write access to every project.
+- `useAuthStore` (`store/useAuthStore.ts`) wraps plain `fetch` calls to `api/auth/*` (no client SDK) — `init()` hits `GET /api/auth/session` on mount; `AppShell` redirects to `/auth` (outside the gated route tree) when there's no user. Sign-out lives in `components/auth/UserMenu.tsx`, rendered in both `ProjectShell`'s dark header (`dark` prop) and `ProjectsSummaryPage`'s light header.
+- **No Google/OAuth sign-in** — deliberately dropped for this pass (implementing an OAuth flow ourselves, verifying provider ID tokens server-side, is real additional security-sensitive work); email+password only. Can be added later.
+- **Known gaps, accepted for now given this is a small internal-reviewer tool:** no password-reset flow (no email-sending infra), no brute-force/rate-limiting on login attempts, sessions have a single fixed 7-day expiry with no refresh/rotation. Revisit before this handles anything more sensitive.
+- **Local dev:** plain `npm run dev` (Vite only) does **not** serve `/api/*` — auth calls will fail gracefully (redirects to `/auth`, shows a generic error on submit) but won't work. Use `npm run dev:full` (`vercel dev`) to exercise the full stack locally, after `vercel env pull .env.local` once a Postgres store is linked.
 
 ---
 

@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import type { HistoryEntry, Item } from '../data/types'
+import type { HistoryEntry, Item, ProjectMeta } from '../data/types'
 import {
   filterHistory,
+  selectDashboardStats,
   selectHistorySorted,
   selectOverallPhaseProgress,
   selectPhaseSummary,
+  type ProjectSummary,
 } from './selectors'
 
 function fixtureItem(overrides: Partial<Item> = {}): Item {
@@ -90,6 +92,41 @@ describe('selectOverallPhaseProgress', () => {
 
   it('is 0% when there are no items', () => {
     expect(selectOverallPhaseProgress([])).toEqual({ total: 0, done: 0, percent: 0 })
+  })
+})
+
+describe('selectDashboardStats', () => {
+  function fixtureMeta(overrides: Partial<ProjectMeta> = {}): ProjectMeta {
+    return {
+      id: 'p1',
+      title: 'Fixture Project',
+      scope: '',
+      vendor: '',
+      preparedDate: '2026-07-31',
+      ...overrides,
+    }
+  }
+
+  it('sums done/total across every project and computes an overall percent', () => {
+    const summaries: ProjectSummary[] = [
+      { meta: fixtureMeta({ id: 'p1' }), done: 10, total: 28, percent: 36 },
+      { meta: fixtureMeta({ id: 'p2' }), done: 5, total: 94, percent: 5 },
+    ]
+    expect(selectDashboardStats(summaries)).toEqual({
+      projectCount: 2,
+      totalItems: 122,
+      totalDone: 15,
+      percent: 12, // round(15/122 * 100)
+    })
+  })
+
+  it('is all-zero with no projects', () => {
+    expect(selectDashboardStats([])).toEqual({
+      projectCount: 0,
+      totalItems: 0,
+      totalDone: 0,
+      percent: 0,
+    })
   })
 })
 

@@ -8,8 +8,10 @@ import { PriorityPage } from './components/priority/PriorityPage'
 import { ItemDetailsPage } from './components/itemDetails/ItemDetailsPage'
 import { PhaseDashboardPage } from './components/phase/PhaseDashboardPage'
 import { GuidelinesPage } from './components/guidelines/GuidelinesPage'
+import { AuthPage } from './components/auth/AuthPage'
 
 export const router = createBrowserRouter([
+  { path: '/auth', element: <AuthPage /> },
   {
     path: '/',
     element: <AppShell />,

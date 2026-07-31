@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useActiveProject } from '../../store/useActiveProject'
+import { useAuthStore } from '../../store/useAuthStore'
 import { selectOverallPhaseProgress, selectPhaseSummary } from '../../store/selectors'
 import { CRITICAL_SEQUENCE } from '../../domain/rules'
 import { AOT_CRITICAL_NOTICE } from '../../data/aotTemplate'
@@ -16,12 +17,11 @@ type PendingPatch = Partial<
   Pick<Item, 'phase' | 'workflowStatus' | 'documentDate' | 'expiryDate' | 'responsiblePerson' | 'documentLink'>
 >
 
-// No per-user auth (Clerk was removed) — audit history entries attribute to
-// this fixed label rather than a signed-in reviewer's identity.
-const CHANGED_BY = 'Reviewer'
-
 export function PhaseDashboardPage() {
   const { items, history, meta, setWorkflowStatus, setPhase, updateItemMeta } = useActiveProject()
+  // AppShell gates this whole tree behind a signed-in session, so a user
+  // email is always present here — the fallback is defensive only.
+  const changedBy = useAuthStore((s) => s.user?.email) ?? 'Reviewer'
 
   // Nothing in the table commits to the store until "Save changes" is
   // clicked — every edit (Phase, Workflow Status, both dates, Responsible
@@ -40,15 +40,15 @@ export function PhaseDashboardPage() {
       const itemNo = Number(itemNoStr)
       const original = items.find((i) => i.no === itemNo)
       if (!original) continue
-      if ('phase' in patch && patch.phase !== original.phase) setPhase(itemNo, patch.phase, CHANGED_BY)
+      if ('phase' in patch && patch.phase !== original.phase) setPhase(itemNo, patch.phase, changedBy)
       if ('workflowStatus' in patch && patch.workflowStatus !== original.workflowStatus) {
-        setWorkflowStatus(itemNo, patch.workflowStatus, CHANGED_BY)
+        setWorkflowStatus(itemNo, patch.workflowStatus, changedBy)
       }
       const metaPatch: ItemMetaPatch = {}
       for (const key of ['documentDate', 'expiryDate', 'responsiblePerson', 'documentLink'] as const) {
         if (key in patch && patch[key] !== original[key]) metaPatch[key] = patch[key]
       }
-      if (Object.keys(metaPatch).length > 0) updateItemMeta(itemNo, metaPatch, CHANGED_BY)
+      if (Object.keys(metaPatch).length > 0) updateItemMeta(itemNo, metaPatch, changedBy)
     }
     setPending({})
   }

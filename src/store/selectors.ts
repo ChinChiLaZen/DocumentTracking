@@ -62,6 +62,23 @@ export function selectAllProjectsSummary(state: {
   })
 }
 
+export interface DashboardStats {
+  projectCount: number
+  totalItems: number
+  totalDone: number
+  percent: number
+}
+
+/** Cross-project totals for the post-login landing page's stat row — sums the same
+ * {done,total} figures already shown per-project card, never recomputes anything new. */
+export function selectDashboardStats(summaries: ProjectSummary[]): DashboardStats {
+  const projectCount = summaries.length
+  const totalItems = summaries.reduce((sum, s) => sum + s.total, 0)
+  const totalDone = summaries.reduce((sum, s) => sum + s.done, 0)
+  const percent = totalItems === 0 ? 0 : Math.round((totalDone / totalItems) * 100)
+  return { projectCount, totalItems, totalDone, percent }
+}
+
 export interface PhaseBucketCounts {
   total: number
   done: number
