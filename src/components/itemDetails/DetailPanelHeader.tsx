@@ -19,9 +19,11 @@ export function DetailPanelHeader({ item, status, isManual, sheet }: DetailPanel
   return (
     <div className="border-b p-4">
       <div className="flex items-center gap-2">
-        <Badge variant="outline" className={PRIORITY_BADGE_CLASS[item.priority]}>
-          {item.priority}
-        </Badge>
+        {item.priority && (
+          <Badge variant="outline" className={PRIORITY_BADGE_CLASS[item.priority]}>
+            {item.priority}
+          </Badge>
+        )}
         <span className="text-sm text-muted-foreground">
           Item {item.no} · {item.group}
         </span>

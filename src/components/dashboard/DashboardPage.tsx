@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useTrackerStore } from '../../store/useTrackerStore'
+import { useActiveProject } from '../../store/useActiveProject'
 import { selectRollup } from '../../store/selectors'
 import { OverviewCards } from './OverviewCards'
 import { SubmissionProgress } from './SubmissionProgress'
@@ -9,8 +9,7 @@ import { QuickNavigation } from './QuickNavigation'
 import { IntegrityLine } from './IntegrityLine'
 
 export function DashboardPage() {
-  const items = useTrackerStore((s) => s.items)
-  const sheets = useTrackerStore((s) => s.sheets)
+  const { items, sheets, basePath } = useActiveProject()
   const rollup = useMemo(() => selectRollup({ items, sheets }), [items, sheets])
 
   return (
@@ -33,7 +32,7 @@ export function DashboardPage() {
 
       <div>
         <h2 className="mb-2 text-sm font-semibold">Quick Navigation</h2>
-        <QuickNavigation />
+        <QuickNavigation basePath={basePath} />
       </div>
 
       <IntegrityLine rollup={rollup} />

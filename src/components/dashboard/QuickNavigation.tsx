@@ -6,15 +6,16 @@ const LINKS = [
   { to: '/priority/b', label: 'Priority B' },
   { to: '/priority/c', label: 'Priority C' },
   { to: '/items', label: 'Item Details' },
+  { to: '/phase', label: 'Phase Progress' },
   { to: '/guidelines', label: 'Guidelines' },
 ]
 
-export function QuickNavigation() {
+export function QuickNavigation({ basePath }: { basePath: string }) {
   return (
     <ul className="flex flex-wrap gap-3 text-sm">
       {LINKS.map((link) => (
         <li key={link.to}>
-          <Link to={link.to} className="text-primary hover:underline">
+          <Link to={`${basePath}${link.to}`} className="text-primary hover:underline">
             {link.label}
           </Link>
         </li>

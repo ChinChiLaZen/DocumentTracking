@@ -1,4 +1,4 @@
-import type { GroupId, Priority } from '../data/types'
+import type { GroupId, LifecyclePhase, Priority, WorkflowStatus } from '../data/types'
 
 export interface GroupDef {
   id: GroupId
@@ -60,3 +60,42 @@ export const DISCLAIMER: string =
 
 /** Order the 14 detail-sheet items appear in the Item Details sidebar (§8.1). Single source of truth. */
 export const DETAIL_SHEET_ORDER: number[] = [1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 25, 26, 27]
+
+export interface WorkflowStatusDef {
+  id: WorkflowStatus
+  label: string
+}
+
+/**
+ * The Phase Progress tab's manual, pre-submission workflow status — independent
+ * of the checkbox-derived Status above (§6). Order drives the status dropdown.
+ */
+export const WORKFLOW_STATUS_DEFS: WorkflowStatusDef[] = [
+  { id: 'Pending', label: 'Pending' },
+  { id: 'Preparing', label: 'Preparing' },
+  { id: 'AwaitingApproval', label: 'Awaiting Approval' },
+  { id: 'Ready', label: 'Ready' },
+  { id: 'Submitted', label: 'Submitted' },
+]
+
+export interface LifecyclePhaseDef {
+  id: LifecyclePhase
+  label: string
+}
+
+/**
+ * The 7 real submission-lifecycle phases for Phase Progress (independent of
+ * GroupId — see CLAUDE.md §7). Order drives the phase dropdown, the phase
+ * cards, and the table's phase-grouping sections. "Unassigned" (item.phase
+ * === undefined) is NOT one of these 7 — it's a distinct, separately-tracked
+ * bucket so "Others" keeps meaning genuinely miscellaneous documents.
+ */
+export const LIFECYCLE_PHASE_DEFS: LifecyclePhaseDef[] = [
+  { id: 'PreBidding', label: 'Pre-Bidding' },
+  { id: 'Bidding', label: 'Bidding' },
+  { id: 'AfterContract', label: 'After Contract' },
+  { id: 'InstallationCommissioning', label: 'Installation & Commissioning' },
+  { id: 'Warranty', label: 'Warranty' },
+  { id: 'OperationMaintenance', label: 'Operation & Maintenance' },
+  { id: 'Other', label: 'Others' },
+]

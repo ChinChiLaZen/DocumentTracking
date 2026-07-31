@@ -7,9 +7,10 @@ import type { DetailSheet } from '../../data/types'
 interface SheetSidebarProps {
   sheetsByItemNo: Map<number, DetailSheet>
   selectedItemNo: number
+  basePath: string
 }
 
-export function SheetSidebar({ sheetsByItemNo, selectedItemNo }: SheetSidebarProps) {
+export function SheetSidebar({ sheetsByItemNo, selectedItemNo, basePath }: SheetSidebarProps) {
   return (
     <nav aria-label="Item Detail Sheets" className="w-72 shrink-0 border-r">
       <h2 className="border-b px-4 py-3 text-sm font-semibold">Item Detail Sheets</h2>
@@ -22,7 +23,7 @@ export function SheetSidebar({ sheetsByItemNo, selectedItemNo }: SheetSidebarPro
             return (
               <li key={no}>
                 <Link
-                  to={`/items?item=${no}`}
+                  to={`${basePath}/items?item=${no}`}
                   aria-current={isSelected ? 'true' : undefined}
                   className={`flex items-center gap-2 rounded px-2 py-2 text-sm ${
                     isSelected ? 'bg-secondary font-medium' : 'hover:bg-muted'

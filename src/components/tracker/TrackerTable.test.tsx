@@ -3,14 +3,17 @@ import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { TrackerTable } from './TrackerTable'
 import { selectItemsWithStatus } from '../../store/selectors'
-import { items, detailSheets } from '../../data/checklist.seed'
+import { INITIAL_PROJECTS, UTAPAO_PROJECT_ID } from '../../data/initialProjects'
+
+const { items, sheets } = INITIAL_PROJECTS.find((p) => p.meta.id === UTAPAO_PROJECT_ID)!
+const basePath = `/projects/${UTAPAO_PROJECT_ID}`
 
 describe('TrackerTable', () => {
   it('renders all 28 rows grouped G1 through G5 in order', () => {
-    const rows = selectItemsWithStatus({ items, sheets: detailSheets })
+    const rows = selectItemsWithStatus({ items, sheets })
     render(
       <MemoryRouter>
-        <TrackerTable items={rows} />
+        <TrackerTable items={rows} basePath={basePath} />
       </MemoryRouter>,
     )
 
@@ -29,29 +32,29 @@ describe('TrackerTable', () => {
   })
 
   it('shows a MANUAL flag when an item has a reviewer override', () => {
-    const rows = selectItemsWithStatus({ items, sheets: detailSheets }).map((item) =>
+    const rows = selectItemsWithStatus({ items, sheets }).map((item) =>
       item.no === 13
         ? { ...item, manualStatus: 'Needs Revision' as const, status: 'Needs Revision' as const }
         : item,
     )
     render(
       <MemoryRouter>
-        <TrackerTable items={rows} />
+        <TrackerTable items={rows} basePath={basePath} />
       </MemoryRouter>,
     )
     expect(screen.getByText('MANUAL')).toBeInTheDocument()
   })
 
   it('links sheet-backed items to their detail sheet with the right item param', () => {
-    const rows = selectItemsWithStatus({ items, sheets: detailSheets })
+    const rows = selectItemsWithStatus({ items, sheets })
     render(
       <MemoryRouter>
-        <TrackerTable items={rows} />
+        <TrackerTable items={rows} basePath={basePath} />
       </MemoryRouter>,
     )
     const link = screen.getByRole('link', {
       name: 'Technical Datasheet / Product Catalogs — All Fixture Types',
     })
-    expect(link).toHaveAttribute('href', '/items?item=1')
+    expect(link).toHaveAttribute('href', `${basePath}/items?item=1`)
   })
 })

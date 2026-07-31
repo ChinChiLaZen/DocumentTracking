@@ -8,15 +8,17 @@
 
 ## 1. What we are building
 
-A single-purpose internal web app that replaces the Airsafe MAR tracking spreadsheet with a live, linked, click-to-tick interface.
+An internal web app that replaces the Airsafe MAR tracking spreadsheet with a live, linked, click-to-tick interface — **multi-project since 2026-07-26**: a top-level Projects Summary page lists every MAR review in flight, and each project gets its own full Dashboard/Tracker/Priority/Item-Details/Guidelines tab set, keyed by `:projectId` in the route.
 
-It tracks the documents a manufacturer must submit for **Vendor Approval / Material Approval Request (MAR)** on:
+Every project tracks the documents a manufacturer must submit for **Vendor Approval / Material Approval Request (MAR)** against the same vendor-neutral 28-item / 14-detail-sheet checklist structure (§2.1). The first, real seeded project is:
 
 - **Project:** Civil Works — Second Runway & Taxiway, U-Tapao International Airport
 - **Scope:** Airfield Lighting, Section 28 01 00
 - **Current vendor:** Airsafe Airport Equipment Co., Ltd.
 
-The app must reproduce the behaviour of the spreadsheet it comes from: the **checkboxes on each Item detail sheet are the single source of truth**, and every roll-up, status, priority count and dashboard figure is *derived* from them — never entered twice.
+A second, blank placeholder project ("Demo Project — Sample Vendor") ships alongside it so the multi-project list/routing is exercised before a real second project exists. New projects can also be created at runtime from the Projects Summary page ("Add Project"): they clone the same checklist structure, fully unticked.
+
+The app must reproduce the behaviour of the spreadsheet it comes from: the **checkboxes on each Item detail sheet are the single source of truth**, and every roll-up, status, priority count and dashboard figure is *derived* from them — never entered twice. This holds per-project; no data is ever shared or aggregated across projects.
 
 Two Lovable prototypes define the target UI:
 - Dashboard + overall tab shell → `https://pattern-to-page-pal.lovable.app/`
@@ -48,10 +50,10 @@ These come from the MAR process and must be encoded in the app, not just display
 | Language | **TypeScript**, `strict: true` | no `any` in committed code |
 | UI | **React 18** (function components + hooks) | |
 | Styling | **Tailwind CSS** | tokens in §9 |
-| Components | **shadcn/ui** (Radix under the hood) | Table, Checkbox, Badge, Tabs, Progress, Card, ScrollArea, Dialog, Tooltip |
+| Components | **shadcn/ui** (Radix under the hood) | Table, Checkbox, Badge, Tabs, Progress, Card, ScrollArea, Dialog, Tooltip, Input, Label, Select |
 | Icons | **lucide-react** | |
 | State | **Zustand** | one store; all derived values are selectors, never stored |
-| Routing | **react-router-dom** | one route per tab (§7) |
+| Routing | **react-router-dom** | `/` = Projects Summary; one tab per route nested under `/projects/:projectId/...` (§7) |
 | Persistence | **localStorage** adapter behind a `PersistencePort` interface (§10) | swappable for a real API later — do not hard-code `localStorage` calls in components |
 | Auth | **Clerk** (`@clerk/react` + `@clerk/ui` for shadcn theming), added 2026-07-25 | per-reviewer email+password accounts, invite-only (no public sign-up); gates `AppShell` via `<Show when="signed-in"\|"signed-out">` — see §10. Project linked via `clerk init` (Clerk CLI) |
 | Tests | **Vitest** + **@testing-library/react** | derived-value logic in §6 must be unit-tested |
@@ -66,17 +68,36 @@ These come from the MAR process and must be encoded in the app, not just display
 ```
 src/
   data/
-    checklist.seed.ts        # the 28 items + 14 detail sheets, typed (§5.4)
-    types.ts                 # domain types (§5.1–5.3)
+    checklistTemplate.ts     # vendor-neutral 28 items + 14 detail sheets, blank (§5.4)
+    aotTemplate.ts           # real 94-item AOT bid-submission checklist, blank instance data (§5.4a)
+    aotTemplate.test.ts      # locks the 94-item / 38-20-6-30 phase-split invariants
+    doaTemplate.ts           # real 64-item DOA 3-airport document tracker, blank instance data (§5.4b)
+    doaTemplate.test.ts      # locks the 64-item / 17-17-15-15 site-split + 12-21-31 docType-split invariants
+    initialProjects.ts       # the 2 seeded ProjectRecords (real U-Tapao data + blank demo), templateKind:'mar'
+    types.ts                 # domain types incl. ProjectMeta/ProjectRecord (§5.1–5.3)
   domain/
     derive.ts                # ALL derived-value logic (§6) — pure, framework-free
     derive.test.ts           # unit tests locking the numbers in §6.4
     rules.ts                 # priority defs, group defs, status enum, guideline text
   store/
-    useTrackerStore.ts       # Zustand store + selectors
+    useTrackerStore.ts       # Zustand store, multi-project (projects/projectOrder) + selectors
+    useActiveProject.ts      # resolves :projectId, pre-curries store actions for pages
     persistence.ts           # PersistencePort + localStorage adapter (§10)
   components/
-    layout/AppShell.tsx      # header + tab nav (§7)
+    layout/
+      AppShell.tsx           # Clerk auth gate + hydrate() only
+      ProjectShell.tsx       # project header + tab nav (MAR_TABS/AOT_TABS) + not-found gate (§7)
+      ProjectIndexPage.tsx   # index-route switch: DashboardPage (MAR) vs PhaseDashboardPage (AOT)
+    projects/
+      ProjectsSummaryPage.tsx # landing page: list of all projects + rollup snapshot
+      AddProjectDialog.tsx    # create-project form (clones checklistTemplate)
+    phase/                   # Phase Progress tab (§7) — additive, independent of §6
+      PhaseDashboardPage.tsx
+      PhaseCards.tsx
+      PhaseItemsTable.tsx
+      PhaseHeaderRow.tsx      # table section header — phase label only, no item-range text
+      HistoryDialog.tsx
+      CriticalCutoffBanner.tsx
     dashboard/…
     tracker/…
     priority/…
@@ -104,21 +125,72 @@ type Status =
   | 'Pending'          // ⏳  no checks ticked (or no detail sheet + manual default)
   | 'Needs Revision'   // ⚠️  manual only
   | 'Not Available';   // ❌  manual only
+
+// Phase Progress tab (added 2026-07-26) — a separate, manually-set pipeline
+// status. Independent of Status above: never wired into effectiveStatus,
+// autoStatus, or rollup() in domain/derive.ts.
+type WorkflowStatus = 'Pending' | 'Preparing' | 'AwaitingApproval' | 'Ready' | 'Submitted';
+
+// Phase Progress tab (real taxonomy added 2026-07-26) — the airport-project
+// document lifecycle. Independent of GroupId (a technical document category,
+// e.g. "Fixture Certificates") — has no relationship to it. Reviewer-assigned
+// per item, blank ("Unassigned") by default. 'Other' is a genuine, distinct
+// phase for miscellaneous documents — Unassigned is represented by
+// item.phase === undefined, never by 'Other'.
+type LifecyclePhase =
+  | 'PreBidding'               // "Pre-Bidding"
+  | 'Bidding'                  // "Bidding"
+  | 'AfterContract'            // "After Contract"
+  | 'InstallationCommissioning'// "Installation & Commissioning"
+  | 'Warranty'                 // "Warranty"
+  | 'OperationMaintenance'     // "Operation & Maintenance"
+  | 'Other';                   // "Others"
+
+// Which checklist template a project was built from (added 2026-07-27, 'doa' added
+// same day). 'mar' = the original U-Tapao-style 28-item checkbox register —
+// group/priority/detail sheets all apply. 'aot' = the real Airports of Thailand
+// 94-item bid-submission checklist — no groups/priority/detail sheets at all
+// (see AotImportance + §7). 'doa' = the real Department of Airports 64-item
+// document tracker spanning 3 airports (see DoaDocType/DoaSite + §5.4b).
+type TemplateKind = 'mar' | 'aot' | 'doa';
+
+// AOT's own criticality marker (⚠️สำคัญ/ปกติ/📌ประกอบ/ด่านสำคัญ) — independent
+// of Priority (A/B/C), which is MAR-specific and doesn't apply to AOT items.
+type AotImportance = 'Critical' | 'Normal' | 'Supporting' | 'CriticalCheckpoint';
+
+// DOA's own document classification badge (🟢ใช้ร่วม/🔴บังคับ/🔵เฉพาะสถานที่) —
+// independent of AotImportance/Priority, which don't apply to DOA items.
+type DoaDocType = 'Shared' | 'Mandatory' | 'SiteSpecific';
+
+// Which of the DOA tracker's 3 airports (or all of them) an item applies to.
+type DoaSite = 'Shared' | 'KKC' | 'UTH' | 'URT';
 ```
 
-### 5.2 Item (the 28 register rows)
+### 5.2 Item (the register rows — 28 for MAR, 94 for AOT, 64 for DOA; shared shape across templates)
 
 ```ts
 interface Item {
-  no: number;                     // 1..28
-  group: GroupId;
-  name: string;                   // "Technical Datasheet / Product Catalogs — All Fixture Types"
-  standard: string;               // "Clause 1.4.O / ICAO Annex 14 / IEC TS 61827 / FAA AC 150/5345-46E"
-  requirement: string;            // acceptance criteria (long text)
-  priority: Priority;
-  detailSheetId?: string;         // present only for the 14 items that have a detail sheet
+  no: number;                     // 1..28 for MAR; 1..94 for AOT; 1..64 for DOA (see `code` for AOT/DOA's real identifier)
+  group?: GroupId;                // MAR only — technical document category. Optional: AOT/DOA items set none.
+  name: string;                   // MAR: "Technical Datasheet / Product Catalogs — All Fixture Types". AOT: Thai item description. DOA: Thai document description.
+  standard: string;               // MAR: standard/clause, e.g. "Clause 1.4.O...". AOT: clause reference, e.g. "ข้อ 2.1-2.3". DOA: source folder path, e.g. "00_SHARED/01_Company_Qualifications"
+  requirement: string;            // MAR: acceptance criteria. AOT: deadline-stage label, e.g. "ก่อนยื่นข้อเสนอ". DOA: the real filename, e.g. "G1-REG_Company_Registration_Certificate.pdf"
+  priority?: Priority;            // MAR only — A/B/C. Optional: AOT/DOA items set none (see `importance`/`docType` instead).
+  detailSheetId?: string;         // present only for the 14 MAR items that have a detail sheet — AOT/DOA items never have one
   manualStatus?: Status;          // set ONLY when the reviewer overrides (§6.3); items w/o a detail sheet use this
   remark?: string;                // free text OR a derived template (Item 3, §6.5)
+  // AOT/DOA-only fields (§7) — absent for MAR items.
+  code?: string;                  // AOT/DOA's real identifier, e.g. "P0-S1-01" or "G1-REG" — shown instead of `no` when present
+  importance?: AotImportance;     // AOT only
+  docType?: DoaDocType;           // DOA only — the Shared/Mandatory/Site-specific badge
+  site?: DoaSite;                 // DOA only — which of KKC/UTH/URT (or all 3, 'Shared') the item applies to
+  // Phase Progress tab fields (§7) — blank by default for every seeded project; only reviewer input populates them.
+  workflowStatus?: WorkflowStatus;
+  phase?: LifecyclePhase;         // undefined = Unassigned, distinct from the real 'Other' phase
+  documentDate?: string;          // ISO yyyy-mm-dd
+  expiryDate?: string;            // ISO yyyy-mm-dd
+  responsiblePerson?: string;
+  documentLink?: string;
 }
 ```
 
@@ -148,7 +220,46 @@ interface DetailSheet {
 }
 ```
 
-### 5.4 Seed data (`checklist.seed.ts`)
+### 5.3a Project (added 2026-07-26 — multi-project support)
+
+```ts
+interface ProjectMeta {
+  id: string;
+  title: string;        // "Civil Works — Second Runway & Taxiway, U-Tapao International Airport"
+  scope: string;         // "Airfield Lighting, Section 28 01 00"
+  vendor: string;        // "Airsafe Airport Equipment Co., Ltd."
+  preparedDate: string;  // ISO yyyy-mm-dd
+  templateKind?: TemplateKind; // optional for backward-compat with pre-existing persisted data; absent = 'mar'
+}
+
+interface ProjectRecord {
+  meta: ProjectMeta;
+  items: Item[];
+  sheets: DetailSheet[];
+  history: HistoryEntry[];        // Phase Progress audit log (§7) — append-only, project-scoped
+}
+```
+
+Every project uses the same 28-item / 14-detail-sheet checklist structure (§2.1: the evaluation standard is vendor-neutral) — only tick state, manual overrides and remarks differ per project. That structure lives once in `checklistTemplate.ts`; a brand-new project (via "Add Project") clones it with every cell `false`, no overrides, no remarks.
+
+### 5.3b History entry (Phase Progress audit log, added 2026-07-26)
+
+```ts
+type HistoryField = 'workflowStatus' | 'phase' | 'documentDate' | 'expiryDate' | 'responsiblePerson' | 'documentLink';
+
+interface HistoryEntry {
+  id: string;
+  timestamp: string;             // ISO datetime
+  itemNo: number;
+  field: HistoryField;
+  from: string | undefined;
+  to: string | undefined;
+  changedBy: string;             // signed-in reviewer's email (Clerk), passed in by the caller — never read inside the store
+}
+```
+One entry is appended per **actually-changed** field (no-op writes, e.g. re-picking the same value, are skipped). `resetToSeed` clears a project's `history` back to `[]` along with its workflow status/metadata.
+
+### 5.4 Seed data (`checklistTemplate.ts` + `initialProjects.ts`)
 
 Ship the full register as typed seed data. Exact shape below — **these counts are load-bearing; the tests in §6.4 assert them.**
 
@@ -182,7 +293,54 @@ Ship the full register as typed seed data. Exact shape below — **these counts 
 | 27 | O&M Manuals & Training Program | O&M Manuals, Training Program (2) | 1 | 2 |
 | | | | **Total** | **282** |
 
-Seed the actual tick state from the spreadsheet (initial: **120 of 282 ticked ≈ 43%**). Row descriptions and article numbers per detail sheet are carried verbatim from the workbook — see `checklist.seed.ts`. Every row's `remark` seeds to `"Rev.0 - 20260725"`.
+`checklistTemplate.ts` holds the vendor-neutral structure above with every cell blank (`remark: ''`). Every item's `phase` defaults to `'AfterContract'` (confirmed real data, added 2026-07-26 — the MAR checklist structure is inherently a post-contract-award submittal process, never a per-vendor guess; see §7's Lifecycle Phase note). `initialProjects.ts` supplies the two projects shipped with the app:
+
+- **U-Tapao / Airsafe** (`UTAPAO_PROJECT_ID`) — the real tick state from the spreadsheet (initial: **120 of 282 ticked ≈ 43%**). Row descriptions and article numbers per detail sheet are carried verbatim from the workbook. Every row's `remark` seeds to `"Rev.0 - 20260725"`.
+- **Demo Project — Sample Vendor** (`DEMO_PROJECT_ID`) — a plain clone of the blank template (0 of 282 ticked), so multi-project list/routing behavior is visibly exercised before a real second project exists.
+
+Projects created later via the "Add Project" UI first pick a **Template** (MAR or AOT — see below). For MAR, it clones the same blank template as the demo project; the dialog also asks for a **Default phase** (`LIFECYCLE_PHASE_DEFS`, labeled "Phase 1 — Pre-Bidding" … "Phase 7 — Others"; preselected to "Phase 3 — After Contract") — the chosen phase is applied to every one of the new project's 28 items, since not every future MAR-shaped project is necessarily a post-contract register like U-Tapao's.
+
+### 5.4a AOT template (`aotTemplate.ts`, added 2026-07-27 — real data)
+
+The real Airports of Thailand 94-item bid-submission checklist, transcribed verbatim from the RSMS reference system (`clean-list-it.lovable.app` — Suvarnabhumi Airport, AOT PCL, Bid No. 6RP10-691062), extracted via full-page-text capture and verified against the site's own phase totals:
+
+| Phase | LifecyclePhase | Items |
+|---|---|---|
+| Phase 0 — คุณสมบัติ & เตรียมยื่นข้อเสนอ | `PreBidding` | 38 |
+| Phase 1 — ยื่นประมูล | `Bidding` | 20 |
+| Phase 2 — หลังลงนามสัญญา | `AfterContract` | 6 |
+| Phase 3 — ติดตั้ง ทดสอบ ส่งมอบ | `InstallationCommissioning` | 30 |
+| | **Total** | **94** |
+
+Each item carries a real `code` (e.g. `"P0-S1-01"`), `name` (Thai description), `standard` (clause reference), `requirement` (deadline-stage label), and `importance` (`AotImportance`) — no `group`, `priority`, or `detailSheetId`. **Only the structural content is real** — live tick/status state on the reference site could not be reliably attributed per-item, so every AOT item starts fully blank (`workflowStatus`/dates/responsible/link all `undefined`), same treatment as the blank MAR template. `AOT_CRITICAL_NOTICE` holds the real "จุดตัดสิทธิ์สำคัญ" eligibility-cutoff paragraph (Phase 0/POC disqualification rule), shown by `CriticalCutoffBanner` in place of `CRITICAL_SEQUENCE` on AOT projects. Locked invariants (94 items, 38/20/6/30 split) are asserted in `aotTemplate.test.ts`.
+
+### 5.4b DOA template (`doaTemplate.ts`, added 2026-07-27 — real data)
+
+The real Department of Airports 64-item document tracker, transcribed verbatim from the reference system (`paper-pathfinder-pal.lovable.app` — "ระบบติดตามเอกสาร — 3 ท่าอากาศยาน KKC · UTH · URT", spanning Khon Kaen, Udon Thani and Surat Thani airports), extracted via full-page-text capture and verified against the site's own docType totals:
+
+| Site | DoaSite | Items |
+|---|---|---|
+| 00_SHARED (all 3 airports) | `Shared` | 17 |
+| 01_KKC (Khon Kaen) | `KKC` | 17 |
+| 02_UTH (Udon Thani) | `UTH` | 15 |
+| 03_URT (Surat Thani) | `URT` | 15 |
+| | **Total** | **64** |
+
+| DocType badge | DoaDocType | Items |
+|---|---|---|
+| 🟢 ใช้ร่วม (Shared) | `Shared` | 12 |
+| 🔴 บังคับ (Mandatory) | `Mandatory` | 21 |
+| 🔵 เฉพาะสถานที่ (Site-specific) | `SiteSpecific` | 31 |
+
+`site` (which airport an item applies to — its source folder) and `docType` (an independent classification badge shown per item) are **not the same axis** — e.g. item `G1-BLK` lives in the shared `00_SHARED` folder (`site: 'Shared'`) but carries the `Mandatory` badge, not `Shared`. Both are transcribed verbatim, never inferred.
+
+Each item's real `G1`/`G2`/`G3` prefix (its source-folder phase group — Tender / Post-Contract / Handover) maps onto 3 of our existing 7 `LifecyclePhase` values, same reuse pattern as AOT: G1 (Phase1_Tender) → `Bidding` (33 items), G2 (Phase2_PostContract) → `AfterContract` (12 items), G3 (Phase3_Handover) → `InstallationCommissioning` (19 items). No new phase values needed. `DOA_SITE_LABEL` (in `doaTemplate.ts`) supplies the display label for each `DoaSite`, matching the reference site's "KKC · UTH · URT" chip for shared items.
+
+**Only the structural content is real** — same treatment as AOT: every DOA item starts fully blank (`workflowStatus`/dates/responsible/link all `undefined`). The reference site's own dashboard cards show unrelated demo-only status counts ("กำลังดำเนินการ 4", "พร้อม 0") that don't correspond to a per-item verifiable state — these were **not** transcribed, since CLAUDE.md's "never fabricate tick state" rule applies equally to DOA's real workflow state, not just AOT's.
+
+The DOA reference tracker has **no equivalent "critical cutoff" notice** to transcribe (unlike AOT's `AOT_CRITICAL_NOTICE` or MAR's `CRITICAL_SEQUENCE`) — `PhaseDashboardPage` simply omits the `CriticalCutoffBanner` for `templateKind === 'doa'` projects rather than inventing one. Locked invariants (64 items, 17/17/15/15 site split, 12/21/31 docType split, 33/12/19 phase split) are asserted in `doaTemplate.test.ts`.
+
+Same registry pattern (a template module + a `TemplateKind` case) applies to any future template.
 
 ---
 
@@ -246,19 +404,24 @@ So the sentence can never drift from the tick count (this fixed a real "6 of 18"
 
 ## 7. Tabs / routes
 
-Header shows project title + preparation date `7 July 2026`, then a tab bar. Routes:
+`/` is the **Projects Summary** page (no header band, no tabs) — a card per project (title, vendor, scope, compact rollup) plus "Add Project". Opening a project navigates to `/projects/:projectId`, which renders the project's own header (title/scope/vendor/prepared date, a "← All Projects" link, Reset-to-seed, `UserButton`) and a tab bar that **depends on `meta.templateKind`** (`ProjectShell.tsx`'s `MAR_TABS` vs `AOT_TABS`). The table below is the **MAR** tab set (`templateKind` absent or `'mar'`); AOT-shaped projects (`templateKind === 'aot'`) get a **single "Dashboard" tab only** — see the AOT note after the table. The index route itself (`ProjectIndexPage.tsx`) renders `DashboardPage` for MAR or `PhaseDashboardPage` for AOT. Routes nested under `/projects/:projectId`:
 
 | Route | Tab | Content |
 |---|---|---|
-| `/` | **Dashboard** | Overview cards (Total 28, Submitted, In Progress, Pending, Needs Revision, Not Available), Overall Submission %, Checkbox Roll-up %, By-Priority table, Critical Sequence list, Quick Navigation, integrity line |
-| `/tracker` | **Tracker** | Master register: all 28 rows grouped G1→G5. Columns: #, Group, Document Name, Standard, Requirement, Priority, **Status** (auto/override badge), links to detail sheet, Remark. Detail-sheet rows show checks req/done/%. |
-| `/priority/a` | **Priority A** | Read-only filtered mirror of Tracker where priority = A (11 rows) |
-| `/priority/b` | **Priority B** | …priority = B (14 rows) |
-| `/priority/c` | **Priority C** | …priority = C (3 rows) |
-| `/items` | **Item Details** | §8 — the focus of this brief |
-| `/guidelines` | **Guidelines** | Priority definitions, critical sequence, document-quality rules, colour legend, disclaimer (rules.ts) |
+| `/projects/:projectId` (index) | **Dashboard** | Overview cards (Total 28, Submitted, In Progress, Pending, Needs Revision, Not Available), Overall Submission %, Checkbox Roll-up %, By-Priority table, Critical Sequence list, Quick Navigation, integrity line |
+| `/projects/:projectId/tracker` | **Tracker** | Master register: all 28 rows grouped G1→G5. Columns: #, Group, Document Name, Standard, Requirement, Priority, **Status** (auto/override badge), links to detail sheet, Remark. Detail-sheet rows show checks req/done/%. |
+| `/projects/:projectId/priority/a` | **Priority A** | Read-only filtered mirror of Tracker where priority = A (11 rows) |
+| `/projects/:projectId/priority/b` | **Priority B** | …priority = B (14 rows) |
+| `/projects/:projectId/priority/c` | **Priority C** | …priority = C (3 rows) |
+| `/projects/:projectId/items` | **Item Details** | §8 — the focus of this brief |
+| `/projects/:projectId/phase` | **Phase Progress** | Added 2026-07-26, inspired by a reference tracker ("RSMS", a different airport/bid). Critical-cutoff banner; an "Unassigned" card plus one progress card per real lifecycle Phase (`LIFECYCLE_PHASE_DEFS` — see note below); an editable table of Phase + Workflow Status (manual 5-state pipeline: Pending→Preparing→AwaitingApproval→Ready→Submitted) + Document Date/Expiry Date/Responsible Person/Document Link per item; and a "View History" dialog (searchable audit log of every edit, values rendered as human labels). Fully additive — independent of the checkbox-derived Status/Dashboard/Tracker above (§6 untouched). |
+| `/projects/:projectId/guidelines` | **Guidelines** | Priority definitions, critical sequence, document-quality rules, colour legend, disclaimer (rules.ts) |
 
-Priority tabs are **derived mirrors** — no independent editing.
+Priority tabs are **derived mirrors** — no independent editing. An unknown `:projectId` renders a "Project not found" panel instead of the tab set (`ProjectShell.tsx`), so no child page needs its own defensive check.
+
+> **Lifecycle Phase (Phase Progress tab):** `item.phase` is a real, independent, reviewer-assigned classification (`LifecyclePhase`/`LIFECYCLE_PHASE_DEFS` in `rules.ts`) — 7 named phases (Pre-Bidding, Bidding, After Contract, Installation & Commissioning, Warranty, Operation & Maintenance, Others) plus an explicit "Unassigned" bucket for items with no phase set. It has **no relationship** to `GroupId`/`GROUP_DEFS` (technical document categories, §2.1's Group 1–5, untouched — an earlier version of this tab relabeled Groups as a placeholder; that has been fully replaced). **Confirmed 2026-07-26: every MAR item defaults to `'AfterContract'`** (§5.4) — real data, not a per-vendor guess, since the MAR checklist structure only ever represents post-contract-award submittals. New MAR projects can override this default at creation time via "Add Project"'s **Default phase** picker (§5.4), which bulk-sets every one of the new project's items to the chosen phase instead of `'AfterContract'`. "Unassigned" is reserved for the rare case a reviewer explicitly clears an item's phase; "Others" remains a real, distinct category for genuinely miscellaneous documents, never a default.
+
+> **AOT/DOA-shaped projects (AOT added 2026-07-27, DOA added same day):** a project with `meta.templateKind === 'aot'` or `'doa'` has no Group/Priority/checkbox detail sheets at all (§5.2) — its `phase` comes pre-assigned per item from the real template (§5.4a/§5.4b), not from a bulk Default-phase pick. `ProjectShell.tsx` renders just one "Dashboard" tab for either, which **is** the full Phase Progress-style register (`PhaseDashboardPage`) — Tracker/Priority/Item Details/Guidelines aren't linked since Group/Priority/detail sheets don't apply, though their routes still exist and degrade gracefully if hit directly (empty table / "no detail sheet" fallback, never a crash). The critical-cutoff banner uses `AOT_CRITICAL_NOTICE` for AOT, `CRITICAL_SEQUENCE` for MAR, and is **omitted entirely** for DOA (no equivalent real notice exists to show — see §5.4b). `selectAllProjectsSummary` (`selectors.ts`) branches per `templateKind` so the Projects Summary card never calls the Priority-indexing `rollup()` on an AOT or DOA project.
 
 ---
 
@@ -312,6 +475,9 @@ Two-pane layout.
 - **Checked cells** in the Item Details checkbox table render `emerald-100/700` (confirmed from check-chime-charm.lovable.app); unchecked cells show a muted `·`.
 - **Derived/linked cells** (Tracker status pulled from a sheet): subtle grey fill + emerald text, to echo the spreadsheet's "don't type here" convention.
 - **Header band:** dark slate `#34495E`, white text — ⚠️ **not yet reconciled with the prototype**, which renders a plain white header with no colour band. Flagged as an open question, not yet changed.
+- **Workflow-status badges (Phase Progress tab, added 2026-07-26):** Pending `slate-100/600` · Preparing `sky-50/700` · Awaiting Approval `amber-50/700` · Ready `violet-50/700` · Submitted `emerald-50/700` (`WORKFLOW_STATUS_BADGE_CLASS` in `statusStyles.ts`). Deliberately introduces `sky`/`violet` — two hues not used by the checkbox-derived `STATUS_BADGE_CLASS` — so the two independent status systems stay visually distinguishable when shown together.
+- **Importance badges (AOT items only, added 2026-07-27):** Critical `rose-100/800` · Normal `slate-100/600` · Supporting `sky-50/700` · Critical-checkpoint `violet-100/800` (`IMPORTANCE_BADGE_CLASS` in `statusStyles.ts`). Only rendered in `PhaseItemsTable.tsx` when `item.code` is present — invisible for MAR items.
+- **DocType badges (DOA items only, added 2026-07-27):** Shared `emerald-100/800` · Mandatory `rose-100/800` · Site-specific `sky-50/700` (`DOC_TYPE_BADGE_CLASS` in `statusStyles.ts`). Rendered alongside a plain-text site label (`DOA_SITE_LABEL`) in `PhaseItemsTable.tsx` only when `item.docType`/`item.site` are present — invisible for MAR/AOT items.
 - Keep it flat and legible; this is an audit tool, not a marketing page.
 
 ~~Original hex-based spec (superseded above):~~
@@ -323,16 +489,22 @@ Two-pane layout.
 ## 10. Persistence
 
 ```ts
+interface ChecklistState {
+  projects: ProjectRecord[];
+  projectOrder: string[];
+}
 interface PersistencePort {
   load(): ChecklistState | null;
   save(state: ChecklistState): void;
 }
 ```
-- Default adapter: `localStorage` (key `airsafe-mar-tracker/v1`), debounced ~300 ms.
+- Default adapter: `localStorage` (key `airsafe-mar-tracker/v2`), debounced ~300 ms. **Bumped from `v1` on 2026-07-26** when the store went multi-project (breaking shape change: single `{items,sheets}` → `{projects,projectOrder}`) — no migration was written, since the app wasn't yet in production use.
+- **`ProjectRecord.history` (added 2026-07-26, same day, Phase Progress feature) did NOT bump the storage key.** This is additive-only — new optional `Item` fields plus a new array on `ProjectRecord`, defaulted via `?? []` on hydrate — unlike the breaking v1→v2 shape change above. Don't reflexively re-bump `STORAGE_KEY` for additive changes; only bump when old persisted data would no longer parse under the new shape.
+- **`ProjectMeta.templateKind` (added 2026-07-27, AOT template) also did NOT bump the storage key** — same reasoning: it's optional, and every read site treats an absent value as `'mar'` (the only kind that existed before this field), so pre-existing persisted projects keep behaving exactly as before.
 - Components and the store depend on `PersistencePort`, **never** on `localStorage` directly, so a REST/tRPC adapter can drop in later without touching UI.
-- Provide a "Reset to seed" action (guarded by a confirm dialog).
+- Provide a "Reset to seed" action per project (guarded by a confirm dialog). Resets a project to its recorded initial state (the real seed for U-Tapao/Airsafe; the blank template for its own `templateKind` for the demo project and any project created via "Add Project" — MAR's 28-item blank template or AOT's 94-item one, whichever the project was built from).
 - ~~No secrets, no network calls in v1.~~ **Superseded 2026-07-25:** login is now required (§3, Auth row). `AppShell` wraps its content in Clerk's `<Show when="signed-in"|"signed-out">`, showing `<SignIn/>` when signed out. The Clerk publishable key (`VITE_CLERK_PUBLISHABLE_KEY`, see `.env.example`) is meant to be public/embeddable — it is not a secret. `.env.local` (gitignored) also has `CLERK_SECRET_KEY`, provisioned by `clerk init` for a possible future backend — **not currently referenced by any app code** and must never be. Reviewers are invited by email from the Clerk dashboard (invite-only — `sign_up_mode` is explicitly set to `restricted` on the linked instance, since `clerk init`'s default is public sign-up).
-- **Known limitation:** this remains a pure static SPA with no backend — `checklist.seed.ts` compiles straight into the shipped JS bundle, which any HTTP request receives before Clerk's client-side check ever runs. Clerk genuinely gates *whether the UI renders*, but does not prevent the static bundle itself from being fetched directly (e.g. via `curl`). Closing that gap requires request-level gating at the host (e.g. Cloudflare Access in front of Cloudflare Pages, or Vercel/Netlify deployment protection) — a deploy-time configuration step, not an app-code change, and not yet done.
+- **Known limitation:** this remains a pure static SPA with no backend — `checklistTemplate.ts`/`initialProjects.ts` compile straight into the shipped JS bundle, which any HTTP request receives before Clerk's client-side check ever runs. Clerk genuinely gates *whether the UI renders*, but does not prevent the static bundle itself from being fetched directly (e.g. via `curl`). Closing that gap requires request-level gating at the host (e.g. Cloudflare Access in front of Cloudflare Pages, or Vercel/Netlify deployment protection) — a deploy-time configuration step, not an app-code change, and not yet done.
 
 ---
 

@@ -78,8 +78,12 @@ export function rollup(items: Item[], sheets: DetailSheet[]): Rollup {
     const sheet = sheetByItemNo.get(item.no)
     const status = effectiveStatus(item, sheet)
     byStatus[status] += 1
-    byPriority[item.priority].total += 1
-    if (status === 'Submitted') byPriority[item.priority].done += 1
+    // item.priority is MAR-only (§5.2) — items from other templates (e.g. AOT)
+    // have no priority and are excluded from this tally, not from totalItems.
+    if (item.priority) {
+      byPriority[item.priority].total += 1
+      if (status === 'Submitted') byPriority[item.priority].done += 1
+    }
   }
 
   const checkboxRollup = sheets.reduce(

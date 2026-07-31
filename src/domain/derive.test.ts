@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { CheckColumn, DetailSheet, Item } from '../data/types'
-import { items, detailSheets } from '../data/checklist.seed.ts'
+import { INITIAL_PROJECTS, UTAPAO_PROJECT_ID } from '../data/initialProjects'
 import {
   autoStatus,
   checksDone,
@@ -119,7 +119,8 @@ describe('item3Remark (§6.5)', () => {
 })
 
 describe('rollup — §6.4 invariants (locked)', () => {
-  const result = rollup(items, detailSheets)
+  const utapao = INITIAL_PROJECTS.find((p) => p.meta.id === UTAPAO_PROJECT_ID)!
+  const result = rollup(utapao.items, utapao.sheets)
 
   it('has 28 total items', () => {
     expect(result.totalItems).toBe(28)
@@ -141,5 +142,23 @@ describe('rollup — §6.4 invariants (locked)', () => {
 
   it('passes the integrity check', () => {
     expect(result.integrityOK).toBe(true)
+  })
+})
+
+describe('rollup — items without priority (e.g. AOT template items, §5.2)', () => {
+  it('excludes them from byPriority but still counts them in totalItems', () => {
+    const withPriority = fixtureItem({ no: 1, priority: 'A' })
+    const withoutPriority = fixtureItem({ no: 2, priority: undefined })
+    const result = rollup([withPriority, withoutPriority], [])
+
+    expect(result.totalItems).toBe(2)
+    expect(result.byPriority.A.total).toBe(1)
+    expect(result.byPriority.B.total).toBe(0)
+    expect(result.byPriority.C.total).toBe(0)
+    // integrityOK is correctly false here — priority totals (1) don't cover
+    // every item (2) when one has no priority at all, which is expected for
+    // a mixed-shape input; real MAR rollups never see this since every MAR
+    // item always has a priority.
+    expect(result.integrityOK).toBe(false)
   })
 })

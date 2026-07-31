@@ -6,6 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 interface CheckboxTableProps {
   sheet: DetailSheet
   selectedRowIds: Set<string>
+  /** Row ids with unsaved staged edits (§ Save changes) — rows get a highlight. */
+  dirtyRowIds?: Set<string>
   onToggleCell: (rowId: string, columnKey: string) => void
   onToggleRowSelection: (rowId: string) => void
   onRemarkChange: (rowId: string, remark: string) => void
@@ -14,6 +16,7 @@ interface CheckboxTableProps {
 export function CheckboxTable({
   sheet,
   selectedRowIds,
+  dirtyRowIds,
   onToggleCell,
   onToggleRowSelection,
   onRemarkChange,
@@ -60,6 +63,7 @@ export function CheckboxTable({
               <TableRow
                 key={row.id}
                 data-state={selectedRowIds.has(row.id) ? 'selected' : undefined}
+                className={dirtyRowIds?.has(row.id) ? 'border-l-2 border-l-amber-400' : undefined}
               >
                 <TableCell>
                   <Checkbox

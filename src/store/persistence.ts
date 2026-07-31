@@ -1,8 +1,8 @@
-import type { DetailSheet, Item } from '../data/types'
+import type { ProjectRecord } from '../data/types'
 
 export interface ChecklistState {
-  items: Item[]
-  sheets: DetailSheet[]
+  projects: ProjectRecord[]
+  projectOrder: string[]
 }
 
 export interface PersistencePort {
@@ -10,7 +10,7 @@ export interface PersistencePort {
   save(state: ChecklistState): void
 }
 
-export const STORAGE_KEY = 'airsafe-mar-tracker/v1'
+export const STORAGE_KEY = 'airsafe-mar-tracker/v2'
 
 export function createLocalStoragePersistence(debounceMs = 300): PersistencePort {
   let timer: ReturnType<typeof setTimeout> | undefined

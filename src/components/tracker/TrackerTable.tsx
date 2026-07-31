@@ -10,7 +10,7 @@ import { PRIORITY_BADGE_CLASS, STATUS_BADGE_CLASS } from '../shared/statusStyles
 
 const COLUMN_COUNT = 8
 
-export function TrackerTable({ items }: { items: ItemWithStatus[] }) {
+export function TrackerTable({ items, basePath }: { items: ItemWithStatus[]; basePath: string }) {
   const byNo = new Map(items.map((item) => [item.no, item]))
 
   return (
@@ -44,7 +44,7 @@ export function TrackerTable({ items }: { items: ItemWithStatus[] }) {
                     <TableCell className="max-w-64 min-w-40 whitespace-normal break-words">
                       {item.detailSheetId ? (
                         <Link
-                          to={`/items?item=${item.no}`}
+                          to={`${basePath}/items?item=${item.no}`}
                           className="text-primary hover:underline"
                         >
                           {item.name}
@@ -66,9 +66,11 @@ export function TrackerTable({ items }: { items: ItemWithStatus[] }) {
                       {item.requirement}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={PRIORITY_BADGE_CLASS[item.priority]}>
-                        {item.priority}
-                      </Badge>
+                      {item.priority && (
+                        <Badge variant="outline" className={PRIORITY_BADGE_CLASS[item.priority]}>
+                          {item.priority}
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">

@@ -1,13 +1,12 @@
 import { useMemo } from 'react'
-import { useTrackerStore } from '../../store/useTrackerStore'
+import { useActiveProject } from '../../store/useActiveProject'
 import { selectItemsWithStatus } from '../../store/selectors'
 import { TrackerTable } from '../tracker/TrackerTable'
 import { PRIORITY_DEFS } from '../../domain/rules'
 import type { Priority } from '../../data/types'
 
 export function PriorityPage({ priority }: { priority: Priority }) {
-  const rawItems = useTrackerStore((s) => s.items)
-  const sheets = useTrackerStore((s) => s.sheets)
+  const { items: rawItems, sheets, basePath } = useActiveProject()
   const items = useMemo(() => {
     const withStatus = selectItemsWithStatus({ items: rawItems, sheets })
     return withStatus.filter((item) => item.priority === priority)
@@ -21,7 +20,7 @@ export function PriorityPage({ priority }: { priority: Priority }) {
       <p className="mb-4 text-sm text-muted-foreground">
         {def.description} Read-only mirror of the Tracker — no independent editing.
       </p>
-      <TrackerTable items={items} />
+      <TrackerTable items={items} basePath={basePath} />
     </div>
   )
 }

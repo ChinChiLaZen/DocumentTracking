@@ -9,11 +9,11 @@ import {
   DialogTrigger,
 } from '../ui/dialog'
 import { Button } from '../ui/button'
-import { useTrackerStore } from '../../store/useTrackerStore'
+import { useActiveProject } from '../../store/useActiveProject'
 
 export function ResetToSeedDialog() {
   const [open, setOpen] = useState(false)
-  const resetToSeed = useTrackerStore((s) => s.resetToSeed)
+  const { resetToSeed } = useActiveProject()
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -26,8 +26,9 @@ export function ResetToSeedDialog() {
         <DialogHeader>
           <DialogTitle>Reset all data to seed?</DialogTitle>
           <DialogDescription>
-            This discards every tick and manual override you've made and restores the original seed
-            data. This cannot be undone.
+            This discards every tick, manual override, Phase Progress workflow status/document
+            metadata, and history log entry you've made, and restores the original seed data. This
+            cannot be undone.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
