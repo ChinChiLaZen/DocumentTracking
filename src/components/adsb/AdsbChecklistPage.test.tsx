@@ -34,12 +34,25 @@ describe(
       expect(screen.getByText('A10')).toBeInTheDocument()
     })
 
-    it('clicking Pass on an item updates the stat counts and persists', async () => {
+    it('clicking Pass stages the change until Save changes is clicked', async () => {
       renderPage()
       const user = userEvent.setup()
       const a1Card = screen.getByText('A1').closest('[data-slot="card"]') as HTMLElement
       await user.click(within(a1Card).getByRole('button', { name: 'ผ่าน / Pass' }))
+      // Staged, not yet persisted — the stat count doesn't move until Save.
+      expect(screen.getByText('0/96 reviewed')).toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: 'Save changes (1)' }))
       expect(screen.getByText('1/96 reviewed')).toBeInTheDocument()
+    })
+
+    it('Discard reverts a staged Pass click', async () => {
+      renderPage()
+      const user = userEvent.setup()
+      const a1Card = screen.getByText('A1').closest('[data-slot="card"]') as HTMLElement
+      await user.click(within(a1Card).getByRole('button', { name: 'ผ่าน / Pass' }))
+      await user.click(screen.getByRole('button', { name: 'Discard' }))
+      expect(screen.getByText('0/96 reviewed')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled()
     })
 
     it('Employer tab scopes to the 80 employerIncluded items only', async () => {

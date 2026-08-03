@@ -17,12 +17,14 @@ const COLUMN_COUNT = 8
 interface TrackerTableProps {
   items: ItemWithStatus[]
   basePath: string
+  /** Item numbers with unsaved staged edits (§ Save changes) — rows get a highlight. */
+  dirtyNos?: Set<number>
   /** Admin-only inline editing of Group/Name/Standard/Requirement/Priority — omit for read-only views (e.g. Priority A/B/C). */
   editable?: boolean
   onFieldCommit?(itemNo: number, patch: ItemMetaPatch): void
 }
 
-export function TrackerTable({ items, basePath, editable, onFieldCommit }: TrackerTableProps) {
+export function TrackerTable({ items, basePath, dirtyNos, editable, onFieldCommit }: TrackerTableProps) {
   const byNo = new Map(items.map((item) => [item.no, item]))
 
   return (
@@ -50,7 +52,10 @@ export function TrackerTable({ items, basePath, editable, onFieldCommit }: Track
                 const sheet = byNo.get(item.no)?.sheet
                 const isManual = Boolean(item.manualStatus)
                 return (
-                  <TableRow key={item.no}>
+                  <TableRow
+                    key={item.no}
+                    className={dirtyNos?.has(item.no) ? 'border-l-2 border-l-amber-400' : undefined}
+                  >
                     <TableCell>{item.no}</TableCell>
                     <TableCell>
                       {editable ? (

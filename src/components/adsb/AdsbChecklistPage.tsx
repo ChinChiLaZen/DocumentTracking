@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Printer } from 'lucide-react'
 import { useActiveProject } from '../../store/useActiveProject'
 import { useAuthStore } from '../../store/useAuthStore'
@@ -14,6 +14,27 @@ import { AdsbStatCards } from './AdsbStatCards'
 import { AdsbItemCard } from './AdsbItemCard'
 import type { Item } from '../../data/types'
 import type { ItemMetaPatch } from '../../store/useTrackerStore'
+
+type PendingPatch = Partial<
+  Pick<
+    Item,
+    | 'result'
+    | 'employerResult'
+    | 'remark'
+    | 'employerRemark'
+    | 'resp'
+    | 'standard'
+    | 'torRef'
+    | 'hwPoint'
+    | 'installPhase'
+    | 'nameTh'
+    | 'name'
+    | 'requirementTh'
+    | 'requirement'
+    | 'requiredEvidenceTh'
+    | 'requiredEvidence'
+  >
+>
 
 const ALL_PHASES = '__all__'
 
@@ -31,11 +52,17 @@ function matchesSearch(item: Item, query: string): boolean {
 function RoleView({
   role,
   items,
+  displayItems,
+  dirtyNos,
   editable,
   onCommit,
 }: {
   role: 'contractor' | 'employer'
+  /** Persisted items — drives progress/stat cards, which only move once "Save changes" is clicked. */
   items: Item[]
+  /** `items` with any staged edits merged in — drives the rendered cards. */
+  displayItems: Item[]
+  dirtyNos?: Set<number>
   editable?: boolean
   onCommit(itemNo: number, patch: ItemMetaPatch): void
 }) {
@@ -43,7 +70,8 @@ function RoleView({
   const [phaseFilter, setPhaseFilter] = useState(ALL_PHASES)
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
 
-  const scopedItems = role === 'employer' ? items.filter((item) => item.employerIncluded) : items
+  const scopedItems =
+    role === 'employer' ? displayItems.filter((item) => item.employerIncluded) : displayItems
   const progress = selectAdsbProgress(items, role)
 
   const filtered = scopedItems.filter(
@@ -152,6 +180,7 @@ function RoleView({
                   key={item.no}
                   item={item}
                   role={role}
+                  dirty={dirtyNos?.has(item.no)}
                   editable={editable}
                   onCommit={onCommit}
                 />
@@ -169,14 +198,47 @@ export function AdsbChecklistPage() {
   const changedBy = useAuthStore((s) => s.user?.email) ?? 'Reviewer'
   const isAdmin = useAuthStore((s) => s.user?.role) === 'admin'
 
-  const onCommit = useMemo(
-    () => (itemNo: number, patch: ItemMetaPatch) => updateItemMeta(itemNo, patch, changedBy),
-    [updateItemMeta, changedBy],
+  // Nothing here commits to the store until "Save changes" is clicked —
+  // Pass/Fail/remarks and (admin) text edits are all staged locally first,
+  // matching Phase Progress's pattern. `items` only changes on a real store
+  // mutation (Save, Reset-to-seed, switching projects), so it's safe to clear
+  // pending edits whenever it changes.
+  const [pending, setPending] = useState<Record<number, PendingPatch>>({})
+  useEffect(() => setPending({}), [items])
+
+  const stage = useMemo(
+    () => (itemNo: number, patch: PendingPatch) =>
+      setPending((prev) => ({ ...prev, [itemNo]: { ...prev[itemNo], ...patch } })),
+    [],
   )
+
+  function handleSave() {
+    for (const [itemNoStr, patch] of Object.entries(pending)) {
+      const itemNo = Number(itemNoStr)
+      const original = items.find((i) => i.no === itemNo)
+      if (!original) continue
+      const metaPatch: PendingPatch = {}
+      for (const key of Object.keys(patch) as (keyof PendingPatch)[]) {
+        if (patch[key] !== original[key]) (metaPatch as Record<string, unknown>)[key] = patch[key]
+      }
+      if (Object.keys(metaPatch).length > 0) updateItemMeta(itemNo, metaPatch, changedBy)
+    }
+    setPending({})
+  }
+
+  const pendingCount = Object.keys(pending).length
+  const dirtyNos = new Set(Object.keys(pending).map(Number))
+  const displayItems = items.map((item) => (pending[item.no] ? { ...item, ...pending[item.no] } : item))
 
   return (
     <div className="h-full space-y-4 overflow-auto p-6 print:h-auto print:overflow-visible">
-      <div className="no-print flex items-center justify-end">
+      <div className="no-print flex items-center justify-end gap-2">
+        <Button variant="ghost" disabled={pendingCount === 0} onClick={() => setPending({})}>
+          Discard
+        </Button>
+        <Button disabled={pendingCount === 0} onClick={handleSave}>
+          Save changes{pendingCount > 0 ? ` (${pendingCount})` : ''}
+        </Button>
         <HistoryDialog history={history} items={items} />
       </div>
       <Tabs defaultValue="contractor">
@@ -185,10 +247,24 @@ export function AdsbChecklistPage() {
           <TabsTrigger value="employer">ผู้ว่าจ้าง / Employer</TabsTrigger>
         </TabsList>
         <TabsContent value="contractor">
-          <RoleView role="contractor" items={items} editable={isAdmin} onCommit={onCommit} />
+          <RoleView
+            role="contractor"
+            items={items}
+            displayItems={displayItems}
+            dirtyNos={dirtyNos}
+            editable={isAdmin}
+            onCommit={stage}
+          />
         </TabsContent>
         <TabsContent value="employer">
-          <RoleView role="employer" items={items} editable={isAdmin} onCommit={onCommit} />
+          <RoleView
+            role="employer"
+            items={items}
+            displayItems={displayItems}
+            dirtyNos={dirtyNos}
+            editable={isAdmin}
+            onCommit={stage}
+          />
         </TabsContent>
       </Tabs>
     </div>

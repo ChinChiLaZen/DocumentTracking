@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Card, CardContent } from '../ui/card'
 import { Badge } from '../ui/badge'
 import { Button } from '../ui/button'
@@ -17,6 +17,8 @@ import type { ItemMetaPatch } from '../../store/useTrackerStore'
 interface AdsbItemCardProps {
   item: Item
   role: 'contractor' | 'employer'
+  /** Unsaved staged edits (§ Save changes) — the card gets a highlight. */
+  dirty?: boolean
   editable?: boolean
   onCommit(itemNo: number, patch: ItemMetaPatch): void
 }
@@ -39,9 +41,13 @@ const HW_POINT_OPTIONS: { value: AdsbHwPoint | ''; label: string }[] = [
   { value: 'Witness', label: 'Witness Point' },
 ]
 
-export function AdsbItemCard({ item, role, editable, onCommit }: AdsbItemCardProps) {
+export function AdsbItemCard({ item, role, dirty, editable, onCommit }: AdsbItemCardProps) {
   const isEmployer = role === 'employer'
   const [remark, setRemark] = useState(isEmployer ? (item.employerRemark ?? '') : (item.remark ?? ''))
+
+  useEffect(() => {
+    setRemark(isEmployer ? (item.employerRemark ?? '') : (item.remark ?? ''))
+  }, [item.no, item.remark, item.employerRemark, isEmployer])
 
   function commitRemark() {
     if (isEmployer) {
@@ -54,7 +60,7 @@ export function AdsbItemCard({ item, role, editable, onCommit }: AdsbItemCardPro
   }
 
   return (
-    <Card>
+    <Card className={dirty ? 'border-l-2 border-l-amber-400' : undefined}>
       <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex flex-wrap items-center gap-1.5">
