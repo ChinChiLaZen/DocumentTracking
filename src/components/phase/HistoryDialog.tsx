@@ -22,6 +22,11 @@ const FIELD_LABEL: Record<HistoryField, string> = {
   expiryDate: 'Expiry Date',
   responsiblePerson: 'Responsible Person',
   documentLink: 'Document Link',
+  remark: 'Remark',
+  measured: 'Measured',
+  result: 'Result',
+  employerResult: 'Employer Result',
+  employerRemark: 'Employer Remark',
 }
 
 const WORKFLOW_STATUS_LABEL = new Map<string, string>(

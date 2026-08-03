@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { HistoryEntry, Item, ProjectMeta } from '../data/types'
 import {
   filterHistory,
+  selectAdsbProgress,
   selectDashboardStats,
   selectHistorySorted,
   selectOverallPhaseProgress,
@@ -126,6 +127,86 @@ describe('selectDashboardStats', () => {
       totalItems: 0,
       totalDone: 0,
       percent: 0,
+    })
+  })
+})
+
+describe('selectAdsbProgress', () => {
+  const items: Item[] = [
+    fixtureItem({
+      no: 1,
+      group: undefined,
+      priority: undefined,
+      code: 'A1',
+      result: 'Pass',
+      employerIncluded: true,
+      employerResult: 'Accepted',
+    }),
+    fixtureItem({
+      no: 2,
+      group: undefined,
+      priority: undefined,
+      code: 'A2',
+      result: 'Fail',
+      employerIncluded: true,
+      employerResult: 'Rejected',
+    }),
+    fixtureItem({
+      no: 3,
+      group: undefined,
+      priority: undefined,
+      code: 'A3',
+      result: 'NotApplicable',
+      employerIncluded: true,
+      employerResult: 'Conditional',
+    }),
+    fixtureItem({
+      no: 4,
+      group: undefined,
+      priority: undefined,
+      code: 'A4',
+      employerIncluded: true,
+    }), // pending on both roles
+    fixtureItem({
+      no: 5,
+      group: undefined,
+      priority: undefined,
+      code: 'A5',
+      result: 'Pass',
+      employerIncluded: false, // contractor-only item — excluded from employer scope
+    }),
+  ]
+
+  it('contractor role counts over all items by result', () => {
+    expect(selectAdsbProgress(items, 'contractor')).toEqual({
+      total: 5,
+      pass: 2,
+      fail: 1,
+      na: 1,
+      pending: 1,
+      reviewed: 4,
+    })
+  })
+
+  it('employer role scopes to employerIncluded items only, counting by employerResult', () => {
+    expect(selectAdsbProgress(items, 'employer')).toEqual({
+      total: 4,
+      pass: 1,
+      fail: 1,
+      na: 1,
+      pending: 1,
+      reviewed: 3,
+    })
+  })
+
+  it('is all-zero with no items', () => {
+    expect(selectAdsbProgress([], 'contractor')).toEqual({
+      total: 0,
+      pass: 0,
+      fail: 0,
+      na: 0,
+      pending: 0,
+      reviewed: 0,
     })
   })
 })

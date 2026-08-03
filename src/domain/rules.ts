@@ -1,4 +1,4 @@
-import type { GroupId, LifecyclePhase, Priority, WorkflowStatus } from '../data/types'
+import type { AdsbInstallPhase, GroupId, LifecyclePhase, Priority, WorkflowStatus } from '../data/types'
 
 export interface GroupDef {
   id: GroupId
@@ -98,4 +98,18 @@ export const LIFECYCLE_PHASE_DEFS: LifecyclePhaseDef[] = [
   { id: 'Warranty', label: 'Warranty' },
   { id: 'OperationMaintenance', label: 'Operation & Maintenance' },
   { id: 'Other', label: 'Others' },
+]
+
+export interface AdsbInstallPhaseDef {
+  id: AdsbInstallPhase
+  label: string
+}
+
+/** The ADS-B checklist's own 5-phase technical breakdown — independent of LifecyclePhase (§ types.ts). */
+export const ADSB_INSTALL_PHASE_DEFS: AdsbInstallPhaseDef[] = [
+  { id: 'DesignApproval', label: 'Phase A — Design & Approval Prerequisites' },
+  { id: 'SiteReadiness', label: 'Phase B — Site Readiness & Safety' },
+  { id: 'Installation', label: 'Phase C — Installation Workmanship' },
+  { id: 'TestingCommissioning', label: 'Phase D — Testing & Commissioning' },
+  { id: 'AsBuiltHandover', label: 'Phase E — As-built & Handover' },
 ]

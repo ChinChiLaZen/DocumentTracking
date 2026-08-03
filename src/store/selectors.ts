@@ -40,9 +40,13 @@ export interface ProjectSummary {
 
 /**
  * Per-project summary for the Projects Summary cards. Branches per
- * `templateKind`: AOT/DOA/adsb projects have no Group/Priority (§5.2), so
+ * `templateKind`: AOT/DOA projects have no Group/Priority (§5.2), so
  * `rollup()` (which indexes by Priority) is never called on them — they use
  * the same workflowStatus-based progress as the Phase Progress tab instead.
+ * adsb projects never set workflowStatus (their own dedicated checklist page
+ * uses `result`/`employerResult` instead), so they get their own branch using
+ * `selectAdsbProgress` — `done` = Contractor Pass count, matching every other
+ * template's "done" meaning "fully complete," not merely "reviewed."
  */
 export function selectAllProjectsSummary(state: {
   projects: Record<string, DataSlice & { meta: ProjectMeta }>
@@ -50,11 +54,14 @@ export function selectAllProjectsSummary(state: {
 }): ProjectSummary[] {
   return state.projectOrder.map((id) => {
     const project = state.projects[id]
-    if (
-      project.meta.templateKind === 'aot' ||
-      project.meta.templateKind === 'doa' ||
-      project.meta.templateKind === 'adsb'
-    ) {
+    if (project.meta.templateKind === 'adsb') {
+      const progress = selectAdsbProgress(project.items, 'contractor')
+      const total = progress.total
+      const done = progress.pass
+      const percent = total === 0 ? 0 : Math.round((done / total) * 100)
+      return { meta: project.meta, done, total, percent }
+    }
+    if (project.meta.templateKind === 'aot' || project.meta.templateKind === 'doa') {
       const progress = selectOverallPhaseProgress(project.items)
       return { meta: project.meta, ...progress }
     }
@@ -64,6 +71,38 @@ export function selectAllProjectsSummary(state: {
     const percent = total === 0 ? 0 : Math.round((done / total) * 100)
     return { meta: project.meta, done, total, percent }
   })
+}
+
+export interface AdsbProgress {
+  total: number
+  pass: number
+  fail: number
+  na: number
+  pending: number
+  reviewed: number
+}
+
+/**
+ * Per-role progress for the ADS-B checklist page. 'contractor' counts over all
+ * items by `result` (Pass/Fail/NotApplicable); 'employer' counts over only the
+ * `employerIncluded` items by `employerResult` (Accepted/Conditional/Rejected).
+ * `reviewed` = pass+fail+na, matching the reference prototype's own "X/Y
+ * reviewed" framing (any recorded outcome counts as reviewed, not just Pass).
+ */
+export function selectAdsbProgress(items: Item[], role: 'contractor' | 'employer'): AdsbProgress {
+  const scoped = role === 'employer' ? items.filter((item) => item.employerIncluded) : items
+  const total = scoped.length
+  let pass = 0
+  let fail = 0
+  let na = 0
+  for (const item of scoped) {
+    const value = role === 'employer' ? item.employerResult : item.result
+    if (value === 'Pass' || value === 'Accepted') pass++
+    else if (value === 'Fail' || value === 'Rejected') fail++
+    else if (value === 'NotApplicable' || value === 'Conditional') na++
+  }
+  const reviewed = pass + fail + na
+  return { total, pass, fail, na, pending: total - reviewed, reviewed }
 }
 
 export interface DashboardStats {

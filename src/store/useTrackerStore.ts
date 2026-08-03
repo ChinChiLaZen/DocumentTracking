@@ -37,7 +37,18 @@ export interface CreateProjectInput {
 }
 
 export type ItemMetaPatch = Partial<
-  Pick<Item, 'documentDate' | 'expiryDate' | 'responsiblePerson' | 'documentLink'>
+  Pick<
+    Item,
+    | 'documentDate'
+    | 'expiryDate'
+    | 'responsiblePerson'
+    | 'documentLink'
+    | 'remark'
+    | 'measured'
+    | 'result'
+    | 'employerResult'
+    | 'employerRemark'
+  >
 >
 
 export interface TrackerState {

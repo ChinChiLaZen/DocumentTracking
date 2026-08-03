@@ -100,6 +100,7 @@ export interface Item {
   requiredEvidenceTh?: string // same, Thai
   hwPoint?: AdsbHwPoint
   employerResult?: AdsbEmployerResult // Employer's own outcome, manual, blank by default
+  employerRemark?: string // Employer's own free-text remark — independent of `remark` (Contractor's)
   // Phase Progress tab fields — independent of the checkbox-derived Status
   // above; never wired into effectiveStatus/autoStatus/rollup in derive.ts.
   workflowStatus?: WorkflowStatus
@@ -155,6 +156,11 @@ export type HistoryField =
   | 'expiryDate'
   | 'responsiblePerson'
   | 'documentLink'
+  | 'remark'
+  | 'measured'
+  | 'result'
+  | 'employerResult'
+  | 'employerRemark'
 
 export interface HistoryEntry {
   id: string
