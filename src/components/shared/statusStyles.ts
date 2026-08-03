@@ -1,4 +1,13 @@
-import type { AotImportance, DoaDocType, Priority, Status, WorkflowStatus } from '../../data/types'
+import type {
+  AdsbEmployerResult,
+  AdsbHwPoint,
+  AdsbResult,
+  AotImportance,
+  DoaDocType,
+  Priority,
+  Status,
+  WorkflowStatus,
+} from '../../data/types'
 
 /**
  * Matches the actual rendered palette of the two Lovable reference prototypes
@@ -47,4 +56,24 @@ export const DOC_TYPE_BADGE_CLASS: Record<DoaDocType, string> = {
   Shared: 'border-emerald-200 bg-emerald-100 text-emerald-800',
   Mandatory: 'border-rose-200 bg-rose-100 text-rose-800',
   SiteSpecific: 'border-sky-200 bg-sky-50 text-sky-700',
+}
+
+/** ADS-B checklist's Contractor self-check outcome (Pass/Fail/N.A.). */
+export const RESULT_BADGE_CLASS: Record<AdsbResult, string> = {
+  Pass: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  Fail: 'border-rose-200 bg-rose-50 text-rose-700',
+  NotApplicable: 'border-slate-200 bg-slate-100 text-slate-600',
+}
+
+/** ADS-B checklist's separate Employer acceptance decision — independent of AdsbResult. */
+export const EMPLOYER_RESULT_BADGE_CLASS: Record<AdsbEmployerResult, string> = {
+  Accepted: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  Conditional: 'border-amber-200 bg-amber-50 text-amber-700',
+  Rejected: 'border-rose-200 bg-rose-50 text-rose-700',
+}
+
+/** ADS-B checklist's Hold Point / Witness Point marker (Employer ITP only). */
+export const HW_POINT_BADGE_CLASS: Record<AdsbHwPoint, string> = {
+  Hold: 'border-rose-200 bg-rose-100 text-rose-800',
+  Witness: 'border-sky-200 bg-sky-50 text-sky-700',
 }

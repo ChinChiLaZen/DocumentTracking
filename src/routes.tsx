@@ -1,8 +1,13 @@
 import { createBrowserRouter } from 'react-router-dom'
 import { AppShell } from './components/layout/AppShell'
+import { DashboardShell } from './components/layout/DashboardShell'
 import { ProjectShell } from './components/layout/ProjectShell'
 import { ProjectIndexPage } from './components/layout/ProjectIndexPage'
 import { ProjectsSummaryPage } from './components/projects/ProjectsSummaryPage'
+import { ProjectsListPage } from './components/projects/ProjectsListPage'
+import { MyTasksPage } from './components/tasks/MyTasksPage'
+import { TeamPage } from './components/team/TeamPage'
+import { UserManagementPage } from './components/users/UserManagementPage'
 import { TrackerPage } from './components/tracker/TrackerPage'
 import { PriorityPage } from './components/priority/PriorityPage'
 import { ItemDetailsPage } from './components/itemDetails/ItemDetailsPage'
@@ -16,7 +21,16 @@ export const router = createBrowserRouter([
     path: '/',
     element: <AppShell />,
     children: [
-      { index: true, element: <ProjectsSummaryPage /> },
+      {
+        element: <DashboardShell />,
+        children: [
+          { index: true, element: <ProjectsSummaryPage /> },
+          { path: 'projects', element: <ProjectsListPage /> },
+          { path: 'tasks', element: <MyTasksPage /> },
+          { path: 'team', element: <TeamPage /> },
+          { path: 'users', element: <UserManagementPage /> },
+        ],
+      },
       {
         path: 'projects/:projectId',
         element: <ProjectShell />,

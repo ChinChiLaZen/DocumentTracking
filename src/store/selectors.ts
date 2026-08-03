@@ -40,9 +40,9 @@ export interface ProjectSummary {
 
 /**
  * Per-project summary for the Projects Summary cards. Branches per
- * `templateKind`: AOT/DOA projects have no Group/Priority (§5.2), so `rollup()`
- * (which indexes by Priority) is never called on them — they use the same
- * workflowStatus-based progress as the Phase Progress tab instead.
+ * `templateKind`: AOT/DOA/adsb projects have no Group/Priority (§5.2), so
+ * `rollup()` (which indexes by Priority) is never called on them — they use
+ * the same workflowStatus-based progress as the Phase Progress tab instead.
  */
 export function selectAllProjectsSummary(state: {
   projects: Record<string, DataSlice & { meta: ProjectMeta }>
@@ -50,7 +50,11 @@ export function selectAllProjectsSummary(state: {
 }): ProjectSummary[] {
   return state.projectOrder.map((id) => {
     const project = state.projects[id]
-    if (project.meta.templateKind === 'aot' || project.meta.templateKind === 'doa') {
+    if (
+      project.meta.templateKind === 'aot' ||
+      project.meta.templateKind === 'doa' ||
+      project.meta.templateKind === 'adsb'
+    ) {
       const progress = selectOverallPhaseProgress(project.items)
       return { meta: project.meta, ...progress }
     }

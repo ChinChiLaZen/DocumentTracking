@@ -2,6 +2,7 @@ import { create } from 'zustand'
 
 interface AuthUser {
   email: string
+  role: 'admin' | 'member'
 }
 
 interface AuthResult {
@@ -48,7 +49,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     })
     const data = await parseJson(res)
     if (!res.ok) return { error: (data.error as string) ?? 'Sign in failed' }
-    set({ user: { email: data.email as string } })
+    set({ user: { email: data.email as string, role: data.role as 'admin' | 'member' } })
     return {}
   },
 
@@ -60,7 +61,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     })
     const data = await parseJson(res)
     if (!res.ok) return { error: (data.error as string) ?? 'Sign up failed' }
-    set({ user: { email: data.email as string } })
+    set({ user: { email: data.email as string, role: data.role as 'admin' | 'member' } })
     return {}
   },
 

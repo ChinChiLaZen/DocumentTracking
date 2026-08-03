@@ -60,9 +60,10 @@ export function PhaseDashboardPage() {
   const summaries = selectPhaseSummary(items)
   const overall = selectOverallPhaseProgress(items)
   const isAot = meta?.templateKind === 'aot'
-  // DOA's reference tracker has no equivalent critical-cutoff notice to
-  // transcribe (§ "never fabricate standards") — its banner is simply omitted.
+  // DOA/adsb's reference trackers have no equivalent critical-cutoff notice to
+  // transcribe (§ "never fabricate standards") — their banner is simply omitted.
   const isDoa = meta?.templateKind === 'doa'
+  const isAdsb = meta?.templateKind === 'adsb'
   const bannerHeading = isAot
     ? 'จุดตัดสิทธิ์สำคัญ — Critical eligibility cutoff'
     : 'Critical cutoff — review sequence must not be skipped'
@@ -93,7 +94,7 @@ export function PhaseDashboardPage() {
         </div>
       </div>
 
-      {!isDoa && <CriticalCutoffBanner heading={bannerHeading} lines={bannerLines} />}
+      {!isDoa && !isAdsb && <CriticalCutoffBanner heading={bannerHeading} lines={bannerLines} />}
 
       <PhaseCards summaries={summaries} />
 

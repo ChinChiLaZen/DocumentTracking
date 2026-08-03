@@ -12,5 +12,5 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(401).json({ user: null })
     return
   }
-  res.status(200).json({ user: { email: payload.email } })
+  res.status(200).json({ user: { email: payload.email, role: payload.role } })
 }

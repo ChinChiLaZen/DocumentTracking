@@ -29,8 +29,10 @@ export type LifecyclePhase =
 // apply). 'aot' = the real Airports of Thailand 94-item bid-submission
 // checklist (no groups/priority/detail sheets — see AotImportance below).
 // 'doa' = the real Department of Airports 64-item document tracker spanning
-// 3 airports (see DoaDocType/DoaSite below).
-export type TemplateKind = 'mar' | 'aot' | 'doa'
+// 3 airports (see DoaDocType/DoaSite below). 'adsb' = the real ADS-B ground
+// station/vehicle terminal (CATM) 96-item installation checklist (see
+// AdsbResult/AdsbEmployerResult/AdsbHwPoint/AdsbInstallPhase below).
+export type TemplateKind = 'mar' | 'aot' | 'doa' | 'adsb'
 
 // AOT's own criticality marker (⚠️สำคัญ/ปกติ/📌ประกอบ/ด่านสำคัญ) — independent
 // of Priority (A/B/C), which is MAR-specific and doesn't apply to AOT items.
@@ -42,6 +44,32 @@ export type DoaDocType = 'Shared' | 'Mandatory' | 'SiteSpecific'
 
 // Which of the DOA tracker's 3 airports (or all of them) an item applies to.
 export type DoaSite = 'Shared' | 'KKC' | 'UTH' | 'URT'
+
+// ADS-B checklist's own 5-phase technical breakdown (Design & Approval / Site
+// Readiness / Installation / Testing & Commissioning / As-built & Handover) —
+// independent of LifecyclePhase (a generic project-lifecycle bucket), exactly
+// as GroupId (MAR's G1-G5) is independent of LifecyclePhase. Deliberately NOT
+// collapsed onto LifecyclePhase's 7 values — these 5 stages are real,
+// distinct working phases a reviewer needs to filter by.
+export type AdsbInstallPhase =
+  | 'DesignApproval'
+  | 'SiteReadiness'
+  | 'Installation'
+  | 'TestingCommissioning'
+  | 'AsBuiltHandover'
+
+// The Contractor's own self-check outcome per item (manual, blank by default).
+export type AdsbResult = 'Pass' | 'Fail' | 'NotApplicable'
+
+// The Employer's separate acceptance decision — only meaningful for items
+// where employerIncluded is true. Independent of AdsbResult: a real
+// installation checklist has two distinct sign-offs, not one.
+export type AdsbEmployerResult = 'Accepted' | 'Conditional' | 'Rejected'
+
+// Hold Point (work must stop for Employer witness) vs Witness Point (Employer
+// may observe but need not stop work) — only set for the subset of
+// employerIncluded items that carry one in the source ITP.
+export type AdsbHwPoint = 'Hold' | 'Witness'
 
 export interface Item {
   no: number // 1..28 for MAR items; 1..94 for AOT items; 1..64 for DOA items (see `code` for AOT/DOA's real identifier)
@@ -59,6 +87,19 @@ export interface Item {
   // DOA-only fields — absent for MAR/AOT items.
   docType?: DoaDocType
   site?: DoaSite
+  // adsb-only fields — absent for MAR/AOT/DOA items.
+  nameTh?: string // Thai item text (name holds the English text, per other templates)
+  requirementTh?: string // Thai acceptance criteria (requirement holds the English text)
+  torRef?: string // TOR clause ref, e.g. "2.2.6" — real for 13/96 items, else undefined
+  resp?: string // raw E/C/S responsibility combo as in source, e.g. "S,C"
+  installPhase?: AdsbInstallPhase
+  measured?: string // free text, manual, blank by default
+  result?: AdsbResult // Contractor's own outcome, manual, blank by default
+  employerIncluded?: boolean // true for the 80/96 items that also appear in the Employer ITP
+  requiredEvidence?: string // Employer's "required evidence" (EN) — only set when employerIncluded
+  requiredEvidenceTh?: string // same, Thai
+  hwPoint?: AdsbHwPoint
+  employerResult?: AdsbEmployerResult // Employer's own outcome, manual, blank by default
   // Phase Progress tab fields — independent of the checkbox-derived Status
   // above; never wired into effectiveStatus/autoStatus/rollup in derive.ts.
   workflowStatus?: WorkflowStatus

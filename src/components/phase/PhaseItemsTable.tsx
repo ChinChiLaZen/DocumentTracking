@@ -6,7 +6,13 @@ import { Input } from '../ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 import { PhaseHeaderRow } from './PhaseHeaderRow'
 import { LIFECYCLE_PHASE_DEFS, WORKFLOW_STATUS_DEFS } from '../../domain/rules'
-import { DOC_TYPE_BADGE_CLASS, IMPORTANCE_BADGE_CLASS } from '../shared/statusStyles'
+import {
+  DOC_TYPE_BADGE_CLASS,
+  EMPLOYER_RESULT_BADGE_CLASS,
+  HW_POINT_BADGE_CLASS,
+  IMPORTANCE_BADGE_CLASS,
+  RESULT_BADGE_CLASS,
+} from '../shared/statusStyles'
 import { DOA_SITE_LABEL } from '../../data/doaTemplate'
 import { Badge } from '../ui/badge'
 import type { Item, LifecyclePhase, WorkflowStatus } from '../../data/types'
@@ -84,6 +90,25 @@ export function PhaseItemsTable({
                             {DOA_SITE_LABEL[item.site]}
                           </span>
                         )}
+                        {item.result && (
+                          <Badge variant="outline" className={RESULT_BADGE_CLASS[item.result]}>
+                            {item.result}
+                          </Badge>
+                        )}
+                        {item.employerIncluded && item.employerResult && (
+                          <Badge
+                            variant="outline"
+                            className={EMPLOYER_RESULT_BADGE_CLASS[item.employerResult]}
+                          >
+                            Employer: {item.employerResult}
+                          </Badge>
+                        )}
+                        {item.hwPoint && (
+                          <Badge variant="outline" className={HW_POINT_BADGE_CLASS[item.hwPoint]}>
+                            {item.hwPoint} Point
+                          </Badge>
+                        )}
+                        {item.nameTh && <p className="text-xs text-muted-foreground">{item.nameTh}</p>}
                         {(item.standard || item.requirement) && (
                           <p className="text-xs text-muted-foreground">
                             {item.requirement}

@@ -15,8 +15,8 @@ const MAR_TABS = [
   { to: '/guidelines', label: 'Guidelines' },
 ]
 
-// AOT/DOA projects have no Group/Priority/checkbox detail sheets (§7) — the
-// single Dashboard tab IS the full Phase Progress-style register, so
+// AOT/DOA/adsb projects have no Group/Priority/checkbox detail sheets (§7) —
+// the single Dashboard tab IS the full Phase Progress-style register, so
 // Tracker/Priority/Item Details/Guidelines aren't linked.
 const SINGLE_TAB = [{ to: '', label: 'Dashboard', end: true }]
 
@@ -42,7 +42,10 @@ export function ProjectShell() {
     )
   }
 
-  const tabs = meta.templateKind === 'aot' || meta.templateKind === 'doa' ? SINGLE_TAB : MAR_TABS
+  const tabs =
+    meta.templateKind === 'aot' || meta.templateKind === 'doa' || meta.templateKind === 'adsb'
+      ? SINGLE_TAB
+      : MAR_TABS
   const csiEntry = findCsiEntry(meta.projectType)
 
   return (

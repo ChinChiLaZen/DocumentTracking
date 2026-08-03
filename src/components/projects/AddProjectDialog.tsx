@@ -48,6 +48,12 @@ const TEMPLATE_OPTIONS: { id: TemplateKind; label: string; description: string }
     description:
       "Clones the 64-item DOA (Department of Airports) document tracker spanning Khon Kaen, Udon Thani and Surat Thani airports. Each item keeps its own real phase, document-type badge (Shared/Mandatory/Site-specific) and airport assignment; there's no checkbox detail-sheet or Group/Priority for this template.",
   },
+  {
+    id: 'adsb',
+    label: 'ADS-B Installation Checklist — CATM Ground Station & Vehicle Terminal',
+    description:
+      "Clones the 96-item ADS-B ground-station/vehicle-terminal (CATM) installation checklist across 5 real phases (Design & Approval, Site Readiness, Installation, Testing & Commissioning, As-built & Handover). Each item carries bilingual (Thai/English) text plus its own real installation phase; 80 of the 96 also carry the Employer ITP's Required-evidence and Hold/Witness-point fields. No checkbox detail-sheet or Group/Priority for this template.",
+  },
 ]
 
 function today(): string {

@@ -40,13 +40,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const passwordHash = await hashPassword(password)
-  const inserted = await sql`
-    INSERT INTO users (email, password_hash) VALUES (${normalizedEmail}, ${passwordHash})
-    RETURNING id, email
-  `
-  const user = inserted.rows[0] as { id: number; email: string }
+  const { rows: countRows } = await sql`SELECT COUNT(*) FROM users`
+  const isFirstUser = Number(countRows[0].count) === 0
+  const role = isFirstUser ? 'admin' : 'member'
 
-  const token = await signSession({ sub: String(user.id), email: user.email })
+  const inserted = await sql`
+    INSERT INTO users (email, password_hash, role) VALUES (${normalizedEmail}, ${passwordHash}, ${role})
+    RETURNING id, email, role
+  `
+  const user = inserted.rows[0] as { id: number; email: string; role: 'admin' | 'member' }
+
+  const token = await signSession({ sub: String(user.id), email: user.email, role: user.role })
   setSessionCookie(res, token)
-  res.status(200).json({ email: user.email })
+  res.status(200).json({ email: user.email, role: user.role })
 }

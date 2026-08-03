@@ -17,15 +17,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   await ensureSchema()
 
   const normalizedEmail = email.trim().toLowerCase()
-  const result = await sql`SELECT id, email, password_hash FROM users WHERE email = ${normalizedEmail}`
-  const user = result.rows[0] as { id: number; email: string; password_hash: string } | undefined
+  const result = await sql`SELECT id, email, password_hash, role FROM users WHERE email = ${normalizedEmail}`
+  const user = result.rows[0] as
+    | { id: number; email: string; password_hash: string; role: 'admin' | 'member' }
+    | undefined
 
   if (!user || !(await verifyPassword(password, user.password_hash))) {
     res.status(401).json({ error: 'Invalid email or password' })
     return
   }
 
-  const token = await signSession({ sub: String(user.id), email: user.email })
+  const token = await signSession({ sub: String(user.id), email: user.email, role: user.role })
   setSessionCookie(res, token)
-  res.status(200).json({ email: user.email })
+  res.status(200).json({ email: user.email, role: user.role })
 }
