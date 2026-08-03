@@ -1,9 +1,15 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/useAuthStore'
 import { useUsersStore } from '../../store/useUsersStore'
+import { useTeamStore } from '../../store/useTeamStore'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
+import { Input } from '../ui/input'
+import { Badge } from '../ui/badge'
+import { Button } from '../ui/button'
+import { ACCOUNT_STATUS_BADGE_CLASS } from '../shared/statusStyles'
+import { DeactivateUserDialog } from './DeactivateUserDialog'
 
 function formatJoinedDate(iso: string): string {
   const date = new Date(iso)
@@ -13,15 +19,23 @@ function formatJoinedDate(iso: string): string {
 
 export function UserManagementPage() {
   const currentUser = useAuthStore((s) => s.user)
-  const { users, loading, error, fetchUsers, updateRole } = useUsersStore()
+  const { users, loading, error, fetchUsers, updateRole, setActive } = useUsersStore()
+  const { team, fetchTeam } = useTeamStore()
+  const [query, setQuery] = useState('')
 
   useEffect(() => {
     fetchUsers()
-  }, [fetchUsers])
+    fetchTeam()
+  }, [fetchUsers, fetchTeam])
+
+  const countsById = useMemo(() => new Map(team.map((member) => [member.id, member.counts])), [team])
 
   if (currentUser?.role !== 'admin') {
     return <Navigate to="/" replace />
   }
+
+  const q = query.trim().toLowerCase()
+  const visibleUsers = q ? users.filter((u) => u.email.toLowerCase().includes(q)) : users
 
   return (
     <div className="h-full overflow-auto p-6">
@@ -29,6 +43,13 @@ export function UserManagementPage() {
       <p className="mb-6 text-sm text-muted-foreground">
         Manage sign-in access and admin privileges for everyone who has created an account.
       </p>
+
+      <Input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search by email…"
+        className="mb-4 max-w-sm"
+      />
 
       {loading && <p className="text-sm text-muted-foreground">Loading…</p>}
       {error && <p className="text-sm text-destructive">{error}</p>}
@@ -39,12 +60,16 @@ export function UserManagementPage() {
             <TableRow>
               <TableHead>Email</TableHead>
               <TableHead>Role</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Tasks (To Do / In Progress / Awaiting / Done)</TableHead>
               <TableHead>Joined</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {users.map((user) => {
+            {visibleUsers.map((user) => {
               const isSelf = user.email === currentUser.email
+              const counts = countsById.get(user.id)
               return (
                 <TableRow key={user.id}>
                   <TableCell>
@@ -66,7 +91,34 @@ export function UserManagementPage() {
                       </SelectContent>
                     </Select>
                   </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      className={
+                        ACCOUNT_STATUS_BADGE_CLASS[user.isActive ? 'Active' : 'Deactivated']
+                      }
+                    >
+                      {user.isActive ? 'Active' : 'Deactivated'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {counts ? `${counts.toDo} / ${counts.inProgress} / ${counts.awaitingReview} / ${counts.done}` : '—'}
+                  </TableCell>
                   <TableCell>{formatJoinedDate(user.createdAt)}</TableCell>
+                  <TableCell>
+                    {isSelf ? (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    ) : user.isActive ? (
+                      <DeactivateUserDialog
+                        email={user.email}
+                        onConfirm={() => setActive(user.id, false)}
+                      />
+                    ) : (
+                      <Button variant="outline" size="sm" onClick={() => setActive(user.id, true)}>
+                        Reactivate
+                      </Button>
+                    )}
+                  </TableCell>
                 </TableRow>
               )
             })}

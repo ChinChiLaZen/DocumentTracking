@@ -17,13 +17,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   await ensureSchema()
 
   const normalizedEmail = email.trim().toLowerCase()
-  const result = await sql`SELECT id, email, password_hash, role FROM users WHERE email = ${normalizedEmail}`
+  const result = await sql`SELECT id, email, password_hash, role, is_active FROM users WHERE email = ${normalizedEmail}`
   const user = result.rows[0] as
-    | { id: number; email: string; password_hash: string; role: 'admin' | 'member' }
+    | { id: number; email: string; password_hash: string; role: 'admin' | 'member'; is_active: boolean }
     | undefined
 
   if (!user || !(await verifyPassword(password, user.password_hash))) {
     res.status(401).json({ error: 'Invalid email or password' })
+    return
+  }
+
+  if (!user.is_active) {
+    res.status(403).json({ error: 'This account has been deactivated' })
     return
   }
 

@@ -14,7 +14,7 @@ export function DashboardShell() {
     <div className="flex h-svh">
       <aside className="flex w-56 shrink-0 flex-col border-r bg-background">
         <div className="border-b px-4 py-4">
-          <p className="text-sm font-semibold">MAR Tracker</p>
+          <p className="text-sm font-semibold">ITS Tracker</p>
         </div>
         <nav className="flex-1 space-y-1 p-2" aria-label="Dashboard">
           <NavLink to="/" end className={NAV_LINK_CLASS}>

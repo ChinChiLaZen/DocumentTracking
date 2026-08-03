@@ -74,15 +74,46 @@ export function getSessionToken(req: VercelRequest): string | undefined {
 /**
  * Re-checks the caller's role from the DB rather than trusting the JWT's embedded
  * `role`, which can go stale for up to SESSION_DAYS if an admin changes someone's role
- * after their token was issued. Returns null if unauthenticated or not an admin.
+ * after their token was issued. Also requires the account still be active — a
+ * deactivated admin loses admin powers immediately, not just the ability to log in.
+ * Returns null if unauthenticated, not an admin, or deactivated.
  */
 export async function requireAdmin(req: VercelRequest): Promise<{ id: number; email: string } | null> {
   const token = getSessionToken(req)
   const payload = token ? await verifySession(token) : null
   if (!payload) return null
 
-  const result = await sql`SELECT id, email, role FROM users WHERE id = ${Number(payload.sub)}`
-  const user = result.rows[0] as { id: number; email: string; role: Role } | undefined
-  if (!user || user.role !== 'admin') return null
+  const result = await sql`SELECT id, email, role, is_active FROM users WHERE id = ${Number(payload.sub)}`
+  const user = result.rows[0] as
+    | { id: number; email: string; role: Role; is_active: boolean }
+    | undefined
+  if (!user || user.role !== 'admin' || !user.is_active) return null
   return { id: user.id, email: user.email }
+}
+
+export interface CurrentUser {
+  id: number
+  email: string
+  role: Role
+  isActive: boolean
+}
+
+/**
+ * Decodes the session JWT, then re-fetches the user's *current* role/active status
+ * from the DB rather than trusting whatever was baked into the token at login time —
+ * so a role change or deactivation takes effect on the very next request, not
+ * whenever the token happens to expire (up to SESSION_DAYS later). Returns null if
+ * unauthenticated, the account no longer exists, or it's been deactivated.
+ */
+export async function getCurrentUser(req: VercelRequest): Promise<CurrentUser | null> {
+  const token = getSessionToken(req)
+  const payload = token ? await verifySession(token) : null
+  if (!payload) return null
+
+  const result = await sql`SELECT id, email, role, is_active FROM users WHERE id = ${Number(payload.sub)}`
+  const user = result.rows[0] as
+    | { id: number; email: string; role: Role; is_active: boolean }
+    | undefined
+  if (!user || !user.is_active) return null
+  return { id: user.id, email: user.email, role: user.role, isActive: user.is_active }
 }

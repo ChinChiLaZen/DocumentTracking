@@ -14,6 +14,7 @@ export function ensureSchema(): Promise<void> {
       )
     `
       .then(() => sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'member'`)
+      .then(() => sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT true`)
       .then(
         () => sql`
           CREATE TABLE IF NOT EXISTS tasks (

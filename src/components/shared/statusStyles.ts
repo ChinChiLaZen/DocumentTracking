@@ -77,3 +77,9 @@ export const HW_POINT_BADGE_CLASS: Record<AdsbHwPoint, string> = {
   Hold: 'border-rose-200 bg-rose-100 text-rose-800',
   Witness: 'border-sky-200 bg-sky-50 text-sky-700',
 }
+
+/** User Management page's account-status badge. */
+export const ACCOUNT_STATUS_BADGE_CLASS: Record<'Active' | 'Deactivated', string> = {
+  Active: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  Deactivated: 'border-slate-300 bg-slate-200 text-slate-700',
+}

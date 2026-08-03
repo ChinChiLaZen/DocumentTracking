@@ -16,11 +16,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return
   }
 
-  const result = await sql`SELECT id, email, role, created_at FROM users ORDER BY created_at ASC`
+  const result = await sql`SELECT id, email, role, is_active, created_at FROM users ORDER BY created_at ASC`
   const users = result.rows.map((row) => ({
     id: row.id as number,
     email: row.email as string,
     role: row.role as 'admin' | 'member',
+    isActive: row.is_active as boolean,
     createdAt: new Date(row.created_at as string | Date).toISOString(),
   }))
 
