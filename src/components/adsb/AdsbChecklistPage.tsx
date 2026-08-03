@@ -144,13 +144,11 @@ function RoleView({
                 {sectionDone}/{sectionItems.length}
               </span>
             </button>
-            {!isCollapsed && (
-              <div className="mt-2 space-y-2">
-                {sectionItems.map((item) => (
-                  <AdsbItemCard key={item.no} item={item} role={role} onCommit={onCommit} />
-                ))}
-              </div>
-            )}
+            <div className={`mt-2 space-y-2 ${isCollapsed ? 'hidden print:block' : ''}`}>
+              {sectionItems.map((item) => (
+                <AdsbItemCard key={item.no} item={item} role={role} onCommit={onCommit} />
+              ))}
+            </div>
           </div>
         )
       })}
@@ -168,7 +166,7 @@ export function AdsbChecklistPage() {
   )
 
   return (
-    <div className="h-full space-y-4 overflow-auto p-6">
+    <div className="h-full space-y-4 overflow-auto p-6 print:h-auto print:overflow-visible">
       <div className="no-print flex items-center justify-end">
         <HistoryDialog history={history} items={items} />
       </div>

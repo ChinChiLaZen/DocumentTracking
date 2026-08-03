@@ -1,8 +1,11 @@
+import { useEffect } from 'react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { ResetToSeedDialog } from './ResetToSeedDialog'
 import { UserMenu } from '../auth/UserMenu'
 import { useActiveProject } from '../../store/useActiveProject'
 import { findCsiEntry, formatCsiEntry } from '../../data/csiMasterFormat'
+
+const DEFAULT_TITLE = 'ITS Tracker'
 
 const MAR_TABS = [
   { to: '', label: 'Dashboard', end: true },
@@ -30,6 +33,18 @@ function formatPreparedDate(iso: string): string {
 
 export function ProjectShell() {
   const { notFound, meta, basePath } = useActiveProject()
+
+  // The on-screen header is `no-print`, so the project's title only reaches a
+  // printed page via the browser's own print header, which is drawn from
+  // document.title — keep it in sync with whichever project is open instead
+  // of the static app-wide default from index.html.
+  useEffect(() => {
+    if (!meta) return
+    document.title = meta.title
+    return () => {
+      document.title = DEFAULT_TITLE
+    }
+  }, [meta?.title])
 
   if (notFound || !meta) {
     return (
@@ -84,6 +99,10 @@ export function ProjectShell() {
           ))}
         </nav>
       </header>
+      {/* The header above is `no-print` — without this, a printed page would carry
+          no visible title at all (browsers only show document.title in their own
+          print header/footer, which many users print with disabled). */}
+      <h1 className="hidden px-6 pt-4 text-base font-semibold print:block">{meta.title}</h1>
       <main className="min-h-0 flex-1 overflow-hidden">
         <Outlet />
       </main>
