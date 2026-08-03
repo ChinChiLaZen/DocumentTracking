@@ -179,6 +179,29 @@ describe('useTrackerStore', () => {
     })
   })
 
+  describe('deleteProject', () => {
+    it('removes the project from both projects and projectOrder, leaving others untouched', () => {
+      const useStore = setup()
+      const id = useStore.getState().createProject({
+        title: 'Disposable Project',
+        vendor: '',
+        scope: '',
+        preparedDate: '2026-08-01',
+        templateKind: 'mar',
+        defaultPhase: 'AfterContract',
+      })
+      expect(useStore.getState().projectOrder).toContain(id)
+
+      useStore.getState().deleteProject(id)
+
+      expect(useStore.getState().projects[id]).toBeUndefined()
+      expect(useStore.getState().projectOrder).not.toContain(id)
+      // Untouched — deleting one project must not affect another.
+      expect(useStore.getState().projects[UTAPAO_PROJECT_ID]).toBeDefined()
+      expect(useStore.getState().projectOrder).toContain(UTAPAO_PROJECT_ID)
+    })
+  })
+
   describe('workflow status & metadata (Phase Progress)', () => {
     it('setWorkflowStatus sets the field and appends one history entry', () => {
       const useStore = setup()

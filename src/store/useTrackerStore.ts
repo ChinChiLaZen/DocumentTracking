@@ -96,6 +96,7 @@ export interface TrackerState {
   bulkToggleCells(projectId: string, sheetId: string, scope: 'selected' | 'all'): void
   resetToSeed(projectId: string): void
   createProject(input: CreateProjectInput): string
+  deleteProject(projectId: string): void
   setWorkflowStatus(
     projectId: string,
     itemNo: number,
@@ -396,6 +397,14 @@ export function createTrackerStore(persistence: PersistencePort = createLocalSto
         }))
         persist()
         return id
+      },
+
+      deleteProject(projectId) {
+        set((state) => {
+          const { [projectId]: _removed, ...projects } = state.projects
+          return { projects, projectOrder: state.projectOrder.filter((id) => id !== projectId) }
+        })
+        persist()
       },
 
       setWorkflowStatus(projectId, itemNo, status, changedBy) {
