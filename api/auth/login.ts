@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { ensureSchema, sql } from '../_lib/db.js'
-import { verifyPassword, signSession, setSessionCookie } from '../_lib/auth.js'
+import { verifyPassword, signSession, setSessionCookie, type Role } from '../_lib/auth.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -19,7 +19,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const normalizedEmail = email.trim().toLowerCase()
   const result = await sql`SELECT id, email, password_hash, role, is_active FROM users WHERE email = ${normalizedEmail}`
   const user = result.rows[0] as
-    | { id: number; email: string; password_hash: string; role: 'admin' | 'member'; is_active: boolean }
+    | { id: number; email: string; password_hash: string; role: Role; is_active: boolean }
     | undefined
 
   if (!user || !(await verifyPassword(password, user.password_hash))) {

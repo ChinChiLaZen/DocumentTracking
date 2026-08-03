@@ -7,7 +7,10 @@ import { sql } from './db.js'
 const COOKIE_NAME = 'session'
 const SESSION_DAYS = 7
 
-export type Role = 'admin' | 'member'
+export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+export type Role = 'admin' | 'member' | 'TeamLeader' | 'ProjectManager' | 'ProjectDirector'
+export const ROLES: Role[] = ['admin', 'member', 'TeamLeader', 'ProjectManager', 'ProjectDirector']
 
 interface SessionPayload extends JWTPayload {
   sub: string

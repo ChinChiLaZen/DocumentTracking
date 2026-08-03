@@ -1,8 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { ensureSchema, sql } from '../_lib/db.js'
-import { hashPassword, signSession, setSessionCookie } from '../_lib/auth.js'
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+import { EMAIL_RE, hashPassword, signSession, setSessionCookie } from '../_lib/auth.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {

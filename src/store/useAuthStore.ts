@@ -1,8 +1,10 @@
 import { create } from 'zustand'
 
+export type Role = 'admin' | 'member' | 'TeamLeader' | 'ProjectManager' | 'ProjectDirector'
+
 interface AuthUser {
   email: string
-  role: 'admin' | 'member'
+  role: Role
 }
 
 interface AuthResult {
@@ -49,7 +51,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     })
     const data = await parseJson(res)
     if (!res.ok) return { error: (data.error as string) ?? 'Sign in failed' }
-    set({ user: { email: data.email as string, role: data.role as 'admin' | 'member' } })
+    set({ user: { email: data.email as string, role: data.role as Role } })
     return {}
   },
 
@@ -61,7 +63,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     })
     const data = await parseJson(res)
     if (!res.ok) return { error: (data.error as string) ?? 'Sign up failed' }
-    set({ user: { email: data.email as string, role: data.role as 'admin' | 'member' } })
+    set({ user: { email: data.email as string, role: data.role as Role } })
     return {}
   },
 

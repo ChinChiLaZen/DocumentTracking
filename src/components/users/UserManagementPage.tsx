@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
-import { useAuthStore } from '../../store/useAuthStore'
-import { useUsersStore } from '../../store/useUsersStore'
+import { useAuthStore, type Role } from '../../store/useAuthStore'
+import { useUsersStore, ROLES, ROLE_LABEL } from '../../store/useUsersStore'
 import { useTeamStore } from '../../store/useTeamStore'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
@@ -9,7 +9,10 @@ import { Input } from '../ui/input'
 import { Badge } from '../ui/badge'
 import { Button } from '../ui/button'
 import { ACCOUNT_STATUS_BADGE_CLASS } from '../shared/statusStyles'
+import { AddUserDialog } from './AddUserDialog'
+import { EditUserDialog } from './EditUserDialog'
 import { DeactivateUserDialog } from './DeactivateUserDialog'
+import { DeleteUserDialog } from './DeleteUserDialog'
 
 function formatJoinedDate(iso: string): string {
   const date = new Date(iso)
@@ -19,7 +22,7 @@ function formatJoinedDate(iso: string): string {
 
 export function UserManagementPage() {
   const currentUser = useAuthStore((s) => s.user)
-  const { users, loading, error, fetchUsers, updateRole, setActive } = useUsersStore()
+  const { users, loading, error, fetchUsers, updateRole, setActive, deleteUser } = useUsersStore()
   const { team, fetchTeam } = useTeamStore()
   const [query, setQuery] = useState('')
 
@@ -44,12 +47,15 @@ export function UserManagementPage() {
         Manage sign-in access and admin privileges for everyone who has created an account.
       </p>
 
-      <Input
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search by email…"
-        className="mb-4 max-w-sm"
-      />
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <Input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search by email…"
+          className="max-w-sm"
+        />
+        <AddUserDialog />
+      </div>
 
       {loading && <p className="text-sm text-muted-foreground">Loading…</p>}
       {error && <p className="text-sm text-destructive">{error}</p>}
@@ -80,14 +86,17 @@ export function UserManagementPage() {
                     <Select
                       value={user.role}
                       disabled={isSelf}
-                      onValueChange={(value) => updateRole(user.id, value as 'admin' | 'member')}
+                      onValueChange={(value) => updateRole(user.id, value as Role)}
                     >
                       <SelectTrigger size="sm">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="admin">Admin</SelectItem>
-                        <SelectItem value="member">Team member</SelectItem>
+                        {ROLES.map((role) => (
+                          <SelectItem key={role} value={role}>
+                            {ROLE_LABEL[role]}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </TableCell>
@@ -108,15 +117,24 @@ export function UserManagementPage() {
                   <TableCell>
                     {isSelf ? (
                       <span className="text-xs text-muted-foreground">—</span>
-                    ) : user.isActive ? (
-                      <DeactivateUserDialog
-                        email={user.email}
-                        onConfirm={() => setActive(user.id, false)}
-                      />
                     ) : (
-                      <Button variant="outline" size="sm" onClick={() => setActive(user.id, true)}>
-                        Reactivate
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <EditUserDialog id={user.id} email={user.email} />
+                        {user.isActive ? (
+                          <DeactivateUserDialog
+                            email={user.email}
+                            onConfirm={() => setActive(user.id, false)}
+                          />
+                        ) : (
+                          <Button variant="outline" size="sm" onClick={() => setActive(user.id, true)}>
+                            Reactivate
+                          </Button>
+                        )}
+                        <DeleteUserDialog
+                          email={user.email}
+                          onConfirm={() => deleteUser(user.id)}
+                        />
+                      </div>
                     )}
                   </TableCell>
                 </TableRow>
