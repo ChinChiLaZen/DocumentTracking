@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type {
+  CheckRow,
   DetailSheet,
   HistoryEntry,
   Item,
@@ -48,6 +49,25 @@ export type ItemMetaPatch = Partial<
     | 'result'
     | 'employerResult'
     | 'employerRemark'
+    // Admin-only static/definitional fields — see plan "Admin-only editing of
+    // all static/definitional fields" — client-side-gated only, no backend
+    // for this data (it lives entirely in localStorage, per CLAUDE.md §10).
+    | 'name'
+    | 'standard'
+    | 'requirement'
+    | 'priority'
+    | 'group'
+    | 'importance'
+    | 'docType'
+    | 'site'
+    | 'nameTh'
+    | 'requirementTh'
+    | 'torRef'
+    | 'resp'
+    | 'installPhase'
+    | 'requiredEvidence'
+    | 'requiredEvidenceTh'
+    | 'hwPoint'
   >
 >
 
@@ -57,6 +77,18 @@ export interface TrackerState {
 
   toggleCell(projectId: string, sheetId: string, rowId: string, columnKey: string): void
   setRowRemark(projectId: string, sheetId: string, rowId: string, remark: string): void
+  updateRowText(
+    projectId: string,
+    sheetId: string,
+    rowId: string,
+    patch: Partial<Pick<CheckRow, 'description' | 'article' | 'section'>>,
+  ): void
+  updateColumnLabel(projectId: string, sheetId: string, columnKey: string, label: string): void
+  updateSheetHeader(
+    projectId: string,
+    sheetId: string,
+    patch: Partial<Pick<DetailSheet, 'title' | 'applicable'>>,
+  ): void
   setManualStatus(projectId: string, itemNo: number, status: Status | undefined): void
   toggleRowSelection(projectId: string, sheetId: string, rowId: string): void
   selectAllRows(projectId: string, sheetId: string, on: boolean): void
@@ -207,6 +239,48 @@ export function createTrackerStore(persistence: PersistencePort = createLocalSto
                   ...sheet,
                   rows: sheet.rows.map((row) => (row.id !== rowId ? row : { ...row, remark })),
                 },
+          ),
+        }))
+        persist()
+      },
+
+      updateRowText(projectId, sheetId, rowId, patch) {
+        updateProject(projectId, (project) => ({
+          ...project,
+          sheets: project.sheets.map((sheet) =>
+            sheet.id !== sheetId
+              ? sheet
+              : {
+                  ...sheet,
+                  rows: sheet.rows.map((row) => (row.id !== rowId ? row : { ...row, ...patch })),
+                },
+          ),
+        }))
+        persist()
+      },
+
+      updateColumnLabel(projectId, sheetId, columnKey, label) {
+        updateProject(projectId, (project) => ({
+          ...project,
+          sheets: project.sheets.map((sheet) =>
+            sheet.id !== sheetId
+              ? sheet
+              : {
+                  ...sheet,
+                  columns: sheet.columns.map((column) =>
+                    column.key !== columnKey ? column : { ...column, label },
+                  ),
+                },
+          ),
+        }))
+        persist()
+      },
+
+      updateSheetHeader(projectId, sheetId, patch) {
+        updateProject(projectId, (project) => ({
+          ...project,
+          sheets: project.sheets.map((sheet) =>
+            sheet.id !== sheetId ? sheet : { ...sheet, ...patch },
           ),
         }))
         persist()

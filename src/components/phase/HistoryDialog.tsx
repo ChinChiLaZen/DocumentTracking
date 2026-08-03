@@ -27,6 +27,22 @@ const FIELD_LABEL: Record<HistoryField, string> = {
   result: 'Result',
   employerResult: 'Employer Result',
   employerRemark: 'Employer Remark',
+  name: 'Name',
+  standard: 'Standard',
+  requirement: 'Requirement',
+  priority: 'Priority',
+  group: 'Group',
+  importance: 'Importance',
+  docType: 'Doc Type',
+  site: 'Site',
+  nameTh: 'Name (Thai)',
+  requirementTh: 'Requirement (Thai)',
+  torRef: 'TOR Ref',
+  resp: 'Resp.',
+  installPhase: 'Install Phase',
+  requiredEvidence: 'Required Evidence',
+  requiredEvidenceTh: 'Required Evidence (Thai)',
+  hwPoint: 'H/W Point',
 }
 
 const WORKFLOW_STATUS_LABEL = new Map<string, string>(

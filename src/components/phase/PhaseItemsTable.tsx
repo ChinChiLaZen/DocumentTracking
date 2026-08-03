@@ -4,6 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
+import { EditableField } from '../shared/EditableField'
 import { PhaseHeaderRow } from './PhaseHeaderRow'
 import { LIFECYCLE_PHASE_DEFS, WORKFLOW_STATUS_DEFS } from '../../domain/rules'
 import {
@@ -15,16 +16,29 @@ import {
 } from '../shared/statusStyles'
 import { DOA_SITE_LABEL } from '../../data/doaTemplate'
 import { Badge } from '../ui/badge'
-import type { Item, LifecyclePhase, WorkflowStatus } from '../../data/types'
+import type {
+  AotImportance,
+  DoaDocType,
+  DoaSite,
+  Item,
+  LifecyclePhase,
+  WorkflowStatus,
+} from '../../data/types'
 import type { ItemMetaPatch } from '../../store/useTrackerStore'
 
 const UNSET = '__unset__'
 const COLUMN_COUNT = 8
 
+const AOT_IMPORTANCE_OPTIONS: AotImportance[] = ['Critical', 'Normal', 'Supporting', 'CriticalCheckpoint']
+const DOA_DOC_TYPE_OPTIONS: DoaDocType[] = ['Shared', 'Mandatory', 'SiteSpecific']
+const DOA_SITE_OPTIONS: DoaSite[] = ['Shared', 'KKC', 'UTH', 'URT']
+
 interface PhaseItemsTableProps {
   items: Item[]
   /** Item numbers with unsaved staged edits (§ Save changes) — rows get a highlight. */
   dirtyNos?: Set<number>
+  /** Admin-only inline editing of Name/Standard/Requirement/Importance/DocType/Site. */
+  editable?: boolean
   onWorkflowStatusChange(itemNo: number, status: WorkflowStatus | undefined): void
   onPhaseChange(itemNo: number, phase: LifecyclePhase | undefined): void
   onMetaCommit(itemNo: number, patch: ItemMetaPatch): void
@@ -33,6 +47,7 @@ interface PhaseItemsTableProps {
 export function PhaseItemsTable({
   items,
   dirtyNos,
+  editable,
   onWorkflowStatusChange,
   onPhaseChange,
   onMetaCommit,
@@ -72,23 +87,90 @@ export function PhaseItemsTable({
                 >
                   <TableCell className="whitespace-nowrap">{item.code ?? item.no}</TableCell>
                   <TableCell className="max-w-64 min-w-40 whitespace-normal break-words">
-                    {item.name}
+                    {editable && item.code ? (
+                      <EditableField
+                        value={item.name}
+                        onCommit={(value) => onMetaCommit(item.no, { name: value })}
+                        ariaLabel={`${item.name} — name`}
+                        requireApply
+                      />
+                    ) : (
+                      item.name
+                    )}
                     {item.code && (
                       <div className="mt-1 space-y-1">
-                        {item.importance && (
-                          <Badge variant="outline" className={IMPORTANCE_BADGE_CLASS[item.importance]}>
-                            {item.importance}
-                          </Badge>
+                        {editable && item.importance !== undefined ? (
+                          <Select
+                            value={item.importance}
+                            onValueChange={(value) =>
+                              onMetaCommit(item.no, { importance: value as AotImportance })
+                            }
+                          >
+                            <SelectTrigger size="sm" aria-label={`${item.name} — importance`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {AOT_IMPORTANCE_OPTIONS.map((value) => (
+                                <SelectItem key={value} value={value}>
+                                  {value}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          item.importance && (
+                            <Badge variant="outline" className={IMPORTANCE_BADGE_CLASS[item.importance]}>
+                              {item.importance}
+                            </Badge>
+                          )
                         )}
-                        {item.docType && (
-                          <Badge variant="outline" className={DOC_TYPE_BADGE_CLASS[item.docType]}>
-                            {item.docType}
-                          </Badge>
+                        {editable && item.docType !== undefined ? (
+                          <Select
+                            value={item.docType}
+                            onValueChange={(value) =>
+                              onMetaCommit(item.no, { docType: value as DoaDocType })
+                            }
+                          >
+                            <SelectTrigger size="sm" aria-label={`${item.name} — doc type`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {DOA_DOC_TYPE_OPTIONS.map((value) => (
+                                <SelectItem key={value} value={value}>
+                                  {value}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          item.docType && (
+                            <Badge variant="outline" className={DOC_TYPE_BADGE_CLASS[item.docType]}>
+                              {item.docType}
+                            </Badge>
+                          )
                         )}
-                        {item.site && (
-                          <span className="ml-1 text-xs text-muted-foreground">
-                            {DOA_SITE_LABEL[item.site]}
-                          </span>
+                        {editable && item.site !== undefined ? (
+                          <Select
+                            value={item.site}
+                            onValueChange={(value) => onMetaCommit(item.no, { site: value as DoaSite })}
+                          >
+                            <SelectTrigger size="sm" aria-label={`${item.name} — site`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {DOA_SITE_OPTIONS.map((value) => (
+                                <SelectItem key={value} value={value}>
+                                  {DOA_SITE_LABEL[value]}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          item.site && (
+                            <span className="ml-1 text-xs text-muted-foreground">
+                              {DOA_SITE_LABEL[item.site]}
+                            </span>
+                          )
                         )}
                         {item.result && (
                           <Badge variant="outline" className={RESULT_BADGE_CLASS[item.result]}>
@@ -109,12 +191,33 @@ export function PhaseItemsTable({
                           </Badge>
                         )}
                         {item.nameTh && <p className="text-xs text-muted-foreground">{item.nameTh}</p>}
-                        {(item.standard || item.requirement) && (
-                          <p className="text-xs text-muted-foreground">
-                            {item.requirement}
-                            {item.requirement && item.standard && ' — '}
-                            {item.standard}
-                          </p>
+                        {editable ? (
+                          <>
+                            <EditableField
+                              as="textarea"
+                              value={item.standard}
+                              onCommit={(value) => onMetaCommit(item.no, { standard: value })}
+                              ariaLabel={`${item.name} — standard`}
+                              placeholder="Standard"
+                              requireApply
+                            />
+                            <EditableField
+                              as="textarea"
+                              value={item.requirement}
+                              onCommit={(value) => onMetaCommit(item.no, { requirement: value })}
+                              ariaLabel={`${item.name} — requirement`}
+                              placeholder="Requirement"
+                              requireApply
+                            />
+                          </>
+                        ) : (
+                          (item.standard || item.requirement) && (
+                            <p className="text-xs text-muted-foreground">
+                              {item.requirement}
+                              {item.requirement && item.standard && ' — '}
+                              {item.standard}
+                            </p>
+                          )
                         )}
                       </div>
                     )}

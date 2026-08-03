@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useActiveProject } from '../../store/useActiveProject'
+import { useAuthStore } from '../../store/useAuthStore'
 import { DETAIL_SHEET_ORDER } from '../../domain/rules'
 import { effectiveStatus } from '../../domain/derive'
 import { Button } from '../ui/button'
@@ -15,10 +16,21 @@ type PendingCells = Record<string, boolean> // keyed by CheckColumn.key
 interface PendingRowPatch {
   cells?: PendingCells
   remark?: string
+  article?: string
+  description?: string
+}
+
+interface PendingSheetHeaderPatch {
+  title?: string
+  applicable?: string
 }
 
 function pendingKey(sheetId: string, rowId: string): string {
   return `${sheetId}:${rowId}`
+}
+
+function columnPendingKey(sheetId: string, columnKey: string): string {
+  return `${sheetId}::${columnKey}`
 }
 
 export function ItemDetailsPage() {
@@ -30,9 +42,13 @@ export function ItemDetailsPage() {
     basePath,
     toggleCell,
     setRowRemark,
+    updateRowText,
+    updateColumnLabel,
+    updateSheetHeader,
     toggleRowSelection,
     selectAllRows,
   } = useActiveProject()
+  const isAdmin = useAuthStore((s) => s.user?.role) === 'admin'
 
   const sheetsByItemNo = useMemo(() => new Map(sheets.map((s) => [s.itemNo, s])), [sheets])
 
@@ -50,17 +66,34 @@ export function ItemDetailsPage() {
   // store mutation (Save, Reset-to-seed, switching projects), so it's safe
   // to clear pending edits whenever it changes.
   const [pending, setPending] = useState<Record<string, PendingRowPatch>>({})
-  useEffect(() => setPending({}), [sheets])
+  const [pendingColumnLabels, setPendingColumnLabels] = useState<Record<string, string>>({})
+  const [pendingSheetHeader, setPendingSheetHeader] = useState<
+    Record<string, PendingSheetHeaderPatch>
+  >({})
+  useEffect(() => {
+    setPending({})
+    setPendingColumnLabels({})
+    setPendingSheetHeader({})
+  }, [sheets])
 
-  const pendingCount = Object.keys(pending).length
+  const pendingCount =
+    Object.keys(pending).length +
+    Object.keys(pendingColumnLabels).length +
+    Object.keys(pendingSheetHeader).length
 
   if (!sheet || !item) {
     return <div className="p-6 text-muted-foreground">No detail sheet found for this item.</div>
   }
 
   function mergeSheet(sheet: DetailSheet): DetailSheet {
+    const headerPatch = pendingSheetHeader[sheet.id]
     return {
       ...sheet,
+      ...(headerPatch ?? {}),
+      columns: sheet.columns.map((column) => {
+        const label = pendingColumnLabels[columnPendingKey(sheet.id, column.key)]
+        return label === undefined ? column : { ...column, label }
+      }),
       rows: sheet.rows.map((row) => {
         const patch = pending[pendingKey(sheet.id, row.id)]
         if (!patch) return row
@@ -68,6 +101,8 @@ export function ItemDetailsPage() {
           ...row,
           cells: patch.cells ? { ...row.cells, ...patch.cells } : row.cells,
           remark: patch.remark ?? row.remark,
+          article: patch.article ?? row.article,
+          description: patch.description ?? row.description,
         }
       }),
     }
@@ -91,6 +126,27 @@ export function ItemDetailsPage() {
   function stageRemark(rowId: string, remark: string) {
     const key = pendingKey(sheet!.id, rowId)
     setPending((prev) => ({ ...prev, [key]: { ...prev[key], remark } }))
+  }
+
+  function stageArticle(rowId: string, article: string) {
+    const key = pendingKey(sheet!.id, rowId)
+    setPending((prev) => ({ ...prev, [key]: { ...prev[key], article } }))
+  }
+
+  function stageDescription(rowId: string, description: string) {
+    const key = pendingKey(sheet!.id, rowId)
+    setPending((prev) => ({ ...prev, [key]: { ...prev[key], description } }))
+  }
+
+  function stageColumnLabel(columnKey: string, label: string) {
+    setPendingColumnLabels((prev) => ({ ...prev, [columnPendingKey(sheet!.id, columnKey)]: label }))
+  }
+
+  function stageSheetHeader(patch: PendingSheetHeaderPatch) {
+    setPendingSheetHeader((prev) => ({
+      ...prev,
+      [sheet!.id]: { ...prev[sheet!.id], ...patch },
+    }))
   }
 
   function stageBulk(mode: 'check' | 'uncheck' | 'toggle') {
@@ -130,8 +186,36 @@ export function ItemDetailsPage() {
       if (patch.remark !== undefined && patch.remark !== (row.remark ?? '')) {
         setRowRemark(sheetId, rowId, patch.remark)
       }
+      const textPatch: { article?: string; description?: string } = {}
+      if (patch.article !== undefined && patch.article !== (row.article ?? '')) {
+        textPatch.article = patch.article
+      }
+      if (patch.description !== undefined && patch.description !== row.description) {
+        textPatch.description = patch.description
+      }
+      if (Object.keys(textPatch).length > 0) updateRowText(sheetId, rowId, textPatch)
+    }
+    for (const [key, label] of Object.entries(pendingColumnLabels)) {
+      const sepIndex = key.indexOf('::')
+      const sheetId = key.slice(0, sepIndex)
+      const columnKey = key.slice(sepIndex + 2)
+      const targetSheet = sheets.find((s) => s.id === sheetId)
+      const column = targetSheet?.columns.find((c) => c.key === columnKey)
+      if (column && column.label !== label) updateColumnLabel(sheetId, columnKey, label)
+    }
+    for (const [sheetId, patch] of Object.entries(pendingSheetHeader)) {
+      const targetSheet = sheets.find((s) => s.id === sheetId)
+      if (!targetSheet) continue
+      const headerPatch: { title?: string; applicable?: string } = {}
+      if (patch.title !== undefined && patch.title !== targetSheet.title) headerPatch.title = patch.title
+      if (patch.applicable !== undefined && patch.applicable !== targetSheet.applicable) {
+        headerPatch.applicable = patch.applicable
+      }
+      if (Object.keys(headerPatch).length > 0) updateSheetHeader(sheetId, headerPatch)
     }
     setPending({})
+    setPendingColumnLabels({})
+    setPendingSheetHeader({})
   }
 
   const rowSelection = selectedRowIds[sheet.id] ?? new Set<string>()
@@ -146,7 +230,15 @@ export function ItemDetailsPage() {
       />
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-center justify-end gap-2 border-b px-4 py-2">
-          <Button variant="ghost" disabled={pendingCount === 0} onClick={() => setPending({})}>
+          <Button
+            variant="ghost"
+            disabled={pendingCount === 0}
+            onClick={() => {
+              setPending({})
+              setPendingColumnLabels({})
+              setPendingSheetHeader({})
+            }}
+          >
             Discard
           </Button>
           <Button disabled={pendingCount === 0} onClick={handleSave}>
@@ -158,6 +250,9 @@ export function ItemDetailsPage() {
           status={status}
           isManual={Boolean(item.manualStatus)}
           sheet={displaySheet}
+          editable={isAdmin}
+          onTitleChange={(title) => stageSheetHeader({ title })}
+          onApplicableChange={(applicable) => stageSheetHeader({ applicable })}
         />
         <BulkActionsBar
           totalRows={sheet.rows.length}
@@ -172,12 +267,16 @@ export function ItemDetailsPage() {
             sheet={displaySheet}
             selectedRowIds={rowSelection}
             dirtyRowIds={dirtyRowIds}
+            editable={isAdmin}
             onToggleCell={(rowId, columnKey) => {
               const current = displaySheet.rows.find((r) => r.id === rowId)?.cells[columnKey] ?? false
               stageCell(rowId, columnKey, !current)
             }}
             onToggleRowSelection={(rowId) => toggleRowSelection(sheet.id, rowId)}
             onRemarkChange={(rowId, remark) => stageRemark(rowId, remark)}
+            onArticleChange={(rowId, article) => stageArticle(rowId, article)}
+            onDescriptionChange={(rowId, description) => stageDescription(rowId, description)}
+            onColumnLabelChange={(columnKey, label) => stageColumnLabel(columnKey, label)}
           />
         </div>
       </div>

@@ -161,6 +161,22 @@ export type HistoryField =
   | 'result'
   | 'employerResult'
   | 'employerRemark'
+  | 'name'
+  | 'standard'
+  | 'requirement'
+  | 'priority'
+  | 'group'
+  | 'importance'
+  | 'docType'
+  | 'site'
+  | 'nameTh'
+  | 'requirementTh'
+  | 'torRef'
+  | 'resp'
+  | 'installPhase'
+  | 'requiredEvidence'
+  | 'requiredEvidenceTh'
+  | 'hwPoint'
 
 export interface HistoryEntry {
   id: string

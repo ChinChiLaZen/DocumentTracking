@@ -1,6 +1,7 @@
 import { Fragment } from 'react'
 import type { DetailSheet } from '../../data/types'
 import { Checkbox } from '../ui/checkbox'
+import { Input } from '../ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
 
 interface CheckboxTableProps {
@@ -8,18 +9,30 @@ interface CheckboxTableProps {
   selectedRowIds: Set<string>
   /** Row ids with unsaved staged edits (§ Save changes) — rows get a highlight. */
   dirtyRowIds?: Set<string>
+  /** Admin-only inline editing of article/description/column labels. */
+  editable?: boolean
   onToggleCell: (rowId: string, columnKey: string) => void
   onToggleRowSelection: (rowId: string) => void
   onRemarkChange: (rowId: string, remark: string) => void
+  onArticleChange?: (rowId: string, article: string) => void
+  onDescriptionChange?: (rowId: string, description: string) => void
+  onColumnLabelChange?: (columnKey: string, label: string) => void
 }
+
+const inlineInputClass =
+  'w-full min-w-32 rounded border border-transparent bg-transparent px-1 py-0.5 outline-none hover:border-input focus:border-ring focus:bg-background focus:ring-3 focus:ring-ring/50'
 
 export function CheckboxTable({
   sheet,
   selectedRowIds,
   dirtyRowIds,
+  editable,
   onToggleCell,
   onToggleRowSelection,
   onRemarkChange,
+  onArticleChange,
+  onDescriptionChange,
+  onColumnLabelChange,
 }: CheckboxTableProps) {
   const colSpan = 3 + sheet.columns.length + 1
 
@@ -41,7 +54,16 @@ export function CheckboxTable({
             <TableHead scope="col">DESCRIPTION</TableHead>
             {sheet.columns.map((column) => (
               <TableHead key={column.key} scope="col">
-                {column.label}
+                {editable ? (
+                  <Input
+                    value={column.label}
+                    onChange={(e) => onColumnLabelChange?.(column.key, e.target.value)}
+                    aria-label={`${sheet.title} — ${column.label} column label`}
+                    className="h-7 min-w-24 text-xs font-medium"
+                  />
+                ) : (
+                  column.label
+                )}
               </TableHead>
             ))}
             <TableHead scope="col">REMARK</TableHead>
@@ -72,8 +94,32 @@ export function CheckboxTable({
                     aria-label={`Select row — ${row.description}`}
                   />
                 </TableCell>
-                <TableCell className="text-muted-foreground">{row.article ?? ''}</TableCell>
-                <TableCell>{row.description}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  {editable ? (
+                    <input
+                      type="text"
+                      className={`${inlineInputClass} text-muted-foreground`}
+                      value={row.article ?? ''}
+                      onChange={(e) => onArticleChange?.(row.id, e.target.value)}
+                      aria-label={`${sheet.title} — ${row.description} — Article`}
+                    />
+                  ) : (
+                    (row.article ?? '')
+                  )}
+                </TableCell>
+                <TableCell>
+                  {editable ? (
+                    <input
+                      type="text"
+                      className={inlineInputClass}
+                      value={row.description}
+                      onChange={(e) => onDescriptionChange?.(row.id, e.target.value)}
+                      aria-label={`${sheet.title} — Description`}
+                    />
+                  ) : (
+                    row.description
+                  )}
+                </TableCell>
                 {sheet.columns.map((column) => {
                   const checked = row.cells[column.key] ?? false
                   return (

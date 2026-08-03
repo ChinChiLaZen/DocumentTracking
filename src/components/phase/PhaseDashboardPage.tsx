@@ -14,14 +14,42 @@ import type { Item } from '../../data/types'
 import type { ItemMetaPatch } from '../../store/useTrackerStore'
 
 type PendingPatch = Partial<
-  Pick<Item, 'phase' | 'workflowStatus' | 'documentDate' | 'expiryDate' | 'responsiblePerson' | 'documentLink'>
+  Pick<
+    Item,
+    | 'phase'
+    | 'workflowStatus'
+    | 'documentDate'
+    | 'expiryDate'
+    | 'responsiblePerson'
+    | 'documentLink'
+    | 'name'
+    | 'standard'
+    | 'requirement'
+    | 'importance'
+    | 'docType'
+    | 'site'
+  >
 >
+
+const META_PATCH_KEYS = [
+  'documentDate',
+  'expiryDate',
+  'responsiblePerson',
+  'documentLink',
+  'name',
+  'standard',
+  'requirement',
+  'importance',
+  'docType',
+  'site',
+] as const
 
 export function PhaseDashboardPage() {
   const { items, history, meta, setWorkflowStatus, setPhase, updateItemMeta } = useActiveProject()
   // AppShell gates this whole tree behind a signed-in session, so a user
   // email is always present here — the fallback is defensive only.
   const changedBy = useAuthStore((s) => s.user?.email) ?? 'Reviewer'
+  const role = useAuthStore((s) => s.user?.role)
 
   // Nothing in the table commits to the store until "Save changes" is
   // clicked — every edit (Phase, Workflow Status, both dates, Responsible
@@ -45,8 +73,10 @@ export function PhaseDashboardPage() {
         setWorkflowStatus(itemNo, patch.workflowStatus, changedBy)
       }
       const metaPatch: ItemMetaPatch = {}
-      for (const key of ['documentDate', 'expiryDate', 'responsiblePerson', 'documentLink'] as const) {
-        if (key in patch && patch[key] !== original[key]) metaPatch[key] = patch[key]
+      for (const key of META_PATCH_KEYS) {
+        if (key in patch && patch[key] !== original[key]) {
+          ;(metaPatch as Record<string, unknown>)[key] = patch[key]
+        }
       }
       if (Object.keys(metaPatch).length > 0) updateItemMeta(itemNo, metaPatch, changedBy)
     }
@@ -101,6 +131,7 @@ export function PhaseDashboardPage() {
       <PhaseItemsTable
         items={displayItems}
         dirtyNos={dirtyNos}
+        editable={role === 'admin'}
         onWorkflowStatusChange={(itemNo, status) => stage(itemNo, { workflowStatus: status })}
         onPhaseChange={(itemNo, phase) => stage(itemNo, { phase })}
         onMetaCommit={(itemNo, patch) => stage(itemNo, patch)}

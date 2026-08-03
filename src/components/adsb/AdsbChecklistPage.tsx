@@ -31,10 +31,12 @@ function matchesSearch(item: Item, query: string): boolean {
 function RoleView({
   role,
   items,
+  editable,
   onCommit,
 }: {
   role: 'contractor' | 'employer'
   items: Item[]
+  editable?: boolean
   onCommit(itemNo: number, patch: ItemMetaPatch): void
 }) {
   const [query, setQuery] = useState('')
@@ -146,7 +148,13 @@ function RoleView({
             </button>
             <div className={`mt-2 space-y-2 ${isCollapsed ? 'hidden print:block' : ''}`}>
               {sectionItems.map((item) => (
-                <AdsbItemCard key={item.no} item={item} role={role} onCommit={onCommit} />
+                <AdsbItemCard
+                  key={item.no}
+                  item={item}
+                  role={role}
+                  editable={editable}
+                  onCommit={onCommit}
+                />
               ))}
             </div>
           </div>
@@ -159,6 +167,7 @@ function RoleView({
 export function AdsbChecklistPage() {
   const { items, history, updateItemMeta } = useActiveProject()
   const changedBy = useAuthStore((s) => s.user?.email) ?? 'Reviewer'
+  const isAdmin = useAuthStore((s) => s.user?.role) === 'admin'
 
   const onCommit = useMemo(
     () => (itemNo: number, patch: ItemMetaPatch) => updateItemMeta(itemNo, patch, changedBy),
@@ -176,10 +185,10 @@ export function AdsbChecklistPage() {
           <TabsTrigger value="employer">ผู้ว่าจ้าง / Employer</TabsTrigger>
         </TabsList>
         <TabsContent value="contractor">
-          <RoleView role="contractor" items={items} onCommit={onCommit} />
+          <RoleView role="contractor" items={items} editable={isAdmin} onCommit={onCommit} />
         </TabsContent>
         <TabsContent value="employer">
-          <RoleView role="employer" items={items} onCommit={onCommit} />
+          <RoleView role="employer" items={items} editable={isAdmin} onCommit={onCommit} />
         </TabsContent>
       </Tabs>
     </div>

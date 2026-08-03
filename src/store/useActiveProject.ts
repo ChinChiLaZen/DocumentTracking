@@ -1,5 +1,6 @@
 import { useParams } from 'react-router-dom'
 import type {
+  CheckRow,
   DetailSheet,
   HistoryEntry,
   Item,
@@ -22,6 +23,13 @@ export interface ActiveProject {
   basePath: string
   toggleCell(sheetId: string, rowId: string, columnKey: string): void
   setRowRemark(sheetId: string, rowId: string, remark: string): void
+  updateRowText(
+    sheetId: string,
+    rowId: string,
+    patch: Partial<Pick<CheckRow, 'description' | 'article' | 'section'>>,
+  ): void
+  updateColumnLabel(sheetId: string, columnKey: string, label: string): void
+  updateSheetHeader(sheetId: string, patch: Partial<Pick<DetailSheet, 'title' | 'applicable'>>): void
   setManualStatus(itemNo: number, status: Status | undefined): void
   toggleRowSelection(sheetId: string, rowId: string): void
   selectAllRows(sheetId: string, on: boolean): void
@@ -43,6 +51,9 @@ export function useActiveProject(): ActiveProject {
   const project = useTrackerStore((s) => s.projects[projectId])
   const toggleCellAction = useTrackerStore((s) => s.toggleCell)
   const setRowRemarkAction = useTrackerStore((s) => s.setRowRemark)
+  const updateRowTextAction = useTrackerStore((s) => s.updateRowText)
+  const updateColumnLabelAction = useTrackerStore((s) => s.updateColumnLabel)
+  const updateSheetHeaderAction = useTrackerStore((s) => s.updateSheetHeader)
   const setManualStatusAction = useTrackerStore((s) => s.setManualStatus)
   const toggleRowSelectionAction = useTrackerStore((s) => s.toggleRowSelection)
   const selectAllRowsAction = useTrackerStore((s) => s.selectAllRows)
@@ -66,6 +77,10 @@ export function useActiveProject(): ActiveProject {
     basePath,
     toggleCell: (sheetId, rowId, columnKey) => toggleCellAction(projectId, sheetId, rowId, columnKey),
     setRowRemark: (sheetId, rowId, remark) => setRowRemarkAction(projectId, sheetId, rowId, remark),
+    updateRowText: (sheetId, rowId, patch) => updateRowTextAction(projectId, sheetId, rowId, patch),
+    updateColumnLabel: (sheetId, columnKey, label) =>
+      updateColumnLabelAction(projectId, sheetId, columnKey, label),
+    updateSheetHeader: (sheetId, patch) => updateSheetHeaderAction(projectId, sheetId, patch),
     setManualStatus: (itemNo, status) => setManualStatusAction(projectId, itemNo, status),
     toggleRowSelection: (sheetId, rowId) => toggleRowSelectionAction(projectId, sheetId, rowId),
     selectAllRows: (sheetId, on) => selectAllRowsAction(projectId, sheetId, on),
