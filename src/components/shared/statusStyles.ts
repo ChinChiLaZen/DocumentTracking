@@ -83,3 +83,11 @@ export const ACCOUNT_STATUS_BADGE_CLASS: Record<'Active' | 'Deactivated', string
   Active: 'border-emerald-200 bg-emerald-50 text-emerald-700',
   Deactivated: 'border-slate-300 bg-slate-200 text-slate-700',
 }
+
+/** Find Projects page's e-GP status badge — the 4 real Thai status strings the portal itself uses. */
+export const PROCUREMENT_STATUS_BADGE_CLASS: Record<string, string> = {
+  อนุมัติสั่งซื้อสั่งจ้างและประกาศผู้ชนะการเสนอราคา: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  'หนังสือเชิญชวน/ประกาศเชิญชวน': 'border-amber-200 bg-amber-50 text-amber-700',
+  'จัดทำสัญญา/บริหารสัญญา': 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  ยกเลิกโครงการ: 'border-rose-200 bg-rose-50 text-rose-700',
+}

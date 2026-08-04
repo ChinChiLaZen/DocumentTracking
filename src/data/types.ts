@@ -194,3 +194,15 @@ export interface ProjectRecord {
   sheets: DetailSheet[]
   history: HistoryEntry[]
 }
+
+// A row from a captured e-GP (gprocurement.go.th) search-results snapshot —
+// see data/procurementLeads.ts. Not a tracked project; a candidate lead a
+// reviewer might turn into one via "Add Project".
+export interface ProcurementLead {
+  no: number
+  agency: string // หน่วยงาน
+  purchasingUnit: string // หน่วยจัดซื้อ
+  projectName: string // ชื่อโครงการ — verbatim, includes the trailing "(เลขที่โครงการ : ...)"
+  budgetTHB: number // วงเงินงบประมาณ (บาท)
+  status: string // สถานะโครงการ — one of the real Thai status strings e-GP uses
+}

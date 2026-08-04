@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { LayoutDashboard, FolderKanban, ListTodo, UsersRound, Users } from 'lucide-react'
+import { LayoutDashboard, FolderKanban, Search, ListTodo, UsersRound, Users } from 'lucide-react'
 import { useAuthStore } from '../../store/useAuthStore'
 
 const NAV_LINK_CLASS = ({ isActive }: { isActive: boolean }) =>
@@ -24,6 +24,10 @@ export function DashboardShell() {
           <NavLink to="/projects" className={NAV_LINK_CLASS}>
             <FolderKanban className="size-4" />
             Projects
+          </NavLink>
+          <NavLink to="/find-projects" className={NAV_LINK_CLASS}>
+            <Search className="size-4" />
+            Find Projects
           </NavLink>
           <NavLink to="/tasks" className={NAV_LINK_CLASS}>
             <ListTodo className="size-4" />

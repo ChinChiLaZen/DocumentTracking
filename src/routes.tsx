@@ -5,6 +5,8 @@ import { ProjectShell } from './components/layout/ProjectShell'
 import { ProjectIndexPage } from './components/layout/ProjectIndexPage'
 import { ProjectsSummaryPage } from './components/projects/ProjectsSummaryPage'
 import { ProjectsListPage } from './components/projects/ProjectsListPage'
+import { FindProjectsPage } from './components/procurement/FindProjectsPage'
+import { ProjectLeadDetailPage } from './components/procurement/ProjectLeadDetailPage'
 import { MyTasksPage } from './components/tasks/MyTasksPage'
 import { TeamPage } from './components/team/TeamPage'
 import { UserManagementPage } from './components/users/UserManagementPage'
@@ -26,6 +28,8 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <ProjectsSummaryPage /> },
           { path: 'projects', element: <ProjectsListPage /> },
+          { path: 'find-projects', element: <FindProjectsPage /> },
+          { path: 'find-projects/:leadId', element: <ProjectLeadDetailPage /> },
           { path: 'tasks', element: <MyTasksPage /> },
           { path: 'team', element: <TeamPage /> },
           { path: 'users', element: <UserManagementPage /> },
