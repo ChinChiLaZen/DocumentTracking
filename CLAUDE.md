@@ -54,7 +54,7 @@ These come from the MAR process and must be encoded in the app, not just display
 | Icons | **lucide-react** | |
 | State | **Zustand** | one store; all derived values are selectors, never stored |
 | Routing | **react-router-dom** | `/` = Projects Summary; one tab per route nested under `/projects/:projectId/...` (§7) |
-| Persistence | **localStorage** adapter behind a `PersistencePort` interface (§10) | swappable for a real API later — do not hard-code `localStorage` calls in components |
+| Persistence | **Postgres (Vercel/Neon), shared across every signed-in user**, behind a `PersistencePort` interface (§10) — migrated off per-browser `localStorage` 2026-08-04 | do not hard-code `fetch('/api/projects/...')` calls in components; go through `useTrackerStore`/`useActiveProject` |
 | Auth | **Custom** email+password (`api/auth/*` Vercel Serverless Functions + Vercel Postgres), added 2026-07-31 | bcrypt-hashed passwords, JWT session in an httpOnly cookie, invite-code-gated signup; gates `AppShell` via a session check — see §10. Third custom-built iteration of auth this session: Clerk (removed — production requires a domain the deployer controls DNS for, blocking a plain `*.vercel.app` deploy) → Supabase (dropped per explicit request to not depend on a third-party auth vendor) → this |
 | Tests | **Vitest** + **@testing-library/react** | derived-value logic in §6 must be unit-tested |
 | Lint/format | ESLint + Prettier | |
@@ -72,9 +72,14 @@ api/
     login.ts                 # POST — verifies password, sets session cookie
     logout.ts                # POST — clears session cookie
     session.ts               # GET  — verifies session cookie, returns { user } or 401
+  projects/
+    index.ts                 # GET — list all projects, ordered
+    seed.ts                  # POST — idempotent bulk seed from the client's INITIAL_PROJECTS, called only when the table is empty
+    [id].ts                  # PUT — upsert (create/edit/reset-to-seed, any signed-in user); DELETE — admin-only (§10)
   _lib/
     db.ts                    # @vercel/postgres `sql`, ensureSchema() (idempotent CREATE TABLE IF NOT EXISTS)
-    auth.ts                  # password hashing, JWT sign/verify, cookie helpers (§10)
+    auth.ts                  # password hashing, JWT sign/verify, cookie helpers, requireAdmin (§10)
+    validateProjectRecord.ts # shallow ProjectRecord shape validator — can't deep-validate against src/data/types.ts (api/ can't import src/**)
 src/
   data/
     checklistTemplate.ts     # vendor-neutral 28 items + 14 detail sheets, blank (§5.4)
@@ -93,7 +98,7 @@ src/
     useTrackerStore.ts       # Zustand store, multi-project (projects/projectOrder) + selectors
     useActiveProject.ts      # resolves :projectId, pre-curries store actions for pages
     useAuthStore.ts          # Zustand store wrapping fetch calls to api/auth/* (§10)
-    persistence.ts           # PersistencePort + localStorage adapter (§10)
+    persistence.ts           # PersistencePort + Postgres-backed adapter (createApiPersistence) + memory adapter for tests (§10)
   components/
     auth/
       AuthPage.tsx            # /auth route — sign in / create account (email+password only, no OAuth)
@@ -514,21 +519,27 @@ Two-pane layout.
 
 ## 10. Persistence
 
+**Project/tracker data (`projects`, `items`, `sheets`, `history`) moved from per-browser `localStorage` to shared Postgres on 2026-08-04**, so that create/edit/delete are visible to every signed-in user, not just the browser that made the change (the change was prompted by an admin's project delete not being visible to other users — the underlying gap was that *no* project data was ever shared, not just deletes).
+
 ```ts
 interface ChecklistState {
   projects: ProjectRecord[];
   projectOrder: string[];
 }
 interface PersistencePort {
-  load(): ChecklistState | null;
-  save(state: ChecklistState): void;
+  load(): Promise<ChecklistState | null>;
+  saveProject(record: ProjectRecord): void;                       // fire-and-forget, debounced per project id
+  deleteProject(projectId: string): Promise<{ error?: string }>;  // awaited, so a rejection can roll back
 }
 ```
-- Default adapter: `localStorage` (key `airsafe-mar-tracker/v2`), debounced ~300 ms. **Bumped from `v1` on 2026-07-26** when the store went multi-project (breaking shape change: single `{items,sheets}` → `{projects,projectOrder}`) — no migration was written, since the app wasn't yet in production use.
-- **`ProjectRecord.history` (added 2026-07-26, same day, Phase Progress feature) did NOT bump the storage key.** This is additive-only — new optional `Item` fields plus a new array on `ProjectRecord`, defaulted via `?? []` on hydrate — unlike the breaking v1→v2 shape change above. Don't reflexively re-bump `STORAGE_KEY` for additive changes; only bump when old persisted data would no longer parse under the new shape.
-- **`ProjectMeta.templateKind` (added 2026-07-27, AOT template) also did NOT bump the storage key** — same reasoning: it's optional, and every read site treats an absent value as `'mar'` (the only kind that existed before this field), so pre-existing persisted projects keep behaving exactly as before.
-- Components and the store depend on `PersistencePort`, **never** on `localStorage` directly, so a REST/tRPC adapter can drop in later without touching UI.
-- Provide a "Reset to seed" action per project (guarded by a confirm dialog). Resets a project to its recorded initial state (the real seed for U-Tapao/Airsafe; the blank template for its own `templateKind` for the demo project and any project created via "Add Project" — MAR's 28-item blank template or AOT's 94-item one, whichever the project was built from).
+- **Schema:** one row per project in `project_records` (`api/_lib/db.ts`) — `id, meta, items, sheets, history` as JSONB, plus `updated_by`/`updated_at`. Project existence = row existence; display order = `ORDER BY seq ASC` (an auto-increment tie-breaker column) — there is no separate `projectOrder` table.
+- **Routes (`api/projects/*`):** `GET /api/projects` lists everything (any signed-in user). `POST /api/projects/seed` is called by the client only when that list comes back empty — it bulk-inserts the client's own baked-in `INITIAL_PROJECTS` with `ON CONFLICT (id) DO NOTHING`, so two browsers racing to seed an empty table is safe. `PUT /api/projects/:id` upserts one full record — the same code path serves initial create, every debounced edit-sync, and "Reset to seed" (any signed-in user, matching today's client-only gate on Add Project). `DELETE /api/projects/:id` is **`requireAdmin`-gated server-side** — this closes a real gap that existed before the migration, where the Delete button was only hidden client-side for non-admins with nothing stopping a devtools call from deleting anyway.
+- **Why the server can't build seed data itself:** `tsconfig.api.json` only includes `api/**` — API routes cannot import anything from `src/**`, so `api/_lib/validateProjectRecord.ts` is a deliberately shallow, hand-duplicated shape check (envelope only, not a full `types.ts` mirror), and seeding must be client-initiated.
+- **Write path stays optimistic-local-first**, same snappy tick-a-checkbox UX as before: every store action updates Zustand state immediately, then fires a debounced (~600 ms per project id) background `PUT` via `createApiPersistence` (`src/store/persistence.ts`). `deleteProject` is the one deliberate exception — it's awaited, and rolls the optimistic removal back if the server rejects it (wrong role, network failure), since delete is rare/destructive and now has a real rejection path worth surfacing.
+- **Read path is fetch-on-mount only, no polling/websockets** — `useTrackerStore.hydrate()` (called once from `AppShell`, guarded by `hydrated`/`hydrating` so React's dev-mode double-effect doesn't double-fetch) replaces local state from `GET /api/projects` on page load. An already-open idle tab will **not** see another user's edits until it reloads or navigates — a deliberate scope decision, matching the same pattern already used by auth/procurement-leads elsewhere in this app.
+- **Known accepted risks of this design** (small internal-reviewer tool, same risk tolerance as the rest of §10): (1) whole-record, last-write-wins overwrites — two users editing the *same* project inside the same debounce window will have the later write clobber the earlier one, no field-level merge; (2) if a brand-new project's very first background `PUT` silently fails and nobody edits it again, it will quietly disappear from its creator's own next reload (since `hydrate()` fully replaces local state from the server); (3) only shallow server-side validation, per the cross-import constraint above. None of these are fixed yet — revisit if they're observed in practice.
+- **"Reset to seed"** now resets the *shared* row — resetting a project wipes every user's edits to it, not just the resetting browser's own view (the confirm dialog copy says this explicitly). Still resets to the project's recorded initial state (the real seed for U-Tapao/Airsafe; the blank template for its own `templateKind` for the demo project and any project created via "Add Project").
+- `createLocalStoragePersistence`/`STORAGE_KEY` (the old `airsafe-mar-tracker/v2` localStorage adapter) were deleted outright as part of this migration — no data needed preserving, since the seed data in code was already authoritative for every prior deployment.
 - **Auth (custom, added 2026-07-31 — third iteration this session, after Clerk then Supabase were both ruled out).** Clerk's production instance requires a domain the deployer controls DNS for, which blocked deploying to a plain `*.vercel.app` URL; Supabase was then explicitly ruled out too (no third-party auth vendor). What's live now is hand-rolled: `api/auth/{signup,login,logout,session}.ts` are Vercel Serverless Functions (Node runtime, deployed alongside the static Vite build — no framework change needed) backed by Vercel Postgres (Neon). `api/_lib/auth.ts` hashes passwords with `bcryptjs` (cost 10), signs a JWT session (`{sub, email}`, 7-day expiry, HS256) with `jose` using the server-only `AUTH_SECRET` env var, and sets/reads it as an httpOnly, `SameSite=Lax`, `Secure`-in-production cookie via the `cookie` package. `api/_lib/db.ts`'s `ensureSchema()` runs `CREATE TABLE IF NOT EXISTS users (...)` idempotently on cold start — no manual migration step. `POSTGRES_URL` etc. are auto-injected once a Postgres/Neon store is linked to the Vercel project (Storage tab); nothing to configure by hand beyond that link.
 - **Signup is gated by a shared invite code** (`SIGNUP_INVITE_CODE` env var, checked in `api/auth/signup.ts`) — since there's no vendor-provided invite/allowlist system anymore, this is the only thing stopping anyone who reaches `/auth` from creating an account with full read/write access to every project.
 - `useAuthStore` (`store/useAuthStore.ts`) wraps plain `fetch` calls to `api/auth/*` (no client SDK) — `init()` hits `GET /api/auth/session` on mount; `AppShell` redirects to `/auth` (outside the gated route tree) when there's no user. Sign-out lives in `components/auth/UserMenu.tsx`, rendered in both `ProjectShell`'s dark header (`dark` prop) and `ProjectsSummaryPage`'s light header.

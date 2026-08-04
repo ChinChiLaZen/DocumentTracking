@@ -17,7 +17,7 @@ import { DOA_TEMPLATE_ITEMS } from '../data/doaTemplate'
 import { ADSB_TEMPLATE_ITEMS } from '../data/adsbTemplate'
 import { INITIAL_PROJECTS } from '../data/initialProjects'
 import type { PersistencePort } from './persistence'
-import { createLocalStoragePersistence } from './persistence'
+import { createApiPersistence } from './persistence'
 
 export interface ProjectRuntime {
   meta: ProjectMeta
@@ -74,6 +74,8 @@ export type ItemMetaPatch = Partial<
 export interface TrackerState {
   projects: Record<string, ProjectRuntime>
   projectOrder: string[]
+  hydrated: boolean
+  hydrating: boolean
 
   toggleCell(projectId: string, sheetId: string, rowId: string, columnKey: string): void
   setRowRemark(projectId: string, sheetId: string, rowId: string, remark: string): void
@@ -96,7 +98,7 @@ export interface TrackerState {
   bulkToggleCells(projectId: string, sheetId: string, scope: 'selected' | 'all'): void
   resetToSeed(projectId: string): void
   createProject(input: CreateProjectInput): string
-  deleteProject(projectId: string): void
+  deleteProject(projectId: string): Promise<{ error?: string }>
   setWorkflowStatus(
     projectId: string,
     itemNo: number,
@@ -110,7 +112,7 @@ export interface TrackerState {
     changedBy: string,
   ): void
   updateItemMeta(projectId: string, itemNo: number, patch: ItemMetaPatch, changedBy: string): void
-  hydrate(): void
+  hydrate(): Promise<void>
 }
 
 function cloneItems(items: Item[]): Item[] {
@@ -184,17 +186,17 @@ function seedFor(
   return { items: cloneItems(TEMPLATE_ITEMS), sheets: cloneSheets(TEMPLATE_SHEETS) }
 }
 
-export function createTrackerStore(persistence: PersistencePort = createLocalStoragePersistence()) {
+export function createTrackerStore(persistence: PersistencePort = createApiPersistence()) {
   return create<TrackerState>()((set, get) => {
-    function persist() {
-      const { projects, projectOrder } = get()
-      const records: ProjectRecord[] = projectOrder.map((id) => ({
-        meta: projects[id].meta,
-        items: projects[id].items,
-        sheets: projects[id].sheets,
-        history: projects[id].history,
-      }))
-      persistence.save({ projects: records, projectOrder })
+    function persistProject(projectId: string) {
+      const project = get().projects[projectId]
+      if (!project) return
+      persistence.saveProject({
+        meta: project.meta,
+        items: project.items,
+        sheets: project.sheets,
+        history: project.history,
+      })
     }
 
     function updateProject(
@@ -210,6 +212,8 @@ export function createTrackerStore(persistence: PersistencePort = createLocalSto
 
     return {
       ...initialProjectsState(),
+      hydrated: false,
+      hydrating: false,
 
       toggleCell(projectId, sheetId, rowId, columnKey) {
         updateProject(projectId, (project) => ({
@@ -227,7 +231,7 @@ export function createTrackerStore(persistence: PersistencePort = createLocalSto
                 },
           ),
         }))
-        persist()
+        persistProject(projectId)
       },
 
       setRowRemark(projectId, sheetId, rowId, remark) {
@@ -242,7 +246,7 @@ export function createTrackerStore(persistence: PersistencePort = createLocalSto
                 },
           ),
         }))
-        persist()
+        persistProject(projectId)
       },
 
       updateRowText(projectId, sheetId, rowId, patch) {
@@ -257,7 +261,7 @@ export function createTrackerStore(persistence: PersistencePort = createLocalSto
                 },
           ),
         }))
-        persist()
+        persistProject(projectId)
       },
 
       updateColumnLabel(projectId, sheetId, columnKey, label) {
@@ -274,7 +278,7 @@ export function createTrackerStore(persistence: PersistencePort = createLocalSto
                 },
           ),
         }))
-        persist()
+        persistProject(projectId)
       },
 
       updateSheetHeader(projectId, sheetId, patch) {
@@ -284,7 +288,7 @@ export function createTrackerStore(persistence: PersistencePort = createLocalSto
             sheet.id !== sheetId ? sheet : { ...sheet, ...patch },
           ),
         }))
-        persist()
+        persistProject(projectId)
       },
 
       setManualStatus(projectId, itemNo, status) {
@@ -294,7 +298,7 @@ export function createTrackerStore(persistence: PersistencePort = createLocalSto
             item.no !== itemNo ? item : { ...item, manualStatus: status },
           ),
         }))
-        persist()
+        persistProject(projectId)
       },
 
       toggleRowSelection(projectId, sheetId, rowId) {
@@ -331,7 +335,7 @@ export function createTrackerStore(persistence: PersistencePort = createLocalSto
             }
           }),
         }))
-        persist()
+        persistProject(projectId)
       },
 
       bulkToggleCells(projectId, sheetId, scope) {
@@ -351,7 +355,7 @@ export function createTrackerStore(persistence: PersistencePort = createLocalSto
             }
           }),
         }))
-        persist()
+        persistProject(projectId)
       },
 
       resetToSeed(projectId) {
@@ -364,7 +368,7 @@ export function createTrackerStore(persistence: PersistencePort = createLocalSto
           selectedRowIds: {},
           history: [],
         }))
-        persist()
+        persistProject(projectId)
       },
 
       createProject({ title, vendor, scope, preparedDate, templateKind, defaultPhase, projectType }) {
@@ -395,16 +399,32 @@ export function createTrackerStore(persistence: PersistencePort = createLocalSto
           projects: { ...state.projects, [id]: project },
           projectOrder: [...state.projectOrder, id],
         }))
-        persist()
+        persistProject(id)
         return id
       },
 
-      deleteProject(projectId) {
+      async deleteProject(projectId) {
+        const removed = get().projects[projectId]
+        if (!removed) return {}
+        const removedIndex = get().projectOrder.indexOf(projectId)
+
         set((state) => {
           const { [projectId]: _removed, ...projects } = state.projects
           return { projects, projectOrder: state.projectOrder.filter((id) => id !== projectId) }
         })
-        persist()
+
+        const { error } = await persistence.deleteProject(projectId)
+        if (error) {
+          // Roll back the optimistic removal — the server rejected the delete
+          // (e.g. a non-admin somehow reached this, or a network failure).
+          set((state) => {
+            const order = [...state.projectOrder]
+            order.splice(removedIndex, 0, projectId)
+            return { projects: { ...state.projects, [projectId]: removed }, projectOrder: order }
+          })
+          return { error }
+        }
+        return {}
       },
 
       setWorkflowStatus(projectId, itemNo, status, changedBy) {
@@ -417,7 +437,7 @@ export function createTrackerStore(persistence: PersistencePort = createLocalSto
           items: project.items.map((it) => (it.no !== itemNo ? it : { ...it, workflowStatus: status })),
           history: [...project.history, entry],
         }))
-        persist()
+        persistProject(projectId)
       },
 
       setPhase(projectId, itemNo, phase, changedBy) {
@@ -430,7 +450,7 @@ export function createTrackerStore(persistence: PersistencePort = createLocalSto
           items: project.items.map((it) => (it.no !== itemNo ? it : { ...it, phase })),
           history: [...project.history, entry],
         }))
-        persist()
+        persistProject(projectId)
       },
 
       updateItemMeta(projectId, itemNo, patch, changedBy) {
@@ -450,23 +470,30 @@ export function createTrackerStore(persistence: PersistencePort = createLocalSto
           items: project.items.map((it) => (it.no !== itemNo ? it : { ...it, ...patch })),
           history: [...project.history, ...entries],
         }))
-        persist()
+        persistProject(projectId)
       },
 
-      hydrate() {
-        const loaded = persistence.load()
-        if (!loaded) return
-        const projects: Record<string, ProjectRuntime> = {}
-        for (const record of loaded.projects) {
-          projects[record.meta.id] = {
-            meta: record.meta,
-            items: record.items,
-            sheets: record.sheets,
-            selectedRowIds: {},
-            history: record.history ?? [],
+      async hydrate() {
+        if (get().hydrating || get().hydrated) return
+        set({ hydrating: true })
+        const loaded = await persistence.load()
+        if (loaded) {
+          const projects: Record<string, ProjectRuntime> = {}
+          for (const record of loaded.projects) {
+            projects[record.meta.id] = {
+              meta: record.meta,
+              items: record.items,
+              sheets: record.sheets,
+              selectedRowIds: {},
+              history: record.history ?? [],
+            }
           }
+          set({ projects, projectOrder: loaded.projectOrder, hydrated: true, hydrating: false })
+        } else {
+          // Fetch failed (offline, or `npm run dev` without the /api routes) —
+          // keep the baked-in INITIAL_PROJECTS fallback already in the store.
+          set({ hydrated: true, hydrating: false })
         }
-        set({ projects, projectOrder: loaded.projectOrder })
       },
     }
   })

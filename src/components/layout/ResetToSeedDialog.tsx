@@ -27,8 +27,8 @@ export function ResetToSeedDialog() {
           <DialogTitle>Reset all data to seed?</DialogTitle>
           <DialogDescription>
             This discards every tick, manual override, Phase Progress workflow status/document
-            metadata, and history log entry you've made, and restores the original seed data. This
-            cannot be undone.
+            metadata, and history log entry on this project — for every user, not just you — and
+            restores the original seed data. This cannot be undone.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

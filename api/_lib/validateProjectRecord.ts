@@ -1,0 +1,37 @@
+// Mirrors src/data/types.ts's ProjectRecord — kept as a local, loosely-typed
+// shape (not imported) since api/ and src/ are separate TS project references
+// (see tsconfig.api.json) with no cross-project imports. Deliberately shallow:
+// checks the envelope, not every Item/CheckRow field, since a full mirror of
+// types.ts can't live here — same posture already accepted for isValidLead in
+// api/procurement/leads.ts.
+export interface ProjectRecordInput {
+  meta: {
+    id: string
+    title: string
+    vendor: string
+    scope: string
+    preparedDate: string
+    [key: string]: unknown
+  }
+  items: unknown[]
+  sheets: unknown[]
+  history?: unknown[]
+}
+
+export function isValidProjectRecord(value: unknown): value is ProjectRecordInput {
+  if (typeof value !== 'object' || value === null) return false
+  const record = value as { meta?: unknown; items?: unknown; sheets?: unknown; history?: unknown }
+
+  if (typeof record.meta !== 'object' || record.meta === null) return false
+  const meta = record.meta as Record<string, unknown>
+  const requiredStringFields = ['id', 'title', 'vendor', 'scope', 'preparedDate']
+  for (const field of requiredStringFields) {
+    if (typeof meta[field] !== 'string' || (meta[field] as string).trim() === '') return false
+  }
+
+  if (!Array.isArray(record.items)) return false
+  if (!Array.isArray(record.sheets)) return false
+  if (record.history !== undefined && !Array.isArray(record.history)) return false
+
+  return true
+}

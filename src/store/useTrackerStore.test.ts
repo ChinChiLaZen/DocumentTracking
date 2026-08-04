@@ -180,7 +180,7 @@ describe('useTrackerStore', () => {
   })
 
   describe('deleteProject', () => {
-    it('removes the project from both projects and projectOrder, leaving others untouched', () => {
+    it('removes the project from both projects and projectOrder, leaving others untouched', async () => {
       const useStore = setup()
       const id = useStore.getState().createProject({
         title: 'Disposable Project',
@@ -192,13 +192,78 @@ describe('useTrackerStore', () => {
       })
       expect(useStore.getState().projectOrder).toContain(id)
 
-      useStore.getState().deleteProject(id)
+      const result = await useStore.getState().deleteProject(id)
 
+      expect(result.error).toBeUndefined()
       expect(useStore.getState().projects[id]).toBeUndefined()
       expect(useStore.getState().projectOrder).not.toContain(id)
       // Untouched — deleting one project must not affect another.
       expect(useStore.getState().projects[UTAPAO_PROJECT_ID]).toBeDefined()
       expect(useStore.getState().projectOrder).toContain(UTAPAO_PROJECT_ID)
+    })
+
+    it('rolls back the optimistic removal if the server rejects the delete', async () => {
+      const persistence = createMemoryPersistence()
+      persistence.deleteProject = async () => ({ error: 'Admin access required' })
+      const useStore = createTrackerStore(persistence)
+      const originalOrder = useStore.getState().projectOrder
+
+      const result = await useStore.getState().deleteProject(UTAPAO_PROJECT_ID)
+
+      expect(result.error).toBe('Admin access required')
+      expect(useStore.getState().projects[UTAPAO_PROJECT_ID]).toBeDefined()
+      expect(useStore.getState().projectOrder).toEqual(originalOrder)
+    })
+
+    it('is a no-op when the project does not exist', async () => {
+      const useStore = setup()
+      const result = await useStore.getState().deleteProject('does-not-exist')
+      expect(result.error).toBeUndefined()
+    })
+  })
+
+  describe('hydrate', () => {
+    it('replaces projects/projectOrder from the persistence layer and flips hydrated', async () => {
+      const persistence = createMemoryPersistence()
+      const useStore = createTrackerStore(persistence)
+      const seededProject = useStore.getState().projects[UTAPAO_PROJECT_ID]
+      persistence.saveProject({
+        meta: seededProject.meta,
+        items: seededProject.items,
+        sheets: seededProject.sheets,
+        history: seededProject.history,
+      })
+
+      expect(useStore.getState().hydrated).toBe(false)
+      await useStore.getState().hydrate()
+
+      expect(useStore.getState().hydrated).toBe(true)
+      expect(useStore.getState().projectOrder).toEqual([UTAPAO_PROJECT_ID])
+      expect(useStore.getState().projects[UTAPAO_PROJECT_ID]).toBeDefined()
+      expect(useStore.getState().projects[DEMO_PROJECT_ID]).toBeUndefined()
+    })
+
+    it('falls back to the baked-in seed state and still flips hydrated when nothing was ever saved', async () => {
+      const useStore = setup()
+      await useStore.getState().hydrate()
+      expect(useStore.getState().hydrated).toBe(true)
+      expect(useStore.getState().projects[UTAPAO_PROJECT_ID]).toBeDefined()
+    })
+
+    it('does not double-fetch when called again while already hydrated', async () => {
+      const persistence = createMemoryPersistence()
+      let loadCalls = 0
+      const originalLoad = persistence.load.bind(persistence)
+      persistence.load = async () => {
+        loadCalls += 1
+        return originalLoad()
+      }
+      const useStore = createTrackerStore(persistence)
+
+      await useStore.getState().hydrate()
+      await useStore.getState().hydrate()
+
+      expect(loadCalls).toBe(1)
     })
   })
 

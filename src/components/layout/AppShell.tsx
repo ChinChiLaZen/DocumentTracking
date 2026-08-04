@@ -5,18 +5,19 @@ import { useAuthStore } from '../../store/useAuthStore'
 
 export function AppShell() {
   const hydrate = useTrackerStore((s) => s.hydrate)
+  const hydrated = useTrackerStore((s) => s.hydrated)
   const initAuth = useAuthStore((s) => s.init)
   const user = useAuthStore((s) => s.user)
   const authLoading = useAuthStore((s) => s.loading)
   const location = useLocation()
 
   useEffect(() => {
-    hydrate()
+    void hydrate()
     initAuth()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  if (authLoading) {
+  if (authLoading || !hydrated) {
     return <div className="flex h-svh items-center justify-center text-sm text-muted-foreground">Loading…</div>
   }
 

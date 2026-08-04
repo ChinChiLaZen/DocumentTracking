@@ -62,6 +62,28 @@ export function ensureSchema(): Promise<void> {
         `,
       )
       .then(() => sql`CREATE INDEX IF NOT EXISTS idx_procurement_lead_documents_lead_id ON procurement_lead_documents(lead_id)`)
+      .then(
+        // The full tracker/project dataset (projects, items, detail sheets, history) —
+        // migrated off per-browser localStorage so create/edit/delete are visible to
+        // every signed-in user, not just the browser that made the change. One row per
+        // project; existence = row existence, display order = ORDER BY seq ASC (no
+        // separate projectOrder table needed). meta/items/sheets/history are opaque
+        // JSONB blobs from the client's perspective — see api/projects/[id].ts for why
+        // the server can't deep-validate them (api/ can't import src/data/types.ts).
+        () => sql`
+          CREATE TABLE IF NOT EXISTS project_records (
+            seq SERIAL PRIMARY KEY,
+            id TEXT UNIQUE NOT NULL,
+            meta JSONB NOT NULL,
+            items JSONB NOT NULL,
+            sheets JSONB NOT NULL,
+            history JSONB NOT NULL,
+            updated_by TEXT NOT NULL,
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+            created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+          )
+        `,
+      )
       .then(() => undefined)
   }
   return schemaReady
