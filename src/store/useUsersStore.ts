@@ -69,7 +69,7 @@ export const useUsersStore = create<UsersState>((set, get) => ({
   },
 
   async updateRole(id, role) {
-    const res = await fetch(`/api/auth/users/${id}`, {
+    const res = await fetch(`/api/auth/users?id=${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ role }),
@@ -82,7 +82,7 @@ export const useUsersStore = create<UsersState>((set, get) => ({
   },
 
   async updateEmail(id, email) {
-    const res = await fetch(`/api/auth/users/${id}`, {
+    const res = await fetch(`/api/auth/users?id=${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
@@ -95,7 +95,7 @@ export const useUsersStore = create<UsersState>((set, get) => ({
   },
 
   async setActive(id, isActive) {
-    const res = await fetch(`/api/auth/users/${id}`, {
+    const res = await fetch(`/api/auth/users?id=${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ isActive }),
@@ -108,7 +108,7 @@ export const useUsersStore = create<UsersState>((set, get) => ({
   },
 
   async deleteUser(id) {
-    const res = await fetch(`/api/auth/users/${id}`, { method: 'DELETE' })
+    const res = await fetch(`/api/auth/users?id=${id}`, { method: 'DELETE' })
     const data = await parseJson(res)
     if (!res.ok) return { error: (data.error as string) ?? 'Failed to delete user' }
     set({ users: get().users.filter((u) => u.id !== id) })

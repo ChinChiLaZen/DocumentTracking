@@ -31,17 +31,19 @@ async function parseJson(res: Response): Promise<Record<string, unknown>> {
 export function createApiPersistence(debounceMs = 600): PersistencePort {
   const timers = new Map<string, ReturnType<typeof setTimeout>>()
 
-  async function putProject(record: ProjectRecord): Promise<void> {
+  async function putProject(record: ProjectRecord): Promise<boolean> {
     try {
-      await fetch(`/api/projects/${encodeURIComponent(record.meta.id)}`, {
+      const res = await fetch(`/api/projects?id=${encodeURIComponent(record.meta.id)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ record }),
       })
+      return res.ok
     } catch {
       // Best-effort background sync — a later edit to the same project will
       // retry via its own debounced write. See CLAUDE.md §10's accepted-risk
       // note on this for the "user never touches this project again" case.
+      return false
     }
   }
 
@@ -81,7 +83,7 @@ export function createApiPersistence(debounceMs = 600): PersistencePort {
         timers.delete(projectId)
       }
       try {
-        const res = await fetch(`/api/projects/${encodeURIComponent(projectId)}`, { method: 'DELETE' })
+        const res = await fetch(`/api/projects?id=${encodeURIComponent(projectId)}`, { method: 'DELETE' })
         if (!res.ok) {
           const data = await parseJson(res)
           return { error: (data.error as string) ?? 'Failed to delete project' }
@@ -97,20 +99,27 @@ export function createApiPersistence(debounceMs = 600): PersistencePort {
 /** Bootstraps the shared table from the client's own seed data — only ever
  *  called when the server reports an empty project list. The server can't
  *  do this itself (api/ can't import src/data/*, see validateProjectRecord.ts
- *  on the server side), so this must be client-initiated. */
+ *  on the server side), so this must be client-initiated: PUT each seed
+ *  project once (the same upsert endpoint used for every other write). Two
+ *  browsers racing to seed an empty table at once is harmless — both are
+ *  upserting the exact same source data, so whichever write lands last just
+ *  overwrites the other with an identical row. */
 async function seedFromDefaults(): Promise<ProjectRecord[]> {
   const { INITIAL_PROJECTS } = await import('../data/initialProjects')
+  const results = await Promise.all(INITIAL_PROJECTS.map((record) => putProjectSeed(record)))
+  return results.every(Boolean) ? INITIAL_PROJECTS : []
+}
+
+async function putProjectSeed(record: ProjectRecord): Promise<boolean> {
   try {
-    const res = await fetch('/api/projects/seed', {
-      method: 'POST',
+    const res = await fetch(`/api/projects?id=${encodeURIComponent(record.meta.id)}`, {
+      method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ records: INITIAL_PROJECTS }),
+      body: JSON.stringify({ record }),
     })
-    if (!res.ok) return []
-    const data = await parseJson(res)
-    return (data.projects as ProjectRecord[] | undefined) ?? []
+    return res.ok
   } catch {
-    return []
+    return false
   }
 }
 
