@@ -40,7 +40,7 @@ export function AuthPage() {
     <div className="flex h-svh items-center justify-center bg-muted/40 p-6">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Airsafe MAR Tracker</CardTitle>
+          <CardTitle>ITS Tracker</CardTitle>
           <CardDescription>Document tracking system for the project.</CardDescription>
         </CardHeader>
         <CardContent>
