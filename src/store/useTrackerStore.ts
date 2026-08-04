@@ -50,8 +50,12 @@ export type ItemMetaPatch = Partial<
     | 'employerResult'
     | 'employerRemark'
     // Admin-only static/definitional fields — see plan "Admin-only editing of
-    // all static/definitional fields" — client-side-gated only, no backend
-    // for this data (it lives entirely in localStorage, per CLAUDE.md §10).
+    // all static/definitional fields". Visibility/editability of these is
+    // client-side-gated only (editable={role === 'admin'} at the call site),
+    // but the actual writes persist through the same shared Postgres path as
+    // every other item edit (persistProject → PUT /api/projects?id=X, see
+    // CLAUDE.md §10) — so once "Save changes" is clicked, every user sees the
+    // update on their next load, same as everything else in this store.
     | 'name'
     | 'standard'
     | 'requirement'
