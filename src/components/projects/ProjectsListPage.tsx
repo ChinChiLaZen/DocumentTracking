@@ -5,6 +5,7 @@ import { selectAllProjectsSummary } from '../../store/selectors'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Progress } from '../ui/progress'
 import { AddProjectDialog } from './AddProjectDialog'
+import { EditProjectDialog } from './EditProjectDialog'
 import { DeleteProjectDialog } from './DeleteProjectDialog'
 import { UserMenu } from '../auth/UserMenu'
 import { findCsiEntry, formatCsiEntry } from '../../data/csiMasterFormat'
@@ -12,7 +13,10 @@ import { findCsiEntry, formatCsiEntry } from '../../data/csiMasterFormat'
 export function ProjectsListPage() {
   const projects = useTrackerStore((s) => s.projects)
   const projectOrder = useTrackerStore((s) => s.projectOrder)
-  const isAdmin = useAuthStore((s) => s.user?.role) === 'admin'
+  const role = useAuthStore((s) => s.user?.role)
+  const isAdmin = role === 'admin'
+  // Add/Edit are open to Admin and Project Manager; Delete stays Admin-only.
+  const canManageProjects = isAdmin || role === 'ProjectManager'
   const summaries = selectAllProjectsSummary({ projects, projectOrder })
 
   return (
@@ -20,10 +24,10 @@ export function ProjectsListPage() {
       <div className="mb-6 flex items-start justify-between">
         <div>
           <h1 className="text-lg font-semibold">Projects</h1>
-          <p className="text-sm text-muted-foreground">Every MAR review in flight.</p>
+          <p className="text-sm text-muted-foreground">Projects Document Tracking</p>
         </div>
         <div className="flex items-center gap-3">
-          <AddProjectDialog />
+          {canManageProjects && <AddProjectDialog />}
           <UserMenu />
         </div>
       </div>
@@ -50,9 +54,10 @@ export function ProjectsListPage() {
                   </CardContent>
                 </Card>
               </Link>
-              {isAdmin && (
-                <div className="absolute top-2 right-2 z-10">
-                  <DeleteProjectDialog projectId={meta.id} title={meta.title} />
+              {canManageProjects && (
+                <div className="absolute top-2 right-2 z-10 flex items-center gap-0.5">
+                  <EditProjectDialog meta={meta} />
+                  {isAdmin && <DeleteProjectDialog projectId={meta.id} title={meta.title} />}
                 </div>
               )}
             </div>

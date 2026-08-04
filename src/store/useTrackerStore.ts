@@ -99,6 +99,10 @@ export interface TrackerState {
   resetToSeed(projectId: string): void
   createProject(input: CreateProjectInput): string
   deleteProject(projectId: string): Promise<{ error?: string }>
+  updateProjectMeta(
+    projectId: string,
+    patch: Partial<Pick<ProjectMeta, 'title' | 'vendor' | 'scope' | 'preparedDate' | 'projectType'>>,
+  ): void
   setWorkflowStatus(
     projectId: string,
     itemNo: number,
@@ -401,6 +405,11 @@ export function createTrackerStore(persistence: PersistencePort = createApiPersi
         }))
         persistProject(id)
         return id
+      },
+
+      updateProjectMeta(projectId, patch) {
+        updateProject(projectId, (project) => ({ ...project, meta: { ...project.meta, ...patch } }))
+        persistProject(projectId)
       },
 
       async deleteProject(projectId) {

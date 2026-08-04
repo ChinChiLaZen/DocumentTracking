@@ -1,9 +1,14 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { ProjectsListPage } from './ProjectsListPage'
 import { DEMO_PROJECT_ID, INITIAL_PROJECTS, UTAPAO_PROJECT_ID } from '../../data/initialProjects'
 import { useTrackerStore } from '../../store/useTrackerStore'
+import { useAuthStore } from '../../store/useAuthStore'
+
+afterEach(() => {
+  useAuthStore.setState({ user: null })
+})
 
 describe('ProjectsListPage', () => {
   it('lists every initial project with its title/vendor/scope and a link into it', () => {
@@ -80,7 +85,8 @@ describe('ProjectsListPage', () => {
     expect(link).toHaveTextContent('0 of 64 items submitted (0%)')
   })
 
-  it('opens the Add Project dialog', async () => {
+  it('opens the Add Project dialog for an admin', async () => {
+    useAuthStore.setState({ user: { email: 'admin@example.com', role: 'admin' } })
     const { default: userEvent } = await import('@testing-library/user-event')
     render(
       <MemoryRouter>
@@ -89,5 +95,71 @@ describe('ProjectsListPage', () => {
     )
     await userEvent.setup().click(screen.getByRole('button', { name: 'Add Project' }))
     expect(screen.getByRole('dialog', { name: 'Add a new project' })).toBeInTheDocument()
+  })
+
+  describe('role-gated Add/Edit/Delete', () => {
+    it('hides Add Project, Edit and Delete for a plain member', () => {
+      useAuthStore.setState({ user: { email: 'member@example.com', role: 'member' } })
+      render(
+        <MemoryRouter>
+          <ProjectsListPage />
+        </MemoryRouter>,
+      )
+      expect(screen.queryByRole('button', { name: 'Add Project' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /^Edit /i })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /^Delete /i })).not.toBeInTheDocument()
+    })
+
+    it('shows Add Project and Edit, but not Delete, for a Project Manager', () => {
+      useAuthStore.setState({ user: { email: 'pm@example.com', role: 'ProjectManager' } })
+      render(
+        <MemoryRouter>
+          <ProjectsListPage />
+        </MemoryRouter>,
+      )
+      expect(screen.getByRole('button', { name: 'Add Project' })).toBeInTheDocument()
+      const projectCount = useTrackerStore.getState().projectOrder.length
+      expect(screen.getAllByRole('button', { name: /^Edit /i }).length).toBe(projectCount)
+      expect(screen.queryByRole('button', { name: /^Delete /i })).not.toBeInTheDocument()
+    })
+
+    it('shows Add Project, Edit, and Delete for an admin', () => {
+      useAuthStore.setState({ user: { email: 'admin@example.com', role: 'admin' } })
+      render(
+        <MemoryRouter>
+          <ProjectsListPage />
+        </MemoryRouter>,
+      )
+      expect(screen.getByRole('button', { name: 'Add Project' })).toBeInTheDocument()
+      const projectCount = useTrackerStore.getState().projectOrder.length
+      expect(screen.getAllByRole('button', { name: /^Edit /i }).length).toBe(projectCount)
+      expect(screen.getAllByRole('button', { name: /^Delete /i }).length).toBe(projectCount)
+    })
+  })
+
+  describe('EditProjectDialog', () => {
+    it(
+      'saves a title/vendor/scope change and reflects it immediately on the card',
+      async () => {
+        useAuthStore.setState({ user: { email: 'admin@example.com', role: 'admin' } })
+        const { default: userEvent } = await import('@testing-library/user-event')
+        const user = userEvent.setup()
+        render(
+          <MemoryRouter>
+            <ProjectsListPage />
+          </MemoryRouter>,
+        )
+
+        await user.click(screen.getByRole('button', { name: `Edit ${INITIAL_PROJECTS[1].meta.title}` }))
+        const titleInput = screen.getByLabelText('Project title')
+        await user.clear(titleInput)
+        await user.type(titleInput, 'Renamed Demo Project')
+        await user.click(screen.getByRole('button', { name: 'Save changes' }))
+
+        expect(screen.getByText('Renamed Demo Project')).toBeInTheDocument()
+        expect(useTrackerStore.getState().projects[DEMO_PROJECT_ID].meta.title).toBe('Renamed Demo Project')
+      },
+      10000,
+    )
   })
 })
