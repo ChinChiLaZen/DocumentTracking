@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useActiveProject } from '../../store/useActiveProject'
 import { selectRollup } from '../../store/selectors'
+import { ExportMenu } from '../shared/ExportMenu'
 import { OverviewCards } from './OverviewCards'
 import { SubmissionProgress } from './SubmissionProgress'
 import { ByPriorityTable } from './ByPriorityTable'
@@ -9,12 +10,15 @@ import { QuickNavigation } from './QuickNavigation'
 import { IntegrityLine } from './IntegrityLine'
 
 export function DashboardPage() {
-  const { items, sheets, basePath } = useActiveProject()
+  const { items, sheets, meta, basePath } = useActiveProject()
   const rollup = useMemo(() => selectRollup({ items, sheets }), [items, sheets])
 
   return (
     <div className="h-full space-y-6 overflow-auto p-6">
-      <h1 className="text-lg font-semibold">Dashboard</h1>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-lg font-semibold">Dashboard</h1>
+        {meta && <ExportMenu project={{ meta, items, sheets }} />}
+      </div>
 
       <OverviewCards rollup={rollup} />
       <SubmissionProgress rollup={rollup} />

@@ -9,6 +9,7 @@ import { Input } from '../ui/input'
 import { Button } from '../ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 import { Progress } from '../ui/progress'
+import { ExportMenu } from '../shared/ExportMenu'
 import { HistoryDialog } from '../phase/HistoryDialog'
 import { AdsbStatCards } from './AdsbStatCards'
 import { AdsbItemCard } from './AdsbItemCard'
@@ -194,7 +195,7 @@ function RoleView({
 }
 
 export function AdsbChecklistPage() {
-  const { items, history, updateItemMeta } = useActiveProject()
+  const { items, history, meta, updateItemMeta } = useActiveProject()
   const changedBy = useAuthStore((s) => s.user?.email) ?? 'Reviewer'
   const isAdmin = useAuthStore((s) => s.user?.role) === 'admin'
 
@@ -233,6 +234,7 @@ export function AdsbChecklistPage() {
   return (
     <div className="h-full space-y-4 overflow-auto p-6 print:h-auto print:overflow-visible">
       <div className="no-print flex items-center justify-end gap-2">
+        {meta && <ExportMenu project={{ meta, items, sheets: [] }} />}
         <Button variant="ghost" disabled={pendingCount === 0} onClick={() => setPending({})}>
           Discard
         </Button>

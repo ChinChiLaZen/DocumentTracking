@@ -3,13 +3,14 @@ import { useActiveProject } from '../../store/useActiveProject'
 import { useAuthStore } from '../../store/useAuthStore'
 import { selectItemsWithStatus } from '../../store/selectors'
 import { Button } from '../ui/button'
+import { ExportMenu } from '../shared/ExportMenu'
 import { TrackerTable } from './TrackerTable'
 import type { Item } from '../../data/types'
 
 type PendingPatch = Partial<Pick<Item, 'group' | 'name' | 'standard' | 'requirement' | 'priority'>>
 
 export function TrackerPage() {
-  const { items: rawItems, sheets, basePath, updateItemMeta } = useActiveProject()
+  const { items: rawItems, sheets, meta, basePath, updateItemMeta } = useActiveProject()
   const role = useAuthStore((s) => s.user?.role)
   const changedBy = useAuthStore((s) => s.user?.email) ?? 'Reviewer'
   const items = useMemo(
@@ -52,6 +53,7 @@ export function TrackerPage() {
       <div className="mb-4 flex items-center justify-between gap-4">
         <h1 className="text-lg font-semibold">Tracker</h1>
         <div className="flex items-center gap-2">
+          {meta && <ExportMenu project={{ meta, items: rawItems, sheets }} />}
           <Button variant="ghost" disabled={pendingCount === 0} onClick={() => setPending({})}>
             Discard
           </Button>

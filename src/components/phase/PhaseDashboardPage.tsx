@@ -6,6 +6,7 @@ import { CRITICAL_SEQUENCE } from '../../domain/rules'
 import { AOT_CRITICAL_NOTICE } from '../../data/aotTemplate'
 import { Progress } from '../ui/progress'
 import { Button } from '../ui/button'
+import { ExportMenu } from '../shared/ExportMenu'
 import { CriticalCutoffBanner } from './CriticalCutoffBanner'
 import { PhaseCards } from './PhaseCards'
 import { PhaseItemsTable } from './PhaseItemsTable'
@@ -110,6 +111,7 @@ export function PhaseDashboardPage() {
           <Progress value={overall.percent} className="mt-2 w-64" />
         </div>
         <div className="flex items-center gap-2">
+          {meta && <ExportMenu project={{ meta, items, sheets: [] }} />}
           <Button
             variant="ghost"
             disabled={pendingCount === 0}
