@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ScheduleMilestone, SchedulePhase } from '../data/types'
-import { computeDateRange, datePercent, durationDays, monthTicks, phaseBarStyle } from './schedule'
+import { computeDateRange, datePercent, durationDays, monthTicks, phaseBarStyle, phaseColorIndex } from './schedule'
 
 function fixturePhase(overrides: Partial<SchedulePhase> = {}): SchedulePhase {
   return {
@@ -88,5 +88,31 @@ describe('durationDays', () => {
 
   it('counts inclusively across multiple days', () => {
     expect(durationDays(fixturePhase({ startDate: '2026-01-01', endDate: '2026-01-31' }))).toBe(31)
+  })
+})
+
+describe('phaseColorIndex', () => {
+  it('is deterministic — the same id always maps to the same slot', () => {
+    const id = 'apron-p1'
+    expect(phaseColorIndex(id)).toBe(phaseColorIndex(id))
+  })
+
+  it('is unaffected by other phases being added/removed/reordered (depends only on the id)', () => {
+    const id = '3deb4e22-fbec-455a-b6de-969aba8974f2'
+    expect(phaseColorIndex(id)).toBe(phaseColorIndex(id))
+  })
+
+  it('returns an index within the 8-slot palette', () => {
+    for (const id of ['a', 'apron-p1', 'apron-p2', 'apron-p3', 'apron-p4', crypto.randomUUID()]) {
+      const index = phaseColorIndex(id)
+      expect(index).toBeGreaterThanOrEqual(0)
+      expect(index).toBeLessThan(8)
+    }
+  })
+
+  it('distributes distinct ids across more than one slot', () => {
+    const ids = ['apron-p1', 'apron-p2', 'apron-p3', 'apron-p4', 'p5', 'p6', 'p7', 'p8', 'p9', 'p10']
+    const slots = new Set(ids.map(phaseColorIndex))
+    expect(slots.size).toBeGreaterThan(1)
   })
 })

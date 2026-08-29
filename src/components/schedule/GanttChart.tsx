@@ -3,8 +3,15 @@ import { Badge } from '../ui/badge'
 import { Button } from '../ui/button'
 import { Progress } from '../ui/progress'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip'
-import { computeDateRange, datePercent, durationDays, monthTicks, phaseBarStyle } from '../../domain/schedule'
-import { MILESTONE_TYPE_BADGE_CLASS } from '../shared/statusStyles'
+import {
+  computeDateRange,
+  datePercent,
+  durationDays,
+  monthTicks,
+  phaseBarStyle,
+  phaseColorIndex,
+} from '../../domain/schedule'
+import { MILESTONE_TYPE_BADGE_CLASS, MILESTONE_TYPE_MARKER_CLASS, PHASE_COLOR_SLOTS } from '../shared/statusStyles'
 import type { MilestoneType, ScheduleMilestone, SchedulePhase } from '../../data/types'
 
 const ROW_HEIGHT = 'h-10'
@@ -25,6 +32,10 @@ function formatDate(iso: string): string {
   const date = new Date(`${iso}T00:00:00`)
   if (Number.isNaN(date.getTime())) return iso
   return DATE_FORMAT.format(date)
+}
+
+function phaseColor(phase: SchedulePhase) {
+  return PHASE_COLOR_SLOTS[phaseColorIndex(phase.id)]
 }
 
 interface GanttChartProps {
@@ -76,45 +87,51 @@ export function GanttChart({
           {phases.length === 0 && (
             <p className="py-3 text-sm text-muted-foreground">No phases yet.</p>
           )}
-          {phases.map((phase) => (
-            <div key={phase.id} className={`${ROW_HEIGHT} flex items-center gap-2 border-b`}>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5 truncate text-sm font-medium">
-                  <span className="truncate">{phase.name}</span>
-                  {phase.code && (
-                    <Badge variant="outline" className="shrink-0">
-                      {phase.code}
-                    </Badge>
-                  )}
+          {phases.map((phase) => {
+            const color = phaseColor(phase)
+            return (
+              <div
+                key={phase.id}
+                className={`${ROW_HEIGHT} flex items-center gap-2 border-b border-l-4 pl-2 ${color.accentBorder}`}
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 truncate text-sm font-medium">
+                    <span className="truncate">{phase.name}</span>
+                    {phase.code && (
+                      <Badge variant="outline" className={`shrink-0 ${color.badge}`}>
+                        {phase.code}
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>{durationDays(phase)}d</span>
+                    <Progress value={phase.percentComplete} className="w-16" indicatorClassName={color.fill} />
+                    <span>{phase.percentComplete}%</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>{durationDays(phase)}d</span>
-                  <Progress value={phase.percentComplete} className="w-16" />
-                  <span>{phase.percentComplete}%</span>
-                </div>
+                {canEdit && (
+                  <div className="flex shrink-0 items-center gap-0.5">
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      aria-label={`Edit ${phase.name}`}
+                      onClick={() => onEditPhase(phase)}
+                    >
+                      <Pencil />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      aria-label={`Delete ${phase.name}`}
+                      onClick={() => onDeletePhase(phase.id)}
+                    >
+                      <Trash2 />
+                    </Button>
+                  </div>
+                )}
               </div>
-              {canEdit && (
-                <div className="flex shrink-0 items-center gap-0.5">
-                  <Button
-                    variant="ghost"
-                    size="icon-xs"
-                    aria-label={`Edit ${phase.name}`}
-                    onClick={() => onEditPhase(phase)}
-                  >
-                    <Pencil />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon-xs"
-                    aria-label={`Delete ${phase.name}`}
-                    onClick={() => onDeletePhase(phase.id)}
-                  >
-                    <Trash2 />
-                  </Button>
-                </div>
-              )}
-            </div>
-          ))}
+            )
+          })}
         </div>
 
         {/* Right panel — month-tick header, milestone track, and phase bars, all positioned by date percentage. */}
@@ -122,10 +139,14 @@ export function GanttChart({
           <div className="relative" style={{ width: `${timelineWidthPx}px` }}>
             {contractStartPercent !== undefined && (
               <div
-                className="pointer-events-none absolute inset-y-0 border-l border-dashed border-muted-foreground/40"
+                className="pointer-events-none absolute inset-y-0 z-10 border-l-2 border-dashed border-slate-500"
                 style={{ left: `${contractStartPercent}%` }}
                 aria-hidden
-              />
+              >
+                <span className="absolute top-8 left-1 text-[10px] font-medium whitespace-nowrap text-slate-600">
+                  Contract Start
+                </span>
+              </div>
             )}
 
             <div className={`relative ${TRACK_HEIGHT} border-b`}>
@@ -149,10 +170,10 @@ export function GanttChart({
                     <Tooltip key={milestone.id}>
                       <TooltipTrigger asChild>
                         <span
-                          className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 text-muted-foreground"
+                          className={`absolute top-1/2 flex size-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full text-white shadow-sm ${MILESTONE_TYPE_MARKER_CLASS[milestone.type]}`}
                           style={{ left: `${percent}%` }}
                         >
-                          <Icon className="size-4" />
+                          <Icon className="size-3.5" />
                         </span>
                       </TooltipTrigger>
                       <TooltipContent>
@@ -167,14 +188,15 @@ export function GanttChart({
             {phases.length === 0 && <div className={`${ROW_HEIGHT} border-b`} />}
             {phases.map((phase) => {
               const { leftPercent, widthPercent } = phaseBarStyle(phase, range)
+              const color = phaseColor(phase)
               return (
                 <div key={phase.id} className={`relative ${ROW_HEIGHT} border-b`}>
                   <div
-                    className="absolute top-1/2 h-4 -translate-y-1/2 overflow-hidden rounded bg-muted"
+                    className={`absolute top-1/2 h-4 -translate-y-1/2 overflow-hidden rounded ${color.track}`}
                     style={{ left: `${leftPercent}%`, width: `${widthPercent}%` }}
                   >
                     <div
-                      className="h-full bg-primary"
+                      className={`h-full ${color.fill}`}
                       style={{ width: `${phase.percentComplete}%` }}
                     />
                   </div>

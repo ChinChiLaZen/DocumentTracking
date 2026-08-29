@@ -93,6 +93,46 @@ export const MILESTONE_TYPE_BADGE_CLASS: Record<MilestoneType, string> = {
   Other: 'border-slate-200 bg-slate-100 text-slate-600',
 }
 
+/** Same hue-per-type mapping as MILESTONE_TYPE_BADGE_CLASS above, but as a
+ *  solid fill (white icon on a solid chip) for the on-chart marker rather
+ *  than the light badge treatment used in the milestone list. */
+export const MILESTONE_TYPE_MARKER_CLASS: Record<MilestoneType, string> = {
+  Delivery: 'bg-emerald-500',
+  Committee: 'bg-sky-500',
+  Extension: 'bg-amber-500',
+  Other: 'bg-slate-500',
+}
+
+export interface PhaseColorSlot {
+  fill: string
+  track: string
+  badge: string
+  accentBorder: string // border-l-{hue}-500 — kept as its own literal class, not derived
+  // from `fill` at runtime, since Tailwind's build-time scanner only picks up
+  // classes that appear as literal strings in source, not string-concatenated ones.
+}
+
+/**
+ * Project Management tab's 8-slot categorical phase palette — dataviz-skill
+ * validated (fixed hue order, CVD/contrast checked against a white surface;
+ * see the "Make the Project Management tab more colorful" plan). Deliberately
+ * avoids rose/amber/emerald/slate/sky/violet, which already carry status
+ * meaning elsewhere in this app (STATUS_BADGE_CLASS/WORKFLOW_STATUS_BADGE_CLASS
+ * above), so a phase color never reads as a status color. Index a phase into
+ * this array via `phaseColorIndex(phase.id)` (domain/schedule.ts) — never by
+ * array position, so deleting/reordering other phases can't repaint one.
+ */
+export const PHASE_COLOR_SLOTS: PhaseColorSlot[] = [
+  { fill: 'bg-blue-500', track: 'bg-blue-100', badge: 'border-blue-300 bg-blue-100 text-blue-800', accentBorder: 'border-l-blue-500' },
+  { fill: 'bg-orange-500', track: 'bg-orange-100', badge: 'border-orange-300 bg-orange-100 text-orange-800', accentBorder: 'border-l-orange-500' },
+  { fill: 'bg-green-500', track: 'bg-green-100', badge: 'border-green-300 bg-green-100 text-green-800', accentBorder: 'border-l-green-500' },
+  { fill: 'bg-fuchsia-500', track: 'bg-fuchsia-100', badge: 'border-fuchsia-300 bg-fuchsia-100 text-fuchsia-800', accentBorder: 'border-l-fuchsia-500' },
+  { fill: 'bg-yellow-600', track: 'bg-yellow-100', badge: 'border-yellow-300 bg-yellow-100 text-yellow-800', accentBorder: 'border-l-yellow-600' },
+  { fill: 'bg-indigo-500', track: 'bg-indigo-100', badge: 'border-indigo-300 bg-indigo-100 text-indigo-800', accentBorder: 'border-l-indigo-500' },
+  { fill: 'bg-red-500', track: 'bg-red-100', badge: 'border-red-300 bg-red-100 text-red-800', accentBorder: 'border-l-red-500' },
+  { fill: 'bg-teal-500', track: 'bg-teal-100', badge: 'border-teal-300 bg-teal-100 text-teal-800', accentBorder: 'border-l-teal-500' },
+]
+
 /** Find Projects page's e-GP status badge — the 4 real Thai status strings the portal itself uses. */
 export const PROCUREMENT_STATUS_BADGE_CLASS: Record<string, string> = {
   อนุมัติสั่งซื้อสั่งจ้างและประกาศผู้ชนะการเสนอราคา: 'border-emerald-200 bg-emerald-50 text-emerald-700',

@@ -96,3 +96,17 @@ export function durationDays(phase: SchedulePhase): number {
   const end = parseIsoDate(phase.endDate)
   return Math.round((end.getTime() - start.getTime()) / DAY_MS) + 1
 }
+
+const PHASE_COLOR_SLOT_COUNT = 8
+
+/** A stable categorical color slot [0, 8) for a phase, derived from its own
+ *  id rather than its position in the array — so deleting or reordering
+ *  other phases never repaints this one's color (dataviz skill's "color
+ *  follows the entity, never its rank"). */
+export function phaseColorIndex(phaseId: string): number {
+  let hash = 0
+  for (let i = 0; i < phaseId.length; i++) {
+    hash = (hash * 31 + phaseId.charCodeAt(i)) | 0
+  }
+  return Math.abs(hash) % PHASE_COLOR_SLOT_COUNT
+}
