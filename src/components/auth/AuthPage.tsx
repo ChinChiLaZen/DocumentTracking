@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
@@ -12,6 +12,7 @@ type Mode = 'sign-in' | 'sign-up'
 export function AuthPage() {
   const user = useAuthStore((s) => s.user)
   const loading = useAuthStore((s) => s.loading)
+  const initAuth = useAuthStore((s) => s.init)
   const signIn = useAuthStore((s) => s.signIn)
   const signUp = useAuthStore((s) => s.signUp)
   const location = useLocation()
@@ -23,6 +24,15 @@ export function AuthPage() {
   const [inviteCode, setInviteCode] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // AuthPage sits outside AppShell (§10), which is the only other place
+  // init() is called — so a direct load of /auth (bookmark, fresh tab, full
+  // reload) would otherwise leave `loading` stuck true forever, and a
+  // successful sign-in would never redirect away. init() no-ops if AppShell
+  // already called it this session (guarded by the store's `initialized`).
+  useEffect(() => {
+    initAuth()
+  }, [initAuth])
 
   if (!loading && user) return <Navigate to={from} replace />
 
