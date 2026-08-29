@@ -84,6 +84,35 @@ export function ensureSchema(): Promise<void> {
           )
         `,
       )
+      .then(
+        // Daily digest cron (api/cron/daily-digest.ts) — the per-item
+        // effective-status snapshot from the *previous* run, so the next run
+        // can diff against it and report which items actually changed status.
+        // Absence of a row for a project id means "never snapshotted yet",
+        // which the cron also uses as its "new project" signal.
+        () => sql`
+          CREATE TABLE IF NOT EXISTS project_digest_snapshots (
+            project_id TEXT PRIMARY KEY,
+            item_statuses JSONB NOT NULL,
+            checks_done INTEGER NOT NULL,
+            checks_required INTEGER NOT NULL,
+            captured_at TIMESTAMPTZ NOT NULL DEFAULT now()
+          )
+        `,
+      )
+      .then(
+        // Tiny generic key/value store, currently just one row
+        // ('daily_digest') recording when the digest cron last ran
+        // successfully, so each run's "what changed" window is exactly
+        // "since last run" rather than a guessed 24h/26h window.
+        () => sql`
+          CREATE TABLE IF NOT EXISTS cron_state (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL,
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+          )
+        `,
+      )
       .then(() => undefined)
   }
   return schemaReady

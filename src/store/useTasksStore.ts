@@ -56,7 +56,7 @@ export const useTasksStore = create<TasksState>((set, get) => ({
   },
 
   async setStatus(id, status) {
-    const res = await fetch(`/api/tasks/${id}`, {
+    const res = await fetch(`/api/tasks?id=${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
@@ -69,7 +69,7 @@ export const useTasksStore = create<TasksState>((set, get) => ({
   },
 
   async removeTask(id) {
-    const res = await fetch(`/api/tasks/${id}`, { method: 'DELETE' })
+    const res = await fetch(`/api/tasks?id=${id}`, { method: 'DELETE' })
     const data = await parseJson(res)
     if (!res.ok) return { error: (data.error as string) ?? 'Failed to delete task' }
     set({ tasks: get().tasks.filter((t) => t.id !== id) })
