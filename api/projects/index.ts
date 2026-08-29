@@ -26,10 +26,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return
     }
     const result = await sql`
-      SELECT meta, items, sheets, history FROM project_records ORDER BY seq ASC
+      SELECT meta, items, sheets, history, schedule FROM project_records ORDER BY seq ASC
     `
     const projects = result.rows.map((row) => ({
-      meta: row.meta, items: row.items, sheets: row.sheets, history: row.history,
+      meta: row.meta, items: row.items, sheets: row.sheets, history: row.history, schedule: row.schedule,
     }))
     res.status(200).json({ projects })
     return
@@ -79,13 +79,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const r = record as ProjectRecordInput
 
   const upserted = await sql`
-    INSERT INTO project_records (id, meta, items, sheets, history, updated_by)
+    INSERT INTO project_records (id, meta, items, sheets, history, schedule, updated_by)
     VALUES (
       ${id},
       ${JSON.stringify(r.meta)}::jsonb,
       ${JSON.stringify(r.items)}::jsonb,
       ${JSON.stringify(r.sheets)}::jsonb,
       ${JSON.stringify(r.history ?? [])}::jsonb,
+      ${JSON.stringify(r.schedule ?? { phases: [], milestones: [] })}::jsonb,
       ${user.email}
     )
     ON CONFLICT (id) DO UPDATE SET
@@ -93,12 +94,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       items = EXCLUDED.items,
       sheets = EXCLUDED.sheets,
       history = EXCLUDED.history,
+      schedule = EXCLUDED.schedule,
       updated_by = EXCLUDED.updated_by,
       updated_at = now()
-    RETURNING meta, items, sheets, history
+    RETURNING meta, items, sheets, history, schedule
   `
   const row = upserted.rows[0]
   res.status(200).json({
-    project: { meta: row.meta, items: row.items, sheets: row.sheets, history: row.history },
+    project: {
+      meta: row.meta,
+      items: row.items,
+      sheets: row.sheets,
+      history: row.history,
+      schedule: row.schedule,
+    },
   })
 }

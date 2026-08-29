@@ -97,6 +97,8 @@ src/
     derive.ts                # ALL derived-value logic (§6) — pure, framework-free
     derive.test.ts           # unit tests locking the numbers in §6.4
     rules.ts                 # priority defs, group defs, status enum, guideline text
+    schedule.ts               # Project Management tab's date-math (§5.3c) — pure, framework-free, unrelated to §6
+    schedule.test.ts          # unit tests for schedule.ts
   store/
     useTrackerStore.ts       # Zustand store, multi-project (projects/projectOrder) + selectors
     useActiveProject.ts      # resolves :projectId, pre-curries store actions for pages
@@ -123,6 +125,11 @@ src/
       PhaseHeaderRow.tsx      # table section header — phase label only, no item-range text
       HistoryDialog.tsx
       CriticalCutoffBanner.tsx
+    schedule/                # Project Management tab (§7, §5.3c) — added 2026-08-29, additive, independent of §6
+      ProjectManagementPage.tsx # container: contract-start date, Add Phase/Milestone buttons, dialogs
+      GanttChart.tsx           # pure presentational — phase bars + milestone markers + list
+      PhaseFormDialog.tsx      # add/edit a SchedulePhase — remounted via `key` per open, not a resync effect
+      MilestoneFormDialog.tsx  # add/edit a ScheduleMilestone — same remount-via-key pattern
     dashboard/…
     tracker/…
     priority/…
@@ -284,6 +291,35 @@ interface HistoryEntry {
 }
 ```
 One entry is appended per **actually-changed** field (no-op writes, e.g. re-picking the same value, are skipped). `resetToSeed` clears a project's `history` back to `[]` along with its workflow status/metadata.
+
+### 5.3c Project schedule (Project Management tab, added 2026-08-29)
+
+```ts
+type MilestoneType = 'Delivery' | 'Committee' | 'Extension' | 'Other';
+
+interface SchedulePhase {
+  id: string;
+  name: string;             // e.g. "Phase 4 (DM)"
+  code?: string;             // optional short code, e.g. "DM"
+  startDate: string;         // ISO yyyy-mm-dd
+  endDate: string;           // ISO yyyy-mm-dd
+  percentComplete: number;   // 0-100, manual, reviewer-entered — never derived
+}
+
+interface ScheduleMilestone {
+  id: string;
+  label: string;
+  date: string;              // ISO yyyy-mm-dd
+  type: MilestoneType;
+}
+
+interface ProjectSchedule {
+  phases: SchedulePhase[];
+  milestones: ScheduleMilestone[];
+  contractStartDate?: string; // ISO yyyy-mm-dd — dashed reference line on the timeline
+}
+```
+`ProjectRecord.schedule?: ProjectSchedule` — optional for backward-compat with rows that predate this field (`toRuntime()`/`hydrate()` default a missing value to `{ phases: [], milestones: [] }`, same posture as `templateKind`/`projectType`). Generic project-scheduling data, **independent of checklist structure** — shown for every `TemplateKind` alike (unlike Tracker/Priority/Item Details, which are MAR-only). `percentComplete` is manual, reviewer-entered — there is no checkbox/derived source for it, unlike §6's checklist-item statuses. No audit trail: `HistoryField`/`HistoryEntry` are keyed by `itemNo` and don't fit phase/milestone edits, so schedule changes aren't logged. `resetToSeed` also clears `schedule` back to `{ phases: [], milestones: [] }`, consistent with `history`. Add/Edit/Delete phase and milestone are gated to `admin`/`ProjectManager` roles, **client-side only** — same accepted-risk posture as Add/Edit Project (§10). The date-math for positioning phase bars/milestones/month ticks on the timeline lives in `domain/schedule.ts` (pure, framework-free, unrelated to §6's `derive.ts`).
 
 ### 5.4 Seed data (`checklistTemplate.ts` + `initialProjects.ts`)
 
@@ -451,13 +487,14 @@ So the sentence can never drift from the tick count (this fixed a real "6 of 18"
 | `/projects/:projectId/priority/c` | **Priority C** | …priority = C (3 rows) |
 | `/projects/:projectId/items` | **Item Details** | §8 — the focus of this brief |
 | `/projects/:projectId/phase` | **Phase Progress** | Added 2026-07-26, inspired by a reference tracker ("RSMS", a different airport/bid). Critical-cutoff banner; an "Unassigned" card plus one progress card per real lifecycle Phase (`LIFECYCLE_PHASE_DEFS` — see note below); an editable table of Phase + Workflow Status (manual 5-state pipeline: Pending→Preparing→AwaitingApproval→Ready→Submitted) + Document Date/Expiry Date/Responsible Person/Document Link per item; and a "View History" dialog (searchable audit log of every edit, values rendered as human labels). Fully additive — independent of the checkbox-derived Status/Dashboard/Tracker above (§6 untouched). |
+| `/projects/:projectId/schedule` | **Project Management** | Added 2026-08-29, modeled on a reference Gantt tracker. A left panel of named delivery phases (duration + % complete) and a right timeline panel (month-label header, one positioned/filled bar per phase, milestone markers with hover tooltips) plus a milestone list with edit/delete controls; an optional contract-start-date dashed reference line. Shown for **every** `templateKind`, unlike the MAR-only tabs above — see §5.3c. Add/Edit/Delete gated to Admin/Project Manager. |
 | `/projects/:projectId/guidelines` | **Guidelines** | Priority definitions, critical sequence, document-quality rules, colour legend, disclaimer (rules.ts) |
 
 Priority tabs are **derived mirrors** — no independent editing. An unknown `:projectId` renders a "Project not found" panel instead of the tab set (`ProjectShell.tsx`), so no child page needs its own defensive check.
 
 > **Lifecycle Phase (Phase Progress tab):** `item.phase` is a real, independent, reviewer-assigned classification (`LifecyclePhase`/`LIFECYCLE_PHASE_DEFS` in `rules.ts`) — 7 named phases (Pre-Bidding, Bidding, After Contract, Installation & Commissioning, Warranty, Operation & Maintenance, Others) plus an explicit "Unassigned" bucket for items with no phase set. It has **no relationship** to `GroupId`/`GROUP_DEFS` (technical document categories, §2.1's Group 1–5, untouched — an earlier version of this tab relabeled Groups as a placeholder; that has been fully replaced). **Confirmed 2026-07-26: every MAR item defaults to `'AfterContract'`** (§5.4) — real data, not a per-vendor guess, since the MAR checklist structure only ever represents post-contract-award submittals. New MAR projects can override this default at creation time via "Add Project"'s **Default phase** picker (§5.4), which bulk-sets every one of the new project's items to the chosen phase instead of `'AfterContract'`. "Unassigned" is reserved for the rare case a reviewer explicitly clears an item's phase; "Others" remains a real, distinct category for genuinely miscellaneous documents, never a default.
 
-> **AOT/DOA-shaped projects (AOT added 2026-07-27, DOA added same day):** a project with `meta.templateKind === 'aot'` or `'doa'` has no Group/Priority/checkbox detail sheets at all (§5.2) — its `phase` comes pre-assigned per item from the real template (§5.4a/§5.4b), not from a bulk Default-phase pick. `ProjectShell.tsx` renders just one "Dashboard" tab for either, which **is** the full Phase Progress-style register (`PhaseDashboardPage`) — Tracker/Priority/Item Details/Guidelines aren't linked since Group/Priority/detail sheets don't apply, though their routes still exist and degrade gracefully if hit directly (empty table / "no detail sheet" fallback, never a crash). The critical-cutoff banner uses `AOT_CRITICAL_NOTICE` for AOT, `CRITICAL_SEQUENCE` for MAR, and is **omitted entirely** for DOA (no equivalent real notice exists to show — see §5.4b). `selectAllProjectsSummary` (`selectors.ts`) branches per `templateKind` so the Projects Summary card never calls the Priority-indexing `rollup()` on an AOT or DOA project.
+> **AOT/DOA-shaped projects (AOT added 2026-07-27, DOA added same day):** a project with `meta.templateKind === 'aot'` or `'doa'` has no Group/Priority/checkbox detail sheets at all (§5.2) — its `phase` comes pre-assigned per item from the real template (§5.4a/§5.4b), not from a bulk Default-phase pick. `ProjectShell.tsx` renders "Dashboard" plus **Project Management** (§5.3c — generic scheduling data, unaffected by templateKind) for either — Tracker/Priority/Item Details/Guidelines/Phase Progress aren't linked since Group/Priority/detail sheets don't apply, though their routes still exist and degrade gracefully if hit directly (empty table / "no detail sheet" fallback, never a crash). The critical-cutoff banner uses `AOT_CRITICAL_NOTICE` for AOT, `CRITICAL_SEQUENCE` for MAR, and is **omitted entirely** for DOA (no equivalent real notice exists to show — see §5.4b). `selectAllProjectsSummary` (`selectors.ts`) branches per `templateKind` so the Projects Summary card never calls the Priority-indexing `rollup()` on an AOT or DOA project.
 
 ---
 

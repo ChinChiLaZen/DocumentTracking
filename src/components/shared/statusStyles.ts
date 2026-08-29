@@ -4,6 +4,7 @@ import type {
   AdsbResult,
   AotImportance,
   DoaDocType,
+  MilestoneType,
   Priority,
   Status,
   WorkflowStatus,
@@ -82,6 +83,14 @@ export const HW_POINT_BADGE_CLASS: Record<AdsbHwPoint, string> = {
 export const ACCOUNT_STATUS_BADGE_CLASS: Record<'Active' | 'Deactivated', string> = {
   Active: 'border-emerald-200 bg-emerald-50 text-emerald-700',
   Deactivated: 'border-slate-300 bg-slate-200 text-slate-700',
+}
+
+/** Project Management tab's Gantt milestone-type marker. */
+export const MILESTONE_TYPE_BADGE_CLASS: Record<MilestoneType, string> = {
+  Delivery: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  Committee: 'border-sky-200 bg-sky-50 text-sky-700',
+  Extension: 'border-amber-200 bg-amber-50 text-amber-700',
+  Other: 'border-slate-200 bg-slate-100 text-slate-600',
 }
 
 /** Find Projects page's e-GP status badge — the 4 real Thai status strings the portal itself uses. */

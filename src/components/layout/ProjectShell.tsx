@@ -7,7 +7,18 @@ import { findCsiEntry, formatCsiEntry } from '../../data/csiMasterFormat'
 
 const DEFAULT_TITLE = 'ITS Tracker'
 
-const MAR_TABS = [
+interface TabDef {
+  to: string
+  label: string
+  end?: boolean
+}
+
+// Project Management (Gantt-style schedule) is generic project-scheduling
+// data, independent of checklist structure — shown for every templateKind,
+// unlike the MAR-only tabs below.
+const PROJECT_MANAGEMENT_TAB: TabDef = { to: '/schedule', label: 'Project Management' }
+
+const MAR_TABS: TabDef[] = [
   { to: '', label: 'Dashboard', end: true },
   { to: '/tracker', label: 'Tracker' },
   { to: '/priority/a', label: 'Priority A' },
@@ -15,13 +26,15 @@ const MAR_TABS = [
   { to: '/priority/c', label: 'Priority C' },
   { to: '/items', label: 'Item Details' },
   { to: '/phase', label: 'Phase Progress' },
+  PROJECT_MANAGEMENT_TAB,
   { to: '/guidelines', label: 'Guidelines' },
 ]
 
 // AOT/DOA/adsb projects have no Group/Priority/checkbox detail sheets (§7) —
 // the single Dashboard tab IS the full Phase Progress-style register, so
-// Tracker/Priority/Item Details/Guidelines aren't linked.
-const SINGLE_TAB = [{ to: '', label: 'Dashboard', end: true }]
+// Tracker/Priority/Item Details/Guidelines aren't linked. Project Management
+// is still generic scheduling data, so it's included here too.
+const SINGLE_TAB: TabDef[] = [{ to: '', label: 'Dashboard', end: true }, PROJECT_MANAGEMENT_TAB]
 
 function formatPreparedDate(iso: string): string {
   const date = new Date(`${iso}T00:00:00`)

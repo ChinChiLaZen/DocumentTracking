@@ -16,11 +16,18 @@ export interface ProjectRecordInput {
   items: unknown[]
   sheets: unknown[]
   history?: unknown[]
+  schedule?: unknown
 }
 
 export function isValidProjectRecord(value: unknown): value is ProjectRecordInput {
   if (typeof value !== 'object' || value === null) return false
-  const record = value as { meta?: unknown; items?: unknown; sheets?: unknown; history?: unknown }
+  const record = value as {
+    meta?: unknown
+    items?: unknown
+    sheets?: unknown
+    history?: unknown
+    schedule?: unknown
+  }
 
   if (typeof record.meta !== 'object' || record.meta === null) return false
   const meta = record.meta as Record<string, unknown>
@@ -32,6 +39,13 @@ export function isValidProjectRecord(value: unknown): value is ProjectRecordInpu
   if (!Array.isArray(record.items)) return false
   if (!Array.isArray(record.sheets)) return false
   if (record.history !== undefined && !Array.isArray(record.history)) return false
+
+  if (record.schedule !== undefined) {
+    if (typeof record.schedule !== 'object' || record.schedule === null) return false
+    const schedule = record.schedule as Record<string, unknown>
+    if (schedule.phases !== undefined && !Array.isArray(schedule.phases)) return false
+    if (schedule.milestones !== undefined && !Array.isArray(schedule.milestones)) return false
+  }
 
   return true
 }

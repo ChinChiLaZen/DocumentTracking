@@ -85,6 +85,16 @@ export function ensureSchema(): Promise<void> {
         `,
       )
       .then(
+        // Project Management tab (Gantt-style schedule) — added after the
+        // table above, so existing rows get this column via ALTER rather
+        // than CREATE. Opaque JSONB from the server's perspective, same
+        // posture as items/sheets/history.
+        () => sql`
+          ALTER TABLE project_records
+          ADD COLUMN IF NOT EXISTS schedule JSONB NOT NULL DEFAULT '{"phases":[],"milestones":[]}'::jsonb
+        `,
+      )
+      .then(
         // Daily digest cron (api/cron/daily-digest.ts) — the per-item
         // effective-status snapshot from the *previous* run, so the next run
         // can diff against it and report which items actually changed status.

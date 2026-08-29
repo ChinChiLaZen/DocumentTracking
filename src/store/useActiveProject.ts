@@ -6,6 +6,9 @@ import type {
   Item,
   LifecyclePhase,
   ProjectMeta,
+  ProjectSchedule,
+  ScheduleMilestone,
+  SchedulePhase,
   Status,
   WorkflowStatus,
 } from '../data/types'
@@ -20,6 +23,7 @@ export interface ActiveProject {
   sheets: DetailSheet[]
   selectedRowIds: Record<string, Set<string>>
   history: HistoryEntry[]
+  schedule: ProjectSchedule
   basePath: string
   toggleCell(sheetId: string, rowId: string, columnKey: string): void
   setRowRemark(sheetId: string, rowId: string, remark: string): void
@@ -39,6 +43,13 @@ export interface ActiveProject {
   setWorkflowStatus(itemNo: number, status: WorkflowStatus | undefined, changedBy: string): void
   setPhase(itemNo: number, phase: LifecyclePhase | undefined, changedBy: string): void
   updateItemMeta(itemNo: number, patch: ItemMetaPatch, changedBy: string): void
+  addSchedulePhase(input: Omit<SchedulePhase, 'id'>): void
+  updateSchedulePhase(phaseId: string, patch: Partial<Omit<SchedulePhase, 'id'>>): void
+  deleteSchedulePhase(phaseId: string): void
+  addScheduleMilestone(input: Omit<ScheduleMilestone, 'id'>): void
+  updateScheduleMilestone(milestoneId: string, patch: Partial<Omit<ScheduleMilestone, 'id'>>): void
+  deleteScheduleMilestone(milestoneId: string): void
+  updateScheduleMeta(patch: Partial<Pick<ProjectSchedule, 'contractStartDate'>>): void
 }
 
 /**
@@ -63,6 +74,13 @@ export function useActiveProject(): ActiveProject {
   const setWorkflowStatusAction = useTrackerStore((s) => s.setWorkflowStatus)
   const setPhaseAction = useTrackerStore((s) => s.setPhase)
   const updateItemMetaAction = useTrackerStore((s) => s.updateItemMeta)
+  const addSchedulePhaseAction = useTrackerStore((s) => s.addSchedulePhase)
+  const updateSchedulePhaseAction = useTrackerStore((s) => s.updateSchedulePhase)
+  const deleteSchedulePhaseAction = useTrackerStore((s) => s.deleteSchedulePhase)
+  const addScheduleMilestoneAction = useTrackerStore((s) => s.addScheduleMilestone)
+  const updateScheduleMilestoneAction = useTrackerStore((s) => s.updateScheduleMilestone)
+  const deleteScheduleMilestoneAction = useTrackerStore((s) => s.deleteScheduleMilestone)
+  const updateScheduleMetaAction = useTrackerStore((s) => s.updateScheduleMeta)
 
   const basePath = `/projects/${projectId}`
 
@@ -74,6 +92,7 @@ export function useActiveProject(): ActiveProject {
     sheets: project?.sheets ?? [],
     selectedRowIds: project?.selectedRowIds ?? {},
     history: project?.history ?? [],
+    schedule: project?.schedule ?? { phases: [], milestones: [] },
     basePath,
     toggleCell: (sheetId, rowId, columnKey) => toggleCellAction(projectId, sheetId, rowId, columnKey),
     setRowRemark: (sheetId, rowId, remark) => setRowRemarkAction(projectId, sheetId, rowId, remark),
@@ -92,5 +111,13 @@ export function useActiveProject(): ActiveProject {
     setPhase: (itemNo, phase, changedBy) => setPhaseAction(projectId, itemNo, phase, changedBy),
     updateItemMeta: (itemNo, patch, changedBy) =>
       updateItemMetaAction(projectId, itemNo, patch, changedBy),
+    addSchedulePhase: (input) => addSchedulePhaseAction(projectId, input),
+    updateSchedulePhase: (phaseId, patch) => updateSchedulePhaseAction(projectId, phaseId, patch),
+    deleteSchedulePhase: (phaseId) => deleteSchedulePhaseAction(projectId, phaseId),
+    addScheduleMilestone: (input) => addScheduleMilestoneAction(projectId, input),
+    updateScheduleMilestone: (milestoneId, patch) =>
+      updateScheduleMilestoneAction(projectId, milestoneId, patch),
+    deleteScheduleMilestone: (milestoneId) => deleteScheduleMilestoneAction(projectId, milestoneId),
+    updateScheduleMeta: (patch) => updateScheduleMetaAction(projectId, patch),
   }
 }

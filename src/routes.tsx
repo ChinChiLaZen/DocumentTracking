@@ -14,6 +14,7 @@ import { TrackerPage } from './components/tracker/TrackerPage'
 import { PriorityPage } from './components/priority/PriorityPage'
 import { ItemDetailsPage } from './components/itemDetails/ItemDetailsPage'
 import { PhaseDashboardPage } from './components/phase/PhaseDashboardPage'
+import { ProjectManagementPage } from './components/schedule/ProjectManagementPage'
 import { GuidelinesPage } from './components/guidelines/GuidelinesPage'
 import { AuthPage } from './components/auth/AuthPage'
 
@@ -46,6 +47,7 @@ export const router = createBrowserRouter([
           { path: 'priority/c', element: <PriorityPage priority="C" /> },
           { path: 'items', element: <ItemDetailsPage /> },
           { path: 'phase', element: <PhaseDashboardPage /> },
+          { path: 'schedule', element: <ProjectManagementPage /> },
           { path: 'guidelines', element: <GuidelinesPage /> },
         ],
       },

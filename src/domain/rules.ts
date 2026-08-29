@@ -1,4 +1,11 @@
-import type { AdsbInstallPhase, GroupId, LifecyclePhase, Priority, WorkflowStatus } from '../data/types'
+import type {
+  AdsbInstallPhase,
+  GroupId,
+  LifecyclePhase,
+  MilestoneType,
+  Priority,
+  WorkflowStatus,
+} from '../data/types'
 
 export interface GroupDef {
   id: GroupId
@@ -98,6 +105,20 @@ export const LIFECYCLE_PHASE_DEFS: LifecyclePhaseDef[] = [
   { id: 'Warranty', label: 'Warranty' },
   { id: 'OperationMaintenance', label: 'Operation & Maintenance' },
   { id: 'Other', label: 'Others' },
+]
+
+export interface MilestoneTypeDef {
+  id: MilestoneType
+  label: string
+}
+
+/** The Project Management tab's Gantt milestone categories. Order drives the
+ *  Add/Edit Milestone type dropdown. */
+export const MILESTONE_TYPE_DEFS: MilestoneTypeDef[] = [
+  { id: 'Delivery', label: 'Delivery' },
+  { id: 'Committee', label: 'Committee' },
+  { id: 'Extension', label: 'Extension' },
+  { id: 'Other', label: 'Other' },
 ]
 
 export interface AdsbInstallPhaseDef {

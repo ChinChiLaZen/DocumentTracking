@@ -188,11 +188,41 @@ export interface HistoryEntry {
   changedBy: string // signed-in reviewer's identity (email)
 }
 
+// Project Management tab (Gantt-style delivery schedule) — generic
+// project-schedule data, independent of checklist structure. Applies to
+// every TemplateKind alike, unlike LifecyclePhase/GroupId which are
+// checklist-structure concepts. No audit trail: HistoryField/HistoryEntry
+// are keyed by itemNo and don't fit phase/milestone edits.
+export type MilestoneType = 'Delivery' | 'Committee' | 'Extension' | 'Other'
+
+export interface SchedulePhase {
+  id: string
+  name: string // e.g. "Phase 4 (DM)"
+  code?: string // optional short code, e.g. "DM"
+  startDate: string // ISO yyyy-mm-dd
+  endDate: string // ISO yyyy-mm-dd
+  percentComplete: number // 0-100, manual, reviewer-entered — never derived
+}
+
+export interface ScheduleMilestone {
+  id: string
+  label: string
+  date: string // ISO yyyy-mm-dd
+  type: MilestoneType
+}
+
+export interface ProjectSchedule {
+  phases: SchedulePhase[]
+  milestones: ScheduleMilestone[]
+  contractStartDate?: string // ISO yyyy-mm-dd — dashed reference line on the timeline
+}
+
 export interface ProjectRecord {
   meta: ProjectMeta
   items: Item[]
   sheets: DetailSheet[]
   history: HistoryEntry[]
+  schedule?: ProjectSchedule // optional for backward-compat — pre-existing rows predate this field
 }
 
 // A row from a captured e-GP (gprocurement.go.th) search-results snapshot —

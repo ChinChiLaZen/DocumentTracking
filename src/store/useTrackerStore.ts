@@ -7,6 +7,9 @@ import type {
   LifecyclePhase,
   ProjectMeta,
   ProjectRecord,
+  ProjectSchedule,
+  ScheduleMilestone,
+  SchedulePhase,
   Status,
   TemplateKind,
   WorkflowStatus,
@@ -25,7 +28,10 @@ export interface ProjectRuntime {
   sheets: DetailSheet[]
   selectedRowIds: Record<string, Set<string>>
   history: HistoryEntry[]
+  schedule: ProjectSchedule
 }
+
+const EMPTY_SCHEDULE: ProjectSchedule = { phases: [], milestones: [] }
 
 export interface CreateProjectInput {
   title: string
@@ -120,7 +126,26 @@ export interface TrackerState {
     changedBy: string,
   ): void
   updateItemMeta(projectId: string, itemNo: number, patch: ItemMetaPatch, changedBy: string): void
+  addSchedulePhase(projectId: string, input: Omit<SchedulePhase, 'id'>): void
+  updateSchedulePhase(
+    projectId: string,
+    phaseId: string,
+    patch: Partial<Omit<SchedulePhase, 'id'>>,
+  ): void
+  deleteSchedulePhase(projectId: string, phaseId: string): void
+  addScheduleMilestone(projectId: string, input: Omit<ScheduleMilestone, 'id'>): void
+  updateScheduleMilestone(
+    projectId: string,
+    milestoneId: string,
+    patch: Partial<Omit<ScheduleMilestone, 'id'>>,
+  ): void
+  deleteScheduleMilestone(projectId: string, milestoneId: string): void
+  updateScheduleMeta(projectId: string, patch: Partial<Pick<ProjectSchedule, 'contractStartDate'>>): void
   hydrate(): Promise<void>
+}
+
+function clampPercent(value: number): number {
+  return Math.max(0, Math.min(100, value))
 }
 
 function cloneItems(items: Item[]): Item[] {
@@ -134,6 +159,15 @@ function cloneSheets(sheets: DetailSheet[]): DetailSheet[] {
   }))
 }
 
+function cloneSchedule(schedule: ProjectSchedule | undefined): ProjectSchedule {
+  if (!schedule) return EMPTY_SCHEDULE
+  return {
+    phases: schedule.phases.map((p) => ({ ...p })),
+    milestones: schedule.milestones.map((m) => ({ ...m })),
+    contractStartDate: schedule.contractStartDate,
+  }
+}
+
 function toRuntime(record: ProjectRecord): ProjectRuntime {
   return {
     meta: { ...record.meta },
@@ -141,6 +175,7 @@ function toRuntime(record: ProjectRecord): ProjectRuntime {
     sheets: cloneSheets(record.sheets),
     selectedRowIds: {},
     history: [...record.history],
+    schedule: cloneSchedule(record.schedule),
   }
 }
 
@@ -204,6 +239,7 @@ export function createTrackerStore(persistence: PersistencePort = createApiPersi
         items: project.items,
         sheets: project.sheets,
         history: project.history,
+        schedule: project.schedule,
       })
     }
 
@@ -375,6 +411,7 @@ export function createTrackerStore(persistence: PersistencePort = createApiPersi
           ...seed,
           selectedRowIds: {},
           history: [],
+          schedule: EMPTY_SCHEDULE,
         }))
         persistProject(projectId)
       },
@@ -402,6 +439,7 @@ export function createTrackerStore(persistence: PersistencePort = createApiPersi
           sheets,
           selectedRowIds: {},
           history: [],
+          schedule: EMPTY_SCHEDULE,
         }
         set((state) => ({
           projects: { ...state.projects, [id]: project },
@@ -486,6 +524,93 @@ export function createTrackerStore(persistence: PersistencePort = createApiPersi
         persistProject(projectId)
       },
 
+      addSchedulePhase(projectId, input) {
+        const phase: SchedulePhase = {
+          ...input,
+          id: generateId('phase'),
+          percentComplete: clampPercent(input.percentComplete),
+        }
+        updateProject(projectId, (project) => ({
+          ...project,
+          schedule: { ...project.schedule, phases: [...project.schedule.phases, phase] },
+        }))
+        persistProject(projectId)
+      },
+
+      updateSchedulePhase(projectId, phaseId, patch) {
+        updateProject(projectId, (project) => ({
+          ...project,
+          schedule: {
+            ...project.schedule,
+            phases: project.schedule.phases.map((p) =>
+              p.id !== phaseId
+                ? p
+                : {
+                    ...p,
+                    ...patch,
+                    percentComplete:
+                      patch.percentComplete === undefined
+                        ? p.percentComplete
+                        : clampPercent(patch.percentComplete),
+                  },
+            ),
+          },
+        }))
+        persistProject(projectId)
+      },
+
+      deleteSchedulePhase(projectId, phaseId) {
+        updateProject(projectId, (project) => ({
+          ...project,
+          schedule: {
+            ...project.schedule,
+            phases: project.schedule.phases.filter((p) => p.id !== phaseId),
+          },
+        }))
+        persistProject(projectId)
+      },
+
+      addScheduleMilestone(projectId, input) {
+        const milestone: ScheduleMilestone = { ...input, id: generateId('milestone') }
+        updateProject(projectId, (project) => ({
+          ...project,
+          schedule: { ...project.schedule, milestones: [...project.schedule.milestones, milestone] },
+        }))
+        persistProject(projectId)
+      },
+
+      updateScheduleMilestone(projectId, milestoneId, patch) {
+        updateProject(projectId, (project) => ({
+          ...project,
+          schedule: {
+            ...project.schedule,
+            milestones: project.schedule.milestones.map((m) =>
+              m.id !== milestoneId ? m : { ...m, ...patch },
+            ),
+          },
+        }))
+        persistProject(projectId)
+      },
+
+      deleteScheduleMilestone(projectId, milestoneId) {
+        updateProject(projectId, (project) => ({
+          ...project,
+          schedule: {
+            ...project.schedule,
+            milestones: project.schedule.milestones.filter((m) => m.id !== milestoneId),
+          },
+        }))
+        persistProject(projectId)
+      },
+
+      updateScheduleMeta(projectId, patch) {
+        updateProject(projectId, (project) => ({
+          ...project,
+          schedule: { ...project.schedule, ...patch },
+        }))
+        persistProject(projectId)
+      },
+
       async hydrate() {
         if (get().hydrating || get().hydrated) return
         set({ hydrating: true })
@@ -499,6 +624,7 @@ export function createTrackerStore(persistence: PersistencePort = createApiPersi
               sheets: record.sheets,
               selectedRowIds: {},
               history: record.history ?? [],
+              schedule: cloneSchedule(record.schedule),
             }
           }
           set({ projects, projectOrder: loaded.projectOrder, hydrated: true, hydrating: false })
