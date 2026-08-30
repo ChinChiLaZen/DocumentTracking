@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import type { ScheduleMilestone, SchedulePhase } from '../data/types'
-import { computeDateRange, datePercent, durationDays, monthTicks, phaseBarStyle, phaseColorIndex } from './schedule'
+import {
+  computeDateRange,
+  datePercent,
+  durationDays,
+  monthTicks,
+  phaseBarStyle,
+  phaseColorIndex,
+  totalWeightPercent,
+} from './schedule'
 
 function fixturePhase(overrides: Partial<SchedulePhase> = {}): SchedulePhase {
   return {
@@ -114,5 +122,31 @@ describe('phaseColorIndex', () => {
     const ids = ['apron-p1', 'apron-p2', 'apron-p3', 'apron-p4', 'p5', 'p6', 'p7', 'p8', 'p9', 'p10']
     const slots = new Set(ids.map(phaseColorIndex))
     expect(slots.size).toBeGreaterThan(1)
+  })
+})
+
+describe('totalWeightPercent', () => {
+  it('returns 0 for an empty phase list', () => {
+    expect(totalWeightPercent([])).toBe(0)
+  })
+
+  it('treats an unset weightPercent as 0', () => {
+    const phases = [fixturePhase({ id: 'p1' }), fixturePhase({ id: 'p2' })]
+    expect(totalWeightPercent(phases)).toBe(0)
+  })
+
+  it('sums weightPercent across phases, matching a real งวดงาน split', () => {
+    const phases = [
+      fixturePhase({ id: 'p1', weightPercent: 15 }),
+      fixturePhase({ id: 'p2', weightPercent: 70 }),
+      fixturePhase({ id: 'p3', weightPercent: 10 }),
+      fixturePhase({ id: 'p4', weightPercent: 5 }),
+    ]
+    expect(totalWeightPercent(phases)).toBe(100)
+  })
+
+  it('mixes set and unset weights', () => {
+    const phases = [fixturePhase({ id: 'p1', weightPercent: 40 }), fixturePhase({ id: 'p2' })]
+    expect(totalWeightPercent(phases)).toBe(40)
   })
 })

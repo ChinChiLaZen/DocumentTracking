@@ -10,11 +10,18 @@ import {
   monthTicks,
   phaseBarStyle,
   phaseColorIndex,
+  totalWeightPercent,
 } from '../../domain/schedule'
-import { MILESTONE_TYPE_BADGE_CLASS, MILESTONE_TYPE_MARKER_CLASS, PHASE_COLOR_SLOTS } from '../shared/statusStyles'
+import {
+  MILESTONE_TYPE_BADGE_CLASS,
+  MILESTONE_TYPE_MARKER_CLASS,
+  PHASE_COLOR_SLOTS,
+  PHASE_WEIGHT_TOTAL_BADGE_CLASS,
+  type PhaseWeightTotalState,
+} from '../shared/statusStyles'
 import type { MilestoneType, ScheduleMilestone, SchedulePhase } from '../../data/types'
 
-const ROW_HEIGHT = 'h-10'
+const ROW_HEIGHT = 'h-20'
 const TRACK_HEIGHT = 'h-8'
 const MIN_PX_PER_MONTH_TICK = 90
 const MIN_TIMELINE_WIDTH_PX = 720
@@ -36,6 +43,17 @@ function formatDate(iso: string): string {
 
 function phaseColor(phase: SchedulePhase) {
   return PHASE_COLOR_SLOTS[phaseColorIndex(phase.id)]
+}
+
+function weightTotalState(sum: number): PhaseWeightTotalState {
+  if (sum === 100) return 'complete'
+  return sum < 100 ? 'under' : 'over'
+}
+
+function weightTotalMessage(sum: number): string {
+  if (sum === 100) return 'Total phase weight: 100% — fully allocated'
+  if (sum < 100) return `Total phase weight: ${sum}% of 100% — ${100 - sum}% left to allocate`
+  return `Total phase weight: ${sum}% of 100% — over by ${sum - 100}%`
 }
 
 interface GanttChartProps {
@@ -77,8 +95,18 @@ export function GanttChart({
   // otherwise adjacent labels overlap when the range spans many months.
   const timelineWidthPx = Math.max(MIN_TIMELINE_WIDTH_PX, ticks.length * MIN_PX_PER_MONTH_TICK)
 
+  const weightSum = totalWeightPercent(phases)
+
   return (
     <div className="space-y-6">
+      {phases.length > 0 && (
+        <div
+          className={`rounded-md border px-3 py-2 text-sm font-medium ${PHASE_WEIGHT_TOTAL_BADGE_CLASS[weightTotalState(weightSum)]}`}
+        >
+          {weightTotalMessage(weightSum)}
+        </div>
+      )}
+
       <div className="flex gap-4">
         {/* Left panel — phase list, row heights must match the timeline rows on the right. */}
         <div className="w-64 shrink-0">
@@ -92,9 +120,9 @@ export function GanttChart({
             return (
               <div
                 key={phase.id}
-                className={`${ROW_HEIGHT} flex items-center gap-2 border-b border-l-4 pl-2 ${color.accentBorder}`}
+                className={`${ROW_HEIGHT} flex items-center gap-2 border-b border-l-4 py-2 pl-2 ${color.accentBorder}`}
               >
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 space-y-1">
                   <div className="flex items-center gap-1.5 truncate text-sm font-medium">
                     <span className="truncate">{phase.name}</span>
                     {phase.code && (
@@ -103,10 +131,18 @@ export function GanttChart({
                       </Badge>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>{durationDays(phase)}d</span>
-                    <Progress value={phase.percentComplete} className="w-16" indicatorClassName={color.fill} />
-                    <span>{phase.percentComplete}%</span>
+                  <div className="text-xs text-muted-foreground">
+                    {durationDays(phase)} days · {phase.weightPercent ?? 0}% of project
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Progress
+                      value={phase.percentComplete}
+                      className="h-1.5 flex-1"
+                      indicatorClassName={color.fill}
+                    />
+                    <span className="shrink-0 text-xs font-medium text-muted-foreground">
+                      {phase.percentComplete}%
+                    </span>
                   </div>
                 </div>
                 {canEdit && (

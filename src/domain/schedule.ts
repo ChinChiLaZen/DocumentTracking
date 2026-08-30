@@ -97,6 +97,13 @@ export function durationDays(phase: SchedulePhase): number {
   return Math.round((end.getTime() - start.getTime()) / DAY_MS) + 1
 }
 
+/** Sum of every phase's weightPercent — the "share of the total project"
+ *  axis (independent of percentComplete), which a reviewer is expected to
+ *  allocate to exactly 100% across all phases. Unset weights count as 0. */
+export function totalWeightPercent(phases: SchedulePhase[]): number {
+  return phases.reduce((sum, p) => sum + (p.weightPercent ?? 0), 0)
+}
+
 const PHASE_COLOR_SLOT_COUNT = 8
 
 /** A stable categorical color slot [0, 8) for a phase, derived from its own

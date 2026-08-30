@@ -202,6 +202,12 @@ export interface SchedulePhase {
   startDate: string // ISO yyyy-mm-dd
   endDate: string // ISO yyyy-mm-dd
   percentComplete: number // 0-100, manual, reviewer-entered — never derived
+  // 0-100, manual — this phase's share of the total project (a "payment
+  // milestone" weight, e.g. งวดงาน 15%/70%/10%/5%), independent of
+  // percentComplete (completion progress) — same two-axis pattern as
+  // AotImportance vs Priority. Optional for backward-compat with phases that
+  // predate this field; treated as 0 by totalWeightPercent (domain/schedule.ts).
+  weightPercent?: number
 }
 
 export interface ScheduleMilestone {

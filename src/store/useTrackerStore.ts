@@ -529,6 +529,7 @@ export function createTrackerStore(persistence: PersistencePort = createApiPersi
           ...input,
           id: generateId('phase'),
           percentComplete: clampPercent(input.percentComplete),
+          weightPercent: input.weightPercent === undefined ? undefined : clampPercent(input.weightPercent),
         }
         updateProject(projectId, (project) => ({
           ...project,
@@ -552,6 +553,8 @@ export function createTrackerStore(persistence: PersistencePort = createApiPersi
                       patch.percentComplete === undefined
                         ? p.percentComplete
                         : clampPercent(patch.percentComplete),
+                    weightPercent:
+                      patch.weightPercent === undefined ? p.weightPercent : clampPercent(patch.weightPercent),
                   },
             ),
           },

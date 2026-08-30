@@ -19,7 +19,7 @@ interface PhaseFormDialogProps {
   onSubmit(input: Omit<SchedulePhase, 'id'>): void
 }
 
-const BLANK = { name: '', code: '', startDate: '', endDate: '', percentComplete: 0 }
+const BLANK = { name: '', code: '', startDate: '', endDate: '', percentComplete: 0, weightPercent: 0 }
 
 /**
  * The caller must remount this component (e.g. `key={sessionCounter}`) each
@@ -33,6 +33,7 @@ export function PhaseFormDialog({ open, onOpenChange, phase, onSubmit }: PhaseFo
   const [startDate, setStartDate] = useState(phase?.startDate ?? BLANK.startDate)
   const [endDate, setEndDate] = useState(phase?.endDate ?? BLANK.endDate)
   const [percentComplete, setPercentComplete] = useState(phase?.percentComplete ?? BLANK.percentComplete)
+  const [weightPercent, setWeightPercent] = useState(phase?.weightPercent ?? BLANK.weightPercent)
 
   const dateOrderInvalid = Boolean(startDate && endDate && endDate < startDate)
   const canSubmit = name.trim() !== '' && startDate !== '' && endDate !== '' && !dateOrderInvalid
@@ -46,6 +47,7 @@ export function PhaseFormDialog({ open, onOpenChange, phase, onSubmit }: PhaseFo
       startDate,
       endDate,
       percentComplete,
+      weightPercent,
     })
     onOpenChange(false)
   }
@@ -105,16 +107,29 @@ export function PhaseFormDialog({ open, onOpenChange, phase, onSubmit }: PhaseFo
             {dateOrderInvalid && (
               <p className="text-xs text-destructive">End date must be on or after the start date.</p>
             )}
-            <div className="grid gap-1.5">
-              <Label htmlFor="phase-percent">Percent complete</Label>
-              <Input
-                id="phase-percent"
-                type="number"
-                min={0}
-                max={100}
-                value={percentComplete}
-                onChange={(e) => setPercentComplete(Number(e.target.value))}
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-1.5">
+                <Label htmlFor="phase-percent">Percent complete</Label>
+                <Input
+                  id="phase-percent"
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={percentComplete}
+                  onChange={(e) => setPercentComplete(Number(e.target.value))}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="phase-weight">Weight (% of project)</Label>
+                <Input
+                  id="phase-weight"
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={weightPercent}
+                  onChange={(e) => setWeightPercent(Number(e.target.value))}
+                />
+              </div>
             </div>
           </div>
           <DialogFooter>

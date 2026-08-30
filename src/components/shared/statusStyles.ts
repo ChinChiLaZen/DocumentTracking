@@ -103,6 +103,16 @@ export const MILESTONE_TYPE_MARKER_CLASS: Record<MilestoneType, string> = {
   Other: 'bg-slate-500',
 }
 
+/** Project Management tab's phase-weight total banner — whether every
+ *  phase's weightPercent (share of the total project) sums to exactly 100%. */
+export type PhaseWeightTotalState = 'complete' | 'under' | 'over'
+
+export const PHASE_WEIGHT_TOTAL_BADGE_CLASS: Record<PhaseWeightTotalState, string> = {
+  complete: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  under: 'border-amber-200 bg-amber-50 text-amber-700',
+  over: 'border-rose-200 bg-rose-50 text-rose-700',
+}
+
 export interface PhaseColorSlot {
   fill: string
   track: string
