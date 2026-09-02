@@ -105,6 +105,20 @@ export function monthTicks(range: DateRange): MonthTick[] {
   return ticks
 }
 
+/** The smallest percent-gap between any two consecutive month ticks — used
+ *  by GanttChart.tsx to widen the timeline when ticks land close together
+ *  (e.g. a padded range that straddles a month boundary near its edge),
+ *  instead of assuming ticks are evenly spread by count alone. Returns 100
+ *  (no constraint) when there's nothing to collide, i.e. fewer than 2 ticks. */
+export function minTickGapPercent(ticks: MonthTick[]): number {
+  if (ticks.length < 2) return 100
+  let min = 100
+  for (let i = 1; i < ticks.length; i++) {
+    min = Math.min(min, ticks[i].percent - ticks[i - 1].percent)
+  }
+  return min
+}
+
 /** Inclusive day count — an entry starting and ending the same day is 1 day.
  *  Structurally typed so it applies to both SchedulePhase and PhaseActivity. */
 export function durationDays(entry: { startDate: string; endDate: string }): number {
@@ -126,6 +140,16 @@ export function totalWeightPercent(phases: SchedulePhase[]): number {
  *  Unset weights count as 0; a phase with no activities returns 0. */
 export function totalActivityWeightPercent(phase: SchedulePhase): number {
   return (phase.activities ?? []).reduce((sum, a) => sum + (a.weightPercent ?? 0), 0)
+}
+
+/** Sum of weightPercent across a set of activities, excluding one by id —
+ *  used to validate a new/edited activity's weight against its siblings
+ *  before it's saved, without counting the activity being edited against
+ *  itself. */
+export function otherActivitiesWeightPercent(activities: PhaseActivity[], excludeActivityId?: string): number {
+  return activities
+    .filter((a) => a.id !== excludeActivityId)
+    .reduce((sum, a) => sum + (a.weightPercent ?? 0), 0)
 }
 
 const PHASE_COLOR_SLOT_COUNT = 8

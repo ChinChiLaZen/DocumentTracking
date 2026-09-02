@@ -5,7 +5,9 @@ import {
   computeDateRange,
   datePercent,
   durationDays,
+  minTickGapPercent,
   monthTicks,
+  otherActivitiesWeightPercent,
   phaseBarStyle,
   phaseColorIndex,
   totalActivityWeightPercent,
@@ -127,6 +129,38 @@ describe('monthTicks', () => {
   })
 })
 
+describe('minTickGapPercent', () => {
+  it('returns 100 (no constraint) for fewer than 2 ticks', () => {
+    expect(minTickGapPercent([])).toBe(100)
+    expect(minTickGapPercent([{ label: 'Jan 2026', percent: 50 }])).toBe(100)
+  })
+
+  it('returns the smallest gap among evenly-spread ticks', () => {
+    const range = { start: new Date('2026-01-15T00:00:00'), end: new Date('2026-03-15T00:00:00') }
+    const ticks = monthTicks(range)
+    const gap = minTickGapPercent(ticks)
+    expect(gap).toBeGreaterThan(0)
+    expect(gap).toBeLessThanOrEqual(100 / (ticks.length - 1) + 0.01)
+  })
+
+  it('catches a clustered pair of ticks near a padded range edge', () => {
+    // A phase spanning most of September plus a short activity near the
+    // Aug/Sept boundary — the exact shape that produced overlapping
+    // "Aug 2026"/"Sept 2026" labels in the running app.
+    const phases = [
+      fixturePhase({
+        startDate: '2026-09-01',
+        endDate: '2026-09-22',
+        activities: [fixtureActivity({ startDate: '2026-09-01', endDate: '2026-09-10' })],
+      }),
+    ]
+    const range = computeDateRange(phases, [])
+    expect(range).not.toBeNull()
+    const gap = minTickGapPercent(monthTicks(range!))
+    expect(gap).toBeLessThan(10)
+  })
+})
+
 describe('durationDays', () => {
   it('counts a same-day phase as 1 day', () => {
     expect(durationDays(fixturePhase({ startDate: '2026-01-01', endDate: '2026-01-01' }))).toBe(1)
@@ -218,5 +252,32 @@ describe('totalActivityWeightPercent', () => {
       activities: [fixtureActivity({ id: 'a1', weightPercent: 30 }), fixtureActivity({ id: 'a2' })],
     })
     expect(totalActivityWeightPercent(phase)).toBe(30)
+  })
+})
+
+describe('otherActivitiesWeightPercent', () => {
+  it('returns 0 for an empty activity list', () => {
+    expect(otherActivitiesWeightPercent([])).toBe(0)
+  })
+
+  it('sums every activity when no id is excluded', () => {
+    const activities = [
+      fixtureActivity({ id: 'a1', weightPercent: 60 }),
+      fixtureActivity({ id: 'a2', weightPercent: 30 }),
+    ]
+    expect(otherActivitiesWeightPercent(activities)).toBe(90)
+  })
+
+  it('excludes the activity being edited from the sum', () => {
+    const activities = [
+      fixtureActivity({ id: 'a1', weightPercent: 60 }),
+      fixtureActivity({ id: 'a2', weightPercent: 30 }),
+    ]
+    expect(otherActivitiesWeightPercent(activities, 'a1')).toBe(30)
+  })
+
+  it('treats an unset weightPercent as 0', () => {
+    const activities = [fixtureActivity({ id: 'a1' }), fixtureActivity({ id: 'a2', weightPercent: 25 })]
+    expect(otherActivitiesWeightPercent(activities, 'a2')).toBe(0)
   })
 })

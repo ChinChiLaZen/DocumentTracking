@@ -8,6 +8,7 @@ import {
   computeDateRange,
   datePercent,
   durationDays,
+  minTickGapPercent,
   monthTicks,
   phaseBarStyle,
   phaseColorIndex,
@@ -28,6 +29,7 @@ const ACTIVITY_ROW_HEIGHT = 'h-12'
 const TRACK_HEIGHT = 'h-8'
 const MIN_PX_PER_MONTH_TICK = 90
 const MIN_TIMELINE_WIDTH_PX = 720
+const MAX_TIMELINE_WIDTH_PX = 6000 // guard rail so a pathological near-zero tick gap can't blow up the layout
 
 type DisplayRow =
   | { kind: 'phase'; phase: SchedulePhase }
@@ -120,9 +122,20 @@ export function GanttChart({
   const contractStartPercent = contractStartDate
     ? datePercent(new Date(`${contractStartDate}T00:00:00`), range)
     : undefined
-  // Enough width for every month tick's label to have breathing room —
-  // otherwise adjacent labels overlap when the range spans many months.
-  const timelineWidthPx = Math.max(MIN_TIMELINE_WIDTH_PX, ticks.length * MIN_PX_PER_MONTH_TICK)
+  // Enough width for every month tick's label to have breathing room — sized
+  // by whichever is larger: the count-based average, or the width needed so
+  // the CLOSEST pair of ticks still clears MIN_PX_PER_MONTH_TICK. The latter
+  // matters because ticks aren't evenly spread by percent — a padded range
+  // that straddles a month boundary near its edge (e.g. a short activity
+  // next to a phase) can land two tick labels within a few percent of each
+  // other despite a wide total range, which the count-based term alone
+  // wouldn't catch.
+  const gapPercent = Math.max(minTickGapPercent(ticks), 0.5) // floor avoids a divide-by-near-zero blowup
+  const widthForTickSpacing = (MIN_PX_PER_MONTH_TICK / gapPercent) * 100
+  const timelineWidthPx = Math.min(
+    MAX_TIMELINE_WIDTH_PX,
+    Math.max(MIN_TIMELINE_WIDTH_PX, ticks.length * MIN_PX_PER_MONTH_TICK, widthForTickSpacing),
+  )
 
   const weightSum = totalWeightPercent(phases)
 

@@ -161,6 +161,7 @@ export function ProjectManagementPage() {
         open={activityDialogOpen}
         onOpenChange={setActivityDialogOpen}
         activity={editingActivity?.activity}
+        existingActivities={schedule.phases.find((p) => p.id === editingActivity?.phaseId)?.activities ?? []}
         onSubmit={handleActivitySubmit}
       />
       <MilestoneFormDialog

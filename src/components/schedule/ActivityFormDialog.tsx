@@ -11,11 +11,17 @@ import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { Label } from '../ui/label'
 import type { PhaseActivity } from '../../data/types'
+import { otherActivitiesWeightPercent } from '../../domain/schedule'
 
 interface ActivityFormDialogProps {
   open: boolean
   onOpenChange(open: boolean): void
   activity?: PhaseActivity // present when editing, absent when adding
+  // The phase's current activities (including `activity` itself, if editing)
+  // — used to block saving a weight% that would push the phase's activities
+  // over 100%. Read fresh on every render, not seeded into useState, so it
+  // doesn't need the remount-via-key treatment the other fields below do.
+  existingActivities: PhaseActivity[]
   onSubmit(input: Omit<PhaseActivity, 'id'>): void
 }
 
@@ -27,7 +33,13 @@ const BLANK = { name: '', startDate: '', endDate: '', percentComplete: 0, weight
  * from `activity` via lazy initializers, not re-synced via an effect, so
  * reusing the same instance across opens would show a stale draft.
  */
-export function ActivityFormDialog({ open, onOpenChange, activity, onSubmit }: ActivityFormDialogProps) {
+export function ActivityFormDialog({
+  open,
+  onOpenChange,
+  activity,
+  existingActivities,
+  onSubmit,
+}: ActivityFormDialogProps) {
   const [name, setName] = useState(activity?.name ?? BLANK.name)
   const [startDate, setStartDate] = useState(activity?.startDate ?? BLANK.startDate)
   const [endDate, setEndDate] = useState(activity?.endDate ?? BLANK.endDate)
@@ -35,7 +47,11 @@ export function ActivityFormDialog({ open, onOpenChange, activity, onSubmit }: A
   const [weightPercent, setWeightPercent] = useState(activity?.weightPercent ?? BLANK.weightPercent)
 
   const dateOrderInvalid = Boolean(startDate && endDate && endDate < startDate)
-  const canSubmit = name.trim() !== '' && startDate !== '' && endDate !== '' && !dateOrderInvalid
+  const otherWeightSum = otherActivitiesWeightPercent(existingActivities, activity?.id)
+  const projectedWeightTotal = otherWeightSum + weightPercent
+  const weightOverLimit = projectedWeightTotal > 100
+  const canSubmit =
+    name.trim() !== '' && startDate !== '' && endDate !== '' && !dateOrderInvalid && !weightOverLimit
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -120,6 +136,12 @@ export function ActivityFormDialog({ open, onOpenChange, activity, onSubmit }: A
                 />
               </div>
             </div>
+            {weightOverLimit && (
+              <p className="text-xs text-destructive">
+                This would bring the phase's activities to {projectedWeightTotal}% — over the 100% limit by{' '}
+                {projectedWeightTotal - 100}%.
+              </p>
+            )}
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
