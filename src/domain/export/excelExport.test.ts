@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import * as XLSX from 'xlsx'
+import type * as ExcelJS from 'exceljs'
 import { INITIAL_PROJECTS, UTAPAO_PROJECT_ID } from '../../data/initialProjects'
 import { AOT_TEMPLATE_ITEMS } from '../../data/aotTemplate'
 import { DOA_TEMPLATE_ITEMS } from '../../data/doaTemplate'
@@ -7,6 +8,10 @@ import { ADSB_TEMPLATE_ITEMS } from '../../data/adsbTemplate'
 import { ADSB_INSTALL_PHASE_DEFS, DETAIL_SHEET_ORDER } from '../rules'
 import { buildMarWorkbook, buildPhaseWorkbook } from './excelExport'
 import { buildAdsbExcelWorkbook } from './adsbExcelExport'
+import { buildScheduleWorkbook } from './scheduleExcelExport'
+import { phaseColorIndex } from '../schedule'
+import { PHASE_COLOR_HEX } from './scheduleExcelFormat'
+import type { ProjectSchedule } from '../../data/types'
 
 function dataRowCount(ws: XLSX.WorkSheet): number {
   const rows = XLSX.utils.sheet_to_json(ws, { header: 1 }) as unknown[][]
@@ -93,5 +98,64 @@ describe('buildAdsbExcelWorkbook', () => {
     const totalCell = ws.getCell('C11')
     expect(typeof totalCell.value).toBe('object')
     expect((totalCell.value as { formula?: string }).formula).toContain('COUNTIF')
+  })
+})
+
+describe('buildScheduleWorkbook', () => {
+  const meta = INITIAL_PROJECTS.find((p) => p.meta.id === UTAPAO_PROJECT_ID)!.meta
+  const schedule: ProjectSchedule = {
+    phases: [
+      { id: 'phase-1', name: 'Design', code: 'P1', startDate: '2026-01-01', endDate: '2026-02-28', percentComplete: 50, weightPercent: 40 },
+      { id: 'phase-2', name: 'Construction', code: 'P2', startDate: '2026-03-01', endDate: '2026-06-30', percentComplete: 20, weightPercent: 60 },
+    ],
+    milestones: [
+      { id: 'm1', label: 'Kickoff', date: '2026-01-05', type: 'Delivery' },
+      { id: 'm2', label: 'Steering Committee', date: '2026-04-01', type: 'Committee' },
+    ],
+    contractStartDate: '2026-01-01',
+  }
+  const wb = buildScheduleWorkbook(meta, schedule)
+
+  it('has Overview, Phases, Gantt and Milestones sheets', () => {
+    expect(wb.getWorksheet('Overview')).toBeDefined()
+    expect(wb.getWorksheet('Phases')).toBeDefined()
+    expect(wb.getWorksheet('Gantt')).toBeDefined()
+    expect(wb.getWorksheet('Milestones')).toBeDefined()
+  })
+
+  it('Phases sheet has one row per phase plus a weight-total footer row, colored per phase palette', () => {
+    const ws = wb.getWorksheet('Phases')!
+    expect(ws.getCell(2, 2).value).toBe('Design (P1)')
+    expect(ws.getCell(3, 2).value).toBe('Construction (P2)')
+    const expectedFill = PHASE_COLOR_HEX[phaseColorIndex('phase-1')].fill
+    expect((ws.getCell(2, 1).fill as ExcelJS.FillPattern).fgColor?.argb).toBe(expectedFill)
+    const footerRow = 2 + schedule.phases.length + 1
+    expect(ws.getCell(footerRow, 7).value).toBe(100) // 40 + 60 = 100% total weight
+  })
+
+  it('Gantt sheet reflects the fully-allocated weight banner and has milestone markers', () => {
+    const ws = wb.getWorksheet('Gantt')!
+    expect(ws.getCell(1, 1).value).toContain('100%')
+    expect(ws.getCell(1, 1).value).toContain('fully allocated')
+    let noteCount = 0
+    ws.eachRow((row) => {
+      row.eachCell((cell) => {
+        if (cell.note) noteCount++
+      })
+    })
+    expect(noteCount).toBe(2)
+  })
+
+  it('Milestones sheet lists both milestones with their type', () => {
+    const ws = wb.getWorksheet('Milestones')!
+    expect(ws.getCell(2, 1).value).toBe('Kickoff')
+    expect(ws.getCell(2, 3).value).toBe('Delivery')
+    expect(ws.getCell(3, 1).value).toBe('Steering Committee')
+    expect(ws.getCell(3, 3).value).toBe('Committee')
+  })
+
+  it('handles an empty schedule without crashing', () => {
+    const empty = buildScheduleWorkbook(meta, { phases: [], milestones: [] })
+    expect(empty.getWorksheet('Gantt')!.getCell(1, 1).value).toContain('No schedule data yet')
   })
 })

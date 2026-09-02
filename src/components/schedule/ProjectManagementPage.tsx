@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Download } from 'lucide-react'
 import { useActiveProject } from '../../store/useActiveProject'
 import { useAuthStore } from '../../store/useAuthStore'
 import { Button } from '../ui/button'
@@ -7,10 +8,12 @@ import { Label } from '../ui/label'
 import { GanttChart } from './GanttChart'
 import { PhaseFormDialog } from './PhaseFormDialog'
 import { MilestoneFormDialog } from './MilestoneFormDialog'
+import { exportProjectSchedule } from '../../domain/export/scheduleExcelExport'
 import type { ScheduleMilestone, SchedulePhase } from '../../data/types'
 
 export function ProjectManagementPage() {
   const {
+    meta,
     schedule,
     addSchedulePhase,
     updateSchedulePhase,
@@ -85,14 +88,22 @@ export function ProjectManagementPage() {
             />
           </div>
         </div>
-        {canEdit && (
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={openAddMilestone}>
-              Add Milestone
+        <div className="flex items-center gap-2">
+          {meta && (
+            <Button variant="outline" onClick={() => void exportProjectSchedule(meta, schedule)}>
+              <Download />
+              Export to Excel
             </Button>
-            <Button onClick={openAddPhase}>Add Phase</Button>
-          </div>
-        )}
+          )}
+          {canEdit && (
+            <>
+              <Button variant="outline" onClick={openAddMilestone}>
+                Add Milestone
+              </Button>
+              <Button onClick={openAddPhase}>Add Phase</Button>
+            </>
+          )}
+        </div>
       </div>
 
       <GanttChart
