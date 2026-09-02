@@ -5,6 +5,7 @@ import type {
   HistoryEntry,
   Item,
   LifecyclePhase,
+  PhaseActivity,
   ProjectMeta,
   ProjectSchedule,
   ScheduleMilestone,
@@ -46,6 +47,9 @@ export interface ActiveProject {
   addSchedulePhase(input: Omit<SchedulePhase, 'id'>): void
   updateSchedulePhase(phaseId: string, patch: Partial<Omit<SchedulePhase, 'id'>>): void
   deleteSchedulePhase(phaseId: string): void
+  addPhaseActivity(phaseId: string, input: Omit<PhaseActivity, 'id'>): void
+  updatePhaseActivity(phaseId: string, activityId: string, patch: Partial<Omit<PhaseActivity, 'id'>>): void
+  deletePhaseActivity(phaseId: string, activityId: string): void
   addScheduleMilestone(input: Omit<ScheduleMilestone, 'id'>): void
   updateScheduleMilestone(milestoneId: string, patch: Partial<Omit<ScheduleMilestone, 'id'>>): void
   deleteScheduleMilestone(milestoneId: string): void
@@ -77,6 +81,9 @@ export function useActiveProject(): ActiveProject {
   const addSchedulePhaseAction = useTrackerStore((s) => s.addSchedulePhase)
   const updateSchedulePhaseAction = useTrackerStore((s) => s.updateSchedulePhase)
   const deleteSchedulePhaseAction = useTrackerStore((s) => s.deleteSchedulePhase)
+  const addPhaseActivityAction = useTrackerStore((s) => s.addPhaseActivity)
+  const updatePhaseActivityAction = useTrackerStore((s) => s.updatePhaseActivity)
+  const deletePhaseActivityAction = useTrackerStore((s) => s.deletePhaseActivity)
   const addScheduleMilestoneAction = useTrackerStore((s) => s.addScheduleMilestone)
   const updateScheduleMilestoneAction = useTrackerStore((s) => s.updateScheduleMilestone)
   const deleteScheduleMilestoneAction = useTrackerStore((s) => s.deleteScheduleMilestone)
@@ -114,6 +121,10 @@ export function useActiveProject(): ActiveProject {
     addSchedulePhase: (input) => addSchedulePhaseAction(projectId, input),
     updateSchedulePhase: (phaseId, patch) => updateSchedulePhaseAction(projectId, phaseId, patch),
     deleteSchedulePhase: (phaseId) => deleteSchedulePhaseAction(projectId, phaseId),
+    addPhaseActivity: (phaseId, input) => addPhaseActivityAction(projectId, phaseId, input),
+    updatePhaseActivity: (phaseId, activityId, patch) =>
+      updatePhaseActivityAction(projectId, phaseId, activityId, patch),
+    deletePhaseActivity: (phaseId, activityId) => deletePhaseActivityAction(projectId, phaseId, activityId),
     addScheduleMilestone: (input) => addScheduleMilestoneAction(projectId, input),
     updateScheduleMilestone: (milestoneId, patch) =>
       updateScheduleMilestoneAction(projectId, milestoneId, patch),

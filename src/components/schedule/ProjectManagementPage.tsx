@@ -8,8 +8,9 @@ import { Label } from '../ui/label'
 import { GanttChart } from './GanttChart'
 import { PhaseFormDialog } from './PhaseFormDialog'
 import { MilestoneFormDialog } from './MilestoneFormDialog'
+import { ActivityFormDialog } from './ActivityFormDialog'
 import { exportProjectSchedule } from '../../domain/export/scheduleExcelExport'
-import type { ScheduleMilestone, SchedulePhase } from '../../data/types'
+import type { PhaseActivity, ScheduleMilestone, SchedulePhase } from '../../data/types'
 
 export function ProjectManagementPage() {
   const {
@@ -18,6 +19,9 @@ export function ProjectManagementPage() {
     addSchedulePhase,
     updateSchedulePhase,
     deleteSchedulePhase,
+    addPhaseActivity,
+    updatePhaseActivity,
+    deletePhaseActivity,
     addScheduleMilestone,
     updateScheduleMilestone,
     deleteScheduleMilestone,
@@ -49,6 +53,31 @@ export function ProjectManagementPage() {
   function handlePhaseSubmit(input: Omit<SchedulePhase, 'id'>) {
     if (editingPhase) updateSchedulePhase(editingPhase.id, input)
     else addSchedulePhase(input)
+  }
+
+  const [activityDialogOpen, setActivityDialogOpen] = useState(false)
+  // phaseId identifies which phase's activities array a submit/add targets;
+  // activity is present when editing, undefined when adding.
+  const [editingActivity, setEditingActivity] = useState<
+    { phaseId: string; activity?: PhaseActivity } | undefined
+  >(undefined)
+  const [activityDialogSession, setActivityDialogSession] = useState(0)
+
+  function openAddActivity(phaseId: string) {
+    setEditingActivity({ phaseId })
+    setActivityDialogSession((s) => s + 1)
+    setActivityDialogOpen(true)
+  }
+  function openEditActivity(phaseId: string, activity: PhaseActivity) {
+    setEditingActivity({ phaseId, activity })
+    setActivityDialogSession((s) => s + 1)
+    setActivityDialogOpen(true)
+  }
+  function handleActivitySubmit(input: Omit<PhaseActivity, 'id'>) {
+    if (!editingActivity) return
+    const { phaseId, activity } = editingActivity
+    if (activity) updatePhaseActivity(phaseId, activity.id, input)
+    else addPhaseActivity(phaseId, input)
   }
 
   function openAddMilestone() {
@@ -113,6 +142,9 @@ export function ProjectManagementPage() {
         canEdit={canEdit}
         onEditPhase={openEditPhase}
         onDeletePhase={deleteSchedulePhase}
+        onAddActivity={openAddActivity}
+        onEditActivity={openEditActivity}
+        onDeleteActivity={(phaseId, activityId) => deletePhaseActivity(phaseId, activityId)}
         onEditMilestone={openEditMilestone}
         onDeleteMilestone={deleteScheduleMilestone}
       />
@@ -123,6 +155,13 @@ export function ProjectManagementPage() {
         onOpenChange={setPhaseDialogOpen}
         phase={editingPhase}
         onSubmit={handlePhaseSubmit}
+      />
+      <ActivityFormDialog
+        key={`activity-${activityDialogSession}`}
+        open={activityDialogOpen}
+        onOpenChange={setActivityDialogOpen}
+        activity={editingActivity?.activity}
+        onSubmit={handleActivitySubmit}
       />
       <MilestoneFormDialog
         key={`milestone-${milestoneDialogSession}`}

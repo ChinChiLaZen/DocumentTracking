@@ -4,6 +4,7 @@ import {
   computeDateRange,
   durationDays,
   phaseColorIndex,
+  totalActivityWeightPercent,
   totalWeightPercent,
   type DateRange,
 } from '../schedule'
@@ -100,10 +101,12 @@ function buildPhasesSheet(wb: ExcelJS.Workbook, schedule: ProjectSchedule) {
   })
   ws.getRow(1).height = 22
 
-  schedule.phases.forEach((phase, i) => {
-    const row = 2 + i
+  let row = 2
+  let bandIndex = 0
+  for (const phase of schedule.phases) {
     const color = phaseColor(phase)
-    const band = i % 2 === 1
+    const band = bandIndex % 2 === 1
+    bandIndex += 1
 
     const swatch = ws.getCell(row, 1)
     swatch.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: color.fill } }
@@ -133,9 +136,56 @@ function buildPhasesSheet(wb: ExcelJS.Workbook, schedule: ProjectSchedule) {
       cell.border = thinBorder()
       cell.alignment = { horizontal: vi === 0 ? 'left' : 'center' }
     })
-  })
+    row += 1
 
-  const footerRow = 2 + schedule.phases.length + 1
+    for (const activity of phase.activities ?? []) {
+      const activityName = ws.getCell(row, 2)
+      activityName.value = activity.name
+      activityName.font = { italic: true, size: 9, color: { argb: SCHEDULE_COLORS.dark } }
+      activityName.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: color.track } }
+      activityName.alignment = { indent: 1 }
+      activityName.border = thinBorder()
+
+      const swatchCell = ws.getCell(row, 1)
+      swatchCell.border = thinBorder()
+
+      const activityValues: (string | number)[] = [
+        activity.startDate,
+        activity.endDate,
+        durationDays(activity),
+        activity.weightPercent ?? 0,
+        activity.percentComplete,
+      ]
+      activityValues.forEach((value, vi) => {
+        const cell = ws.getCell(row, 3 + vi)
+        cell.value = value
+        cell.font = { size: 9 }
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: color.track } }
+        cell.border = thinBorder()
+        cell.alignment = { horizontal: vi === 0 ? 'left' : 'center' }
+      })
+      row += 1
+    }
+
+    if ((phase.activities ?? []).length > 0) {
+      const activitySum = totalActivityWeightPercent(phase)
+      const banner = WEIGHT_BANNER_HEX[weightTotalState(activitySum)]
+      ws.mergeCells(row, 2, row, 6)
+      const activityFooterLabel = ws.getCell(row, 2)
+      activityFooterLabel.value = `Activities of ${phaseLabel(phase)}: ${activitySum}% of phase`
+      activityFooterLabel.font = { italic: true, size: 9, color: { argb: banner.text } }
+      activityFooterLabel.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: banner.bg } }
+      activityFooterLabel.border = thinBorder()
+      const activityFooterSwatch = ws.getCell(row, 1)
+      activityFooterSwatch.border = thinBorder()
+      const activityFooterValue = ws.getCell(row, 7)
+      activityFooterValue.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: banner.bg } }
+      activityFooterValue.border = thinBorder()
+      row += 1
+    }
+  }
+
+  const footerRow = row + 1
   const sum = totalWeightPercent(schedule.phases)
   const banner = WEIGHT_BANNER_HEX[weightTotalState(sum)]
   ws.mergeCells(footerRow, 1, footerRow, 6)
@@ -276,14 +326,40 @@ function buildGanttSheet(wb: ExcelJS.Workbook, schedule: ProjectSchedule) {
     cell.note = notes.join('; ')
   }
 
-  // Rows 4+ — one row per phase: a two-tone bar (track + leading percent-complete fill).
+  // Rows 4+ — one row per phase (plus one indented sub-row per activity):
+  // a two-tone bar (track + leading percent-complete fill).
   if (schedule.phases.length === 0) {
     const cell = ws.getCell(ROW_PHASE_START, COL_NAME)
     cell.value = 'No phases yet.'
     cell.font = { italic: true, color: { argb: SCHEDULE_COLORS.dark } }
   }
-  schedule.phases.forEach((phase, i) => {
-    const row = ROW_PHASE_START + i
+
+  const drawBarRow = (
+    row: number,
+    startDate: string,
+    endDate: string,
+    percentComplete: number,
+    color: { fill: string; track: string },
+  ) => {
+    const startIdx = weekIndexForDate(parseIsoDate(startDate), range, weekCols)
+    const endIdx = weekIndexForDate(parseIsoDate(endDate), range, weekCols)
+    const spanStart = Math.min(startIdx, endIdx)
+    const spanEnd = Math.max(startIdx, endIdx)
+    const spanLength = spanEnd - spanStart + 1
+    const fillCount = Math.min(spanLength, Math.max(0, Math.round((spanLength * percentComplete) / 100)))
+    for (let idx = spanStart; idx <= spanEnd; idx++) {
+      const cell = ws.getCell(row, COL_WEEK_START + idx)
+      const filled = idx - spanStart < fillCount
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: filled ? color.fill : color.track },
+      }
+    }
+  }
+
+  let row = ROW_PHASE_START
+  for (const phase of schedule.phases) {
     const color = phaseColor(phase)
 
     const swatch = ws.getCell(row, COL_SWATCH)
@@ -295,32 +371,29 @@ function buildGanttSheet(wb: ExcelJS.Workbook, schedule: ProjectSchedule) {
     name.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: color.badgeBg } }
     name.alignment = { wrapText: true, vertical: 'middle' }
 
-    const startIdx = weekIndexForDate(parseIsoDate(phase.startDate), range, weekCols)
-    const endIdx = weekIndexForDate(parseIsoDate(phase.endDate), range, weekCols)
-    const spanStart = Math.min(startIdx, endIdx)
-    const spanEnd = Math.max(startIdx, endIdx)
-    const spanLength = spanEnd - spanStart + 1
-    const fillCount = Math.min(spanLength, Math.max(0, Math.round((spanLength * phase.percentComplete) / 100)))
+    drawBarRow(row, phase.startDate, phase.endDate, phase.percentComplete, color)
+    row += 1
 
-    for (let idx = spanStart; idx <= spanEnd; idx++) {
-      const cell = ws.getCell(row, COL_WEEK_START + idx)
-      const filled = idx - spanStart < fillCount
-      cell.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: filled ? color.fill : color.track },
-      }
+    for (const activity of phase.activities ?? []) {
+      const activityName = ws.getCell(row, COL_NAME)
+      activityName.value = activity.name
+      activityName.font = { italic: true, size: 8, color: { argb: SCHEDULE_COLORS.dark } }
+      activityName.alignment = { wrapText: true, vertical: 'middle', indent: 1 }
+
+      drawBarRow(row, activity.startDate, activity.endDate, activity.percentComplete, color)
+      row += 1
     }
-  })
+  }
+  const lastPhaseRow = row - 1
 
   // Contract-start reference column — closest Excel equivalent to the
   // on-screen dashed vertical line (no literal dashed multi-row rule in ExcelJS).
   if (schedule.contractStartDate) {
     const idx = weekIndexForDate(parseIsoDate(schedule.contractStartDate), range, weekCols)
     const col = COL_WEEK_START + idx
-    const lastRow = Math.max(ROW_MONTH, ROW_PHASE_START + schedule.phases.length - 1)
-    for (let row = ROW_MONTH; row <= lastRow; row++) {
-      const cell = ws.getCell(row, col)
+    const lastRow = Math.max(ROW_MONTH, lastPhaseRow)
+    for (let borderRow = ROW_MONTH; borderRow <= lastRow; borderRow++) {
+      const cell = ws.getCell(borderRow, col)
       cell.border = { left: { style: 'medium', color: { argb: SCHEDULE_COLORS.contractStartBorder } } }
     }
   }

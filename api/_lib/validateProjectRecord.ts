@@ -45,6 +45,11 @@ export function isValidProjectRecord(value: unknown): value is ProjectRecordInpu
     const schedule = record.schedule as Record<string, unknown>
     if (schedule.phases !== undefined && !Array.isArray(schedule.phases)) return false
     if (schedule.milestones !== undefined && !Array.isArray(schedule.milestones)) return false
+    if (Array.isArray(schedule.phases)) {
+      for (const phase of schedule.phases as Record<string, unknown>[]) {
+        if (phase.activities !== undefined && !Array.isArray(phase.activities)) return false
+      }
+    }
   }
 
   return true

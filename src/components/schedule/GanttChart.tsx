@@ -1,15 +1,17 @@
-import { CalendarClock, Circle, Flag, Pencil, Trash2, Users } from 'lucide-react'
+import { CalendarClock, Circle, Flag, ListPlus, Pencil, Trash2, Users } from 'lucide-react'
 import { Badge } from '../ui/badge'
 import { Button } from '../ui/button'
 import { Progress } from '../ui/progress'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip'
 import {
+  activityBarStyle,
   computeDateRange,
   datePercent,
   durationDays,
   monthTicks,
   phaseBarStyle,
   phaseColorIndex,
+  totalActivityWeightPercent,
   totalWeightPercent,
 } from '../../domain/schedule'
 import {
@@ -19,12 +21,32 @@ import {
   PHASE_WEIGHT_TOTAL_BADGE_CLASS,
   type PhaseWeightTotalState,
 } from '../shared/statusStyles'
-import type { MilestoneType, ScheduleMilestone, SchedulePhase } from '../../data/types'
+import type { MilestoneType, PhaseActivity, ScheduleMilestone, SchedulePhase } from '../../data/types'
 
 const ROW_HEIGHT = 'h-20'
+const ACTIVITY_ROW_HEIGHT = 'h-12'
 const TRACK_HEIGHT = 'h-8'
 const MIN_PX_PER_MONTH_TICK = 90
 const MIN_TIMELINE_WIDTH_PX = 720
+
+type DisplayRow =
+  | { kind: 'phase'; phase: SchedulePhase }
+  | { kind: 'activity'; phase: SchedulePhase; activity: PhaseActivity }
+
+/** Flattens phases + their activities into one ordered row list, so the left
+ *  phase-list column and right timeline column can both `.map()` over the
+ *  SAME array — guaranteeing row N is the same phase-or-activity entity on
+ *  both sides without separate height bookkeeping. */
+function buildDisplayRows(phases: SchedulePhase[]): DisplayRow[] {
+  const rows: DisplayRow[] = []
+  for (const phase of phases) {
+    rows.push({ kind: 'phase', phase })
+    for (const activity of phase.activities ?? []) {
+      rows.push({ kind: 'activity', phase, activity })
+    }
+  }
+  return rows
+}
 
 const MILESTONE_ICON: Record<MilestoneType, typeof Flag> = {
   Delivery: Flag,
@@ -63,6 +85,9 @@ interface GanttChartProps {
   canEdit: boolean
   onEditPhase(phase: SchedulePhase): void
   onDeletePhase(phaseId: string): void
+  onAddActivity(phaseId: string): void
+  onEditActivity(phaseId: string, activity: PhaseActivity): void
+  onDeleteActivity(phaseId: string, activityId: string): void
   onEditMilestone(milestone: ScheduleMilestone): void
   onDeleteMilestone(milestoneId: string): void
 }
@@ -74,6 +99,9 @@ export function GanttChart({
   canEdit,
   onEditPhase,
   onDeletePhase,
+  onAddActivity,
+  onEditActivity,
+  onDeleteActivity,
   onEditMilestone,
   onDeleteMilestone,
 }: GanttChartProps) {
@@ -87,6 +115,7 @@ export function GanttChart({
     )
   }
 
+  const displayRows = buildDisplayRows(phases)
   const ticks = monthTicks(range)
   const contractStartPercent = contractStartDate
     ? datePercent(new Date(`${contractStartDate}T00:00:00`), range)
@@ -115,34 +144,99 @@ export function GanttChart({
           {phases.length === 0 && (
             <p className="py-3 text-sm text-muted-foreground">No phases yet.</p>
           )}
-          {phases.map((phase) => {
+          {displayRows.map((row) => {
+            if (row.kind === 'phase') {
+              const { phase } = row
+              const color = phaseColor(phase)
+              const activityWeightSum = totalActivityWeightPercent(phase)
+              return (
+                <div
+                  key={phase.id}
+                  className={`${ROW_HEIGHT} flex items-center gap-2 border-b border-l-4 py-2 pl-2 ${color.accentBorder}`}
+                >
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <div className="flex items-center gap-1.5 truncate text-sm font-medium">
+                      <span className="truncate">{phase.name}</span>
+                      {phase.code && (
+                        <Badge variant="outline" className={`shrink-0 ${color.badge}`}>
+                          {phase.code}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {durationDays(phase)} days · {phase.weightPercent ?? 0}% of project
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Progress
+                        value={phase.percentComplete}
+                        className="h-1.5 flex-1"
+                        indicatorClassName={color.fill}
+                      />
+                      <span className="shrink-0 text-xs font-medium text-muted-foreground">
+                        {phase.percentComplete}%
+                      </span>
+                    </div>
+                    {(phase.activities ?? []).length > 0 && (
+                      <div
+                        className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-medium ${PHASE_WEIGHT_TOTAL_BADGE_CLASS[weightTotalState(activityWeightSum)]}`}
+                      >
+                        Activities: {activityWeightSum}% of phase
+                      </div>
+                    )}
+                  </div>
+                  {canEdit && (
+                    <div className="flex shrink-0 items-center gap-0.5">
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        aria-label={`Add activity to ${phase.name}`}
+                        onClick={() => onAddActivity(phase.id)}
+                      >
+                        <ListPlus />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        aria-label={`Edit ${phase.name}`}
+                        onClick={() => onEditPhase(phase)}
+                      >
+                        <Pencil />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        aria-label={`Delete ${phase.name}`}
+                        onClick={() => onDeletePhase(phase.id)}
+                      >
+                        <Trash2 />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )
+            }
+
+            const { phase, activity } = row
             const color = phaseColor(phase)
             return (
               <div
-                key={phase.id}
-                className={`${ROW_HEIGHT} flex items-center gap-2 border-b border-l-4 py-2 pl-2 ${color.accentBorder}`}
+                key={activity.id}
+                className={`${ACTIVITY_ROW_HEIGHT} flex items-center gap-2 border-b border-l-4 py-1 pl-8 ${color.accentBorder}`}
               >
                 <div className="min-w-0 flex-1 space-y-1">
-                  <div className="flex items-center gap-1.5 truncate text-sm font-medium">
-                    <span className="truncate">{phase.name}</span>
-                    {phase.code && (
-                      <Badge variant="outline" className={`shrink-0 ${color.badge}`}>
-                        {phase.code}
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {durationDays(phase)} days · {phase.weightPercent ?? 0}% of project
-                  </div>
+                  <div className="truncate text-xs text-muted-foreground">{activity.name}</div>
                   <div className="flex items-center gap-2">
                     <Progress
-                      value={phase.percentComplete}
-                      className="h-1.5 flex-1"
+                      value={activity.percentComplete}
+                      className="h-1 flex-1"
                       indicatorClassName={color.fill}
                     />
-                    <span className="shrink-0 text-xs font-medium text-muted-foreground">
-                      {phase.percentComplete}%
+                    <span className="shrink-0 text-[10px] font-medium text-muted-foreground">
+                      {activity.percentComplete}%
                     </span>
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">
+                    {durationDays(activity)} days · {activity.weightPercent ?? 0}% of phase
                   </div>
                 </div>
                 {canEdit && (
@@ -150,16 +244,16 @@ export function GanttChart({
                     <Button
                       variant="ghost"
                       size="icon-xs"
-                      aria-label={`Edit ${phase.name}`}
-                      onClick={() => onEditPhase(phase)}
+                      aria-label={`Edit ${activity.name}`}
+                      onClick={() => onEditActivity(phase.id, activity)}
                     >
                       <Pencil />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon-xs"
-                      aria-label={`Delete ${phase.name}`}
-                      onClick={() => onDeletePhase(phase.id)}
+                      aria-label={`Delete ${activity.name}`}
+                      onClick={() => onDeleteActivity(phase.id, activity.id)}
                     >
                       <Trash2 />
                     </Button>
@@ -222,18 +316,38 @@ export function GanttChart({
             </TooltipProvider>
 
             {phases.length === 0 && <div className={`${ROW_HEIGHT} border-b`} />}
-            {phases.map((phase) => {
-              const { leftPercent, widthPercent } = phaseBarStyle(phase, range)
+            {displayRows.map((row) => {
+              if (row.kind === 'phase') {
+                const { phase } = row
+                const { leftPercent, widthPercent } = phaseBarStyle(phase, range)
+                const color = phaseColor(phase)
+                return (
+                  <div key={phase.id} className={`relative ${ROW_HEIGHT} border-b`}>
+                    <div
+                      className={`absolute top-1/2 h-4 -translate-y-1/2 overflow-hidden rounded ${color.track}`}
+                      style={{ left: `${leftPercent}%`, width: `${widthPercent}%` }}
+                    >
+                      <div
+                        className={`h-full ${color.fill}`}
+                        style={{ width: `${phase.percentComplete}%` }}
+                      />
+                    </div>
+                  </div>
+                )
+              }
+
+              const { phase, activity } = row
+              const { leftPercent, widthPercent } = activityBarStyle(activity, range)
               const color = phaseColor(phase)
               return (
-                <div key={phase.id} className={`relative ${ROW_HEIGHT} border-b`}>
+                <div key={activity.id} className={`relative ${ACTIVITY_ROW_HEIGHT} border-b`}>
                   <div
-                    className={`absolute top-1/2 h-4 -translate-y-1/2 overflow-hidden rounded ${color.track}`}
+                    className={`absolute top-1/2 h-2.5 -translate-y-1/2 overflow-hidden rounded ${color.track}`}
                     style={{ left: `${leftPercent}%`, width: `${widthPercent}%` }}
                   >
                     <div
                       className={`h-full ${color.fill}`}
-                      style={{ width: `${phase.percentComplete}%` }}
+                      style={{ width: `${activity.percentComplete}%` }}
                     />
                   </div>
                 </div>

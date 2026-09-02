@@ -129,6 +129,7 @@ src/
       ProjectManagementPage.tsx # container: contract-start date, Add Phase/Milestone buttons, dialogs
       GanttChart.tsx           # pure presentational — phase bars + milestone markers + list
       PhaseFormDialog.tsx      # add/edit a SchedulePhase — remounted via `key` per open, not a resync effect
+      ActivityFormDialog.tsx   # add/edit a PhaseActivity under a specific phase — remounted via key per open, same pattern
       MilestoneFormDialog.tsx  # add/edit a ScheduleMilestone — same remount-via-key pattern
     dashboard/…
     tracker/…
@@ -297,6 +298,16 @@ One entry is appended per **actually-changed** field (no-op writes, e.g. re-pick
 ```ts
 type MilestoneType = 'Delivery' | 'Committee' | 'Extension' | 'Other';
 
+interface PhaseActivity {
+  id: string;
+  name: string;
+  startDate: string;         // ISO yyyy-mm-dd
+  endDate: string;           // ISO yyyy-mm-dd
+  percentComplete: number;   // 0-100, manual, reviewer-entered
+  weightPercent?: number;    // 0-100, manual — this activity's share of its PARENT PHASE
+                              // (not the whole project), same two-axis pattern one level down.
+}
+
 interface SchedulePhase {
   id: string;
   name: string;             // e.g. "Phase 4 (DM)"
@@ -309,6 +320,8 @@ interface SchedulePhase {
                               // independent of percentComplete — same two-axis pattern as
                               // AotImportance vs Priority. Optional for backward-compat;
                               // treated as 0 by totalWeightPercent (domain/schedule.ts).
+  activities?: PhaseActivity[]; // work-breakdown sub-tasks, always rendered as indented
+                              // sub-rows (no expand/collapse) — added 2026-09-02.
 }
 
 interface ScheduleMilestone {
@@ -324,7 +337,7 @@ interface ProjectSchedule {
   contractStartDate?: string; // ISO yyyy-mm-dd — dashed reference line on the timeline
 }
 ```
-`ProjectRecord.schedule?: ProjectSchedule` — optional for backward-compat with rows that predate this field (`toRuntime()`/`hydrate()` default a missing value to `{ phases: [], milestones: [] }`, same posture as `templateKind`/`projectType`). Generic project-scheduling data, **independent of checklist structure** — shown for every `TemplateKind` alike (unlike Tracker/Priority/Item Details, which are MAR-only). `percentComplete` is manual, reviewer-entered — there is no checkbox/derived source for it, unlike §6's checklist-item statuses. No audit trail: `HistoryField`/`HistoryEntry` are keyed by `itemNo` and don't fit phase/milestone edits, so schedule changes aren't logged. `resetToSeed` also clears `schedule` back to `{ phases: [], milestones: [] }`, consistent with `history`. Add/Edit/Delete phase and milestone are gated to `admin`/`ProjectManager` roles, **client-side only** — same accepted-risk posture as Add/Edit Project (§10). The date-math for positioning phase bars/milestones/month ticks on the timeline lives in `domain/schedule.ts` (pure, framework-free, unrelated to §6's `derive.ts`). `weightPercent` (added 2026-08-30, modeled on `project-joy-gantt.lovable.app/apron`'s per-installment งวดงาน percentages) is a second, independent manual axis — a phase's share of the *whole project's* value/scope, not its completion progress. `domain/schedule.ts`'s `totalWeightPercent()` sums it across a project's phases (unset treated as 0); the Project Management tab shows the running total against 100% (`GanttChart.tsx`'s banner — emerald at exactly 100%, amber under, rose over), same as the reference site's "รวมครบ 100% แล้ว" total row. Nothing enforces the 100% total server-side — it's advisory, like the rest of §5.3c's client-side-only posture.
+`ProjectRecord.schedule?: ProjectSchedule` — optional for backward-compat with rows that predate this field (`toRuntime()`/`hydrate()` default a missing value to `{ phases: [], milestones: [] }`, same posture as `templateKind`/`projectType`). Generic project-scheduling data, **independent of checklist structure** — shown for every `TemplateKind` alike (unlike Tracker/Priority/Item Details, which are MAR-only). `percentComplete` is manual, reviewer-entered — there is no checkbox/derived source for it, unlike §6's checklist-item statuses. No audit trail: `HistoryField`/`HistoryEntry` are keyed by `itemNo` and don't fit phase/milestone edits, so schedule changes aren't logged. `resetToSeed` also clears `schedule` back to `{ phases: [], milestones: [] }`, consistent with `history`. Add/Edit/Delete phase and milestone are gated to `admin`/`ProjectManager` roles, **client-side only** — same accepted-risk posture as Add/Edit Project (§10). The date-math for positioning phase bars/milestones/month ticks on the timeline lives in `domain/schedule.ts` (pure, framework-free, unrelated to §6's `derive.ts`). `weightPercent` (added 2026-08-30, modeled on `project-joy-gantt.lovable.app/apron`'s per-installment งวดงาน percentages) is a second, independent manual axis — a phase's share of the *whole project's* value/scope, not its completion progress. `domain/schedule.ts`'s `totalWeightPercent()` sums it across a project's phases (unset treated as 0); the Project Management tab shows the running total against 100% (`GanttChart.tsx`'s banner — emerald at exactly 100%, amber under, rose over), same as the reference site's "รวมครบ 100% แล้ว" total row. Nothing enforces the 100% total server-side — it's advisory, like the rest of §5.3c's client-side-only posture. `activities` (added 2026-09-02) is a work-breakdown structure one level below phases — each `SchedulePhase` optionally carries a list of `PhaseActivity` sub-tasks, each with its own `startDate`/`endDate`/`percentComplete`/`weightPercent` pair scoped to *that phase* (not the whole project). Activities always render as indented sub-rows under their phase on the Gantt chart and in the Excel export — no expand/collapse toggle exists. `domain/schedule.ts`'s `totalActivityWeightPercent(phase)` sums one phase's activities the same way `totalWeightPercent(phases)` sums project-wide phase weights, and `GanttChart.tsx` shows a per-phase running-total indicator alongside the existing project-wide banner. Like phases/milestones, activities carry no audit trail and their 100% total is advisory only, enforced nowhere server-side (`api/_lib/validateProjectRecord.ts` only checks `activities` is an array when present, same shallow posture as `phases`/`milestones`).
 
 ### 5.4 Seed data (`checklistTemplate.ts` + `initialProjects.ts`)
 
@@ -492,7 +505,7 @@ So the sentence can never drift from the tick count (this fixed a real "6 of 18"
 | `/projects/:projectId/priority/c` | **Priority C** | …priority = C (3 rows) |
 | `/projects/:projectId/items` | **Item Details** | §8 — the focus of this brief |
 | `/projects/:projectId/phase` | **Phase Progress** | Added 2026-07-26, inspired by a reference tracker ("RSMS", a different airport/bid). Critical-cutoff banner; an "Unassigned" card plus one progress card per real lifecycle Phase (`LIFECYCLE_PHASE_DEFS` — see note below); an editable table of Phase + Workflow Status (manual 5-state pipeline: Pending→Preparing→AwaitingApproval→Ready→Submitted) + Document Date/Expiry Date/Responsible Person/Document Link per item; and a "View History" dialog (searchable audit log of every edit, values rendered as human labels). Fully additive — independent of the checkbox-derived Status/Dashboard/Tracker above (§6 untouched). |
-| `/projects/:projectId/schedule` | **Project Management** | Added 2026-08-29, modeled on a reference Gantt tracker. A left panel of named delivery phases (duration + % complete) and a right timeline panel (month-label header, one positioned/filled bar per phase, milestone markers with hover tooltips) plus a milestone list with edit/delete controls; an optional contract-start-date dashed reference line. Shown for **every** `templateKind`, unlike the MAR-only tabs above — see §5.3c. Add/Edit/Delete gated to Admin/Project Manager. Each phase also carries a `weightPercent` (added 2026-08-30, modeled on `project-joy-gantt.lovable.app/apron`'s งวดงาน installment percentages) — its share of the total project, shown next to duration in the phase list, with a banner above the chart tracking the running total against 100%. |
+| `/projects/:projectId/schedule` | **Project Management** | Added 2026-08-29, modeled on a reference Gantt tracker. A left panel of named delivery phases (duration + % complete) and a right timeline panel (month-label header, one positioned/filled bar per phase, milestone markers with hover tooltips) plus a milestone list with edit/delete controls; an optional contract-start-date dashed reference line. Shown for **every** `templateKind`, unlike the MAR-only tabs above — see §5.3c. Add/Edit/Delete gated to Admin/Project Manager. Each phase also carries a `weightPercent` (added 2026-08-30, modeled on `project-joy-gantt.lovable.app/apron`'s งวดงาน installment percentages) — its share of the total project, shown next to duration in the phase list, with a banner above the chart tracking the running total against 100%. Each phase can also carry a work-breakdown list of activities (added 2026-09-02), rendered as indented sub-rows under their phase (no expand/collapse) with their own dates/%complete/weight scoped to that phase — see §5.3c. |
 | `/projects/:projectId/guidelines` | **Guidelines** | Priority definitions, critical sequence, document-quality rules, colour legend, disclaimer (rules.ts) |
 
 Priority tabs are **derived mirrors** — no independent editing. An unknown `:projectId` renders a "Project not found" panel instead of the tab set (`ProjectShell.tsx`), so no child page needs its own defensive check.

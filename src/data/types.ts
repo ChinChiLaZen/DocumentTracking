@@ -195,6 +195,22 @@ export interface HistoryEntry {
 // are keyed by itemNo and don't fit phase/milestone edits.
 export type MilestoneType = 'Delivery' | 'Committee' | 'Extension' | 'Other'
 
+// A work-breakdown sub-task under a SchedulePhase — added 2026-09-02. Always
+// rendered as an indented sub-row under its phase on the Gantt chart (no
+// expand/collapse toggle). Same shape as SchedulePhase minus `code`.
+export interface PhaseActivity {
+  id: string
+  name: string
+  startDate: string // ISO yyyy-mm-dd
+  endDate: string // ISO yyyy-mm-dd
+  percentComplete: number // 0-100, manual, reviewer-entered — never derived
+  // 0-100, manual — this activity's share of its PARENT PHASE (not the whole
+  // project), same two-axis pattern as SchedulePhase.percentComplete vs
+  // weightPercent above, one level down. Optional for backward-compat;
+  // treated as 0 by totalActivityWeightPercent (domain/schedule.ts).
+  weightPercent?: number
+}
+
 export interface SchedulePhase {
   id: string
   name: string // e.g. "Phase 4 (DM)"
@@ -208,6 +224,11 @@ export interface SchedulePhase {
   // AotImportance vs Priority. Optional for backward-compat with phases that
   // predate this field; treated as 0 by totalWeightPercent (domain/schedule.ts).
   weightPercent?: number
+  // Work-breakdown sub-tasks under this phase, always rendered as indented
+  // sub-rows on the Gantt chart (no expand/collapse) — added 2026-09-02.
+  // Optional for backward-compat; treated as [] by every reader (GanttChart.tsx,
+  // scheduleExcelExport.ts, totalActivityWeightPercent).
+  activities?: PhaseActivity[]
 }
 
 export interface ScheduleMilestone {

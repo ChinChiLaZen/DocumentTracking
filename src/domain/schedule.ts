@@ -1,4 +1,4 @@
-import type { ScheduleMilestone, SchedulePhase } from '../data/types'
+import type { PhaseActivity, ScheduleMilestone, SchedulePhase } from '../data/types'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const SINGLE_POINT_PAD_DAYS = 14
@@ -15,9 +15,11 @@ function parseIsoDate(iso: string): Date {
 }
 
 /** The visible date span for the Gantt chart — every phase start/end, every
- *  milestone date, and the contract start date, padded so edge items aren't
- *  clipped against the panel edge. Returns null for an empty schedule so
- *  callers can render an empty state instead of dividing by zero. */
+ *  phase activity's start/end (activities aren't constrained to fall within
+ *  their parent phase's dates, so the range must cover them independently),
+ *  every milestone date, and the contract start date, padded so edge items
+ *  aren't clipped against the panel edge. Returns null for an empty schedule
+ *  so callers can render an empty state instead of dividing by zero. */
 export function computeDateRange(
   phases: SchedulePhase[],
   milestones: ScheduleMilestone[],
@@ -26,6 +28,9 @@ export function computeDateRange(
   const dates: Date[] = []
   for (const phase of phases) {
     dates.push(parseIsoDate(phase.startDate), parseIsoDate(phase.endDate))
+    for (const activity of phase.activities ?? []) {
+      dates.push(parseIsoDate(activity.startDate), parseIsoDate(activity.endDate))
+    }
   }
   for (const milestone of milestones) {
     dates.push(parseIsoDate(milestone.date))
@@ -70,6 +75,16 @@ export function phaseBarStyle(phase: SchedulePhase, range: DateRange): PhaseBarS
   return { leftPercent, widthPercent }
 }
 
+/** An activity's bar position/width — same math as phaseBarStyle, kept as a
+ *  separate named function (rather than widening phaseBarStyle's type) so
+ *  call sites read unambiguously as phase-bar vs activity-bar. */
+export function activityBarStyle(activity: PhaseActivity, range: DateRange): PhaseBarStyle {
+  const leftPercent = datePercent(parseIsoDate(activity.startDate), range)
+  const rightPercent = datePercent(parseIsoDate(activity.endDate), range)
+  const widthPercent = Math.max(rightPercent - leftPercent, MIN_BAR_WIDTH_PERCENT)
+  return { leftPercent, widthPercent }
+}
+
 export interface MonthTick {
   label: string
   percent: number
@@ -90,10 +105,11 @@ export function monthTicks(range: DateRange): MonthTick[] {
   return ticks
 }
 
-/** Inclusive day count — a phase starting and ending the same day is 1 day. */
-export function durationDays(phase: SchedulePhase): number {
-  const start = parseIsoDate(phase.startDate)
-  const end = parseIsoDate(phase.endDate)
+/** Inclusive day count — an entry starting and ending the same day is 1 day.
+ *  Structurally typed so it applies to both SchedulePhase and PhaseActivity. */
+export function durationDays(entry: { startDate: string; endDate: string }): number {
+  const start = parseIsoDate(entry.startDate)
+  const end = parseIsoDate(entry.endDate)
   return Math.round((end.getTime() - start.getTime()) / DAY_MS) + 1
 }
 
@@ -102,6 +118,14 @@ export function durationDays(phase: SchedulePhase): number {
  *  allocate to exactly 100% across all phases. Unset weights count as 0. */
 export function totalWeightPercent(phases: SchedulePhase[]): number {
   return phases.reduce((sum, p) => sum + (p.weightPercent ?? 0), 0)
+}
+
+/** Sum of one phase's activities' weightPercent — the per-phase analogue of
+ *  totalWeightPercent, since each phase's activities are expected to
+ *  allocate to 100% of THAT PHASE independently of other phases' totals.
+ *  Unset weights count as 0; a phase with no activities returns 0. */
+export function totalActivityWeightPercent(phase: SchedulePhase): number {
+  return (phase.activities ?? []).reduce((sum, a) => sum + (a.weightPercent ?? 0), 0)
 }
 
 const PHASE_COLOR_SLOT_COUNT = 8

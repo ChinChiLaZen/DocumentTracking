@@ -5,6 +5,7 @@ import type {
   HistoryEntry,
   Item,
   LifecyclePhase,
+  PhaseActivity,
   ProjectMeta,
   ProjectRecord,
   ProjectSchedule,
@@ -133,6 +134,14 @@ export interface TrackerState {
     patch: Partial<Omit<SchedulePhase, 'id'>>,
   ): void
   deleteSchedulePhase(projectId: string, phaseId: string): void
+  addPhaseActivity(projectId: string, phaseId: string, input: Omit<PhaseActivity, 'id'>): void
+  updatePhaseActivity(
+    projectId: string,
+    phaseId: string,
+    activityId: string,
+    patch: Partial<Omit<PhaseActivity, 'id'>>,
+  ): void
+  deletePhaseActivity(projectId: string, phaseId: string, activityId: string): void
   addScheduleMilestone(projectId: string, input: Omit<ScheduleMilestone, 'id'>): void
   updateScheduleMilestone(
     projectId: string,
@@ -162,7 +171,7 @@ function cloneSheets(sheets: DetailSheet[]): DetailSheet[] {
 function cloneSchedule(schedule: ProjectSchedule | undefined): ProjectSchedule {
   if (!schedule) return EMPTY_SCHEDULE
   return {
-    phases: schedule.phases.map((p) => ({ ...p })),
+    phases: schedule.phases.map((p) => ({ ...p, activities: p.activities?.map((a) => ({ ...a })) })),
     milestones: schedule.milestones.map((m) => ({ ...m })),
     contractStartDate: schedule.contractStartDate,
   }
@@ -568,6 +577,68 @@ export function createTrackerStore(persistence: PersistencePort = createApiPersi
           schedule: {
             ...project.schedule,
             phases: project.schedule.phases.filter((p) => p.id !== phaseId),
+          },
+        }))
+        persistProject(projectId)
+      },
+
+      addPhaseActivity(projectId, phaseId, input) {
+        const activity: PhaseActivity = {
+          ...input,
+          id: generateId('activity'),
+          percentComplete: clampPercent(input.percentComplete),
+          weightPercent: input.weightPercent === undefined ? undefined : clampPercent(input.weightPercent),
+        }
+        updateProject(projectId, (project) => ({
+          ...project,
+          schedule: {
+            ...project.schedule,
+            phases: project.schedule.phases.map((p) =>
+              p.id !== phaseId ? p : { ...p, activities: [...(p.activities ?? []), activity] },
+            ),
+          },
+        }))
+        persistProject(projectId)
+      },
+
+      updatePhaseActivity(projectId, phaseId, activityId, patch) {
+        updateProject(projectId, (project) => ({
+          ...project,
+          schedule: {
+            ...project.schedule,
+            phases: project.schedule.phases.map((p) => {
+              if (p.id !== phaseId) return p
+              return {
+                ...p,
+                activities: (p.activities ?? []).map((a) =>
+                  a.id !== activityId
+                    ? a
+                    : {
+                        ...a,
+                        ...patch,
+                        percentComplete:
+                          patch.percentComplete === undefined
+                            ? a.percentComplete
+                            : clampPercent(patch.percentComplete),
+                        weightPercent:
+                          patch.weightPercent === undefined ? a.weightPercent : clampPercent(patch.weightPercent),
+                      },
+                ),
+              }
+            }),
+          },
+        }))
+        persistProject(projectId)
+      },
+
+      deletePhaseActivity(projectId, phaseId, activityId) {
+        updateProject(projectId, (project) => ({
+          ...project,
+          schedule: {
+            ...project.schedule,
+            phases: project.schedule.phases.map((p) =>
+              p.id !== phaseId ? p : { ...p, activities: (p.activities ?? []).filter((a) => a.id !== activityId) },
+            ),
           },
         }))
         persistProject(projectId)

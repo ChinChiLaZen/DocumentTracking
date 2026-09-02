@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import type { ScheduleMilestone, SchedulePhase } from '../data/types'
+import type { PhaseActivity, ScheduleMilestone, SchedulePhase } from '../data/types'
 import {
+  activityBarStyle,
   computeDateRange,
   datePercent,
   durationDays,
   monthTicks,
   phaseBarStyle,
   phaseColorIndex,
+  totalActivityWeightPercent,
   totalWeightPercent,
 } from './schedule'
 
@@ -31,6 +33,17 @@ function fixtureMilestone(overrides: Partial<ScheduleMilestone> = {}): ScheduleM
   }
 }
 
+function fixtureActivity(overrides: Partial<PhaseActivity> = {}): PhaseActivity {
+  return {
+    id: 'a1',
+    name: 'Fixture Activity',
+    startDate: '2026-01-05',
+    endDate: '2026-01-10',
+    percentComplete: 50,
+    ...overrides,
+  }
+}
+
 describe('computeDateRange', () => {
   it('returns null for an empty schedule', () => {
     expect(computeDateRange([], [])).toBeNull()
@@ -51,6 +64,22 @@ describe('computeDateRange', () => {
     // Padded start is before the earliest input date (contractStartDate).
     expect(range!.start.getTime()).toBeLessThan(new Date('2026-01-01T00:00:00').getTime())
     // Padded end is after the latest input date (the milestone).
+    expect(range!.end.getTime()).toBeGreaterThan(new Date('2026-05-01T00:00:00').getTime())
+  })
+
+  it('covers an activity whose dates extend past its parent phase\'s own range', () => {
+    const phases = [
+      fixturePhase({
+        startDate: '2026-03-01',
+        endDate: '2026-04-01',
+        activities: [fixtureActivity({ startDate: '2026-02-01', endDate: '2026-05-01' })],
+      }),
+    ]
+    const range = computeDateRange(phases, [])
+    expect(range).not.toBeNull()
+    // Padded start is before the activity's start (earlier than the phase's own start).
+    expect(range!.start.getTime()).toBeLessThan(new Date('2026-02-01T00:00:00').getTime())
+    // Padded end is after the activity's end (later than the phase's own end).
     expect(range!.end.getTime()).toBeGreaterThan(new Date('2026-05-01T00:00:00').getTime())
   })
 })
@@ -80,6 +109,15 @@ describe('phaseBarStyle', () => {
   })
 })
 
+describe('activityBarStyle', () => {
+  it('enforces the minimum-width floor for a very short activity', () => {
+    const range = { start: new Date('2026-01-01T00:00:00'), end: new Date('2027-01-01T00:00:00') }
+    const activity = fixtureActivity({ startDate: '2026-06-01', endDate: '2026-06-01' })
+    const style = activityBarStyle(activity, range)
+    expect(style.widthPercent).toBeGreaterThanOrEqual(1.5)
+  })
+})
+
 describe('monthTicks', () => {
   it('produces one tick per calendar month, including partial edge months', () => {
     // Range spans Jan 15 - Mar 15, i.e. partial Jan and Mar plus full Feb.
@@ -96,6 +134,10 @@ describe('durationDays', () => {
 
   it('counts inclusively across multiple days', () => {
     expect(durationDays(fixturePhase({ startDate: '2026-01-01', endDate: '2026-01-31' }))).toBe(31)
+  })
+
+  it('also works on a PhaseActivity (structurally typed)', () => {
+    expect(durationDays(fixtureActivity({ startDate: '2026-01-01', endDate: '2026-01-10' }))).toBe(10)
   })
 })
 
@@ -148,5 +190,33 @@ describe('totalWeightPercent', () => {
   it('mixes set and unset weights', () => {
     const phases = [fixturePhase({ id: 'p1', weightPercent: 40 }), fixturePhase({ id: 'p2' })]
     expect(totalWeightPercent(phases)).toBe(40)
+  })
+})
+
+describe('totalActivityWeightPercent', () => {
+  it('returns 0 for a phase with no activities', () => {
+    expect(totalActivityWeightPercent(fixturePhase())).toBe(0)
+  })
+
+  it('treats an unset weightPercent as 0', () => {
+    const phase = fixturePhase({ activities: [fixtureActivity({ id: 'a1' }), fixtureActivity({ id: 'a2' })] })
+    expect(totalActivityWeightPercent(phase)).toBe(0)
+  })
+
+  it('sums weightPercent across one phase\'s activities', () => {
+    const phase = fixturePhase({
+      activities: [
+        fixtureActivity({ id: 'a1', weightPercent: 60 }),
+        fixtureActivity({ id: 'a2', weightPercent: 40 }),
+      ],
+    })
+    expect(totalActivityWeightPercent(phase)).toBe(100)
+  })
+
+  it('mixes set and unset weights, and is independent of other phases', () => {
+    const phase = fixturePhase({
+      activities: [fixtureActivity({ id: 'a1', weightPercent: 30 }), fixtureActivity({ id: 'a2' })],
+    })
+    expect(totalActivityWeightPercent(phase)).toBe(30)
   })
 })
