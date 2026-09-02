@@ -24,8 +24,8 @@ import {
 } from '../shared/statusStyles'
 import type { MilestoneType, PhaseActivity, ScheduleMilestone, SchedulePhase } from '../../data/types'
 
-const ROW_HEIGHT = 'h-20'
-const ACTIVITY_ROW_HEIGHT = 'h-12'
+const ROW_HEIGHT = 'h-24'
+const ACTIVITY_ROW_HEIGHT = 'h-16'
 const TRACK_HEIGHT = 'h-8'
 const MIN_PX_PER_MONTH_TICK = 90
 const MIN_TIMELINE_WIDTH_PX = 720
@@ -165,9 +165,9 @@ export function GanttChart({
               return (
                 <div
                   key={phase.id}
-                  className={`${ROW_HEIGHT} flex items-center gap-2 border-b border-l-4 py-2 pl-2 ${color.accentBorder}`}
+                  className={`${ROW_HEIGHT} flex items-center gap-2 border-b border-l-4 py-3 pl-2 ${color.accentBorder}`}
                 >
-                  <div className="min-w-0 flex-1 space-y-1">
+                  <div className="min-w-0 flex-1 space-y-1.5">
                     <div className="flex items-center gap-1.5 truncate text-sm font-medium">
                       <span className="truncate">{phase.name}</span>
                       {phase.code && (
@@ -191,7 +191,7 @@ export function GanttChart({
                     </div>
                     {(phase.activities ?? []).length > 0 && (
                       <div
-                        className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-medium ${PHASE_WEIGHT_TOTAL_BADGE_CLASS[weightTotalState(activityWeightSum)]}`}
+                        className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${PHASE_WEIGHT_TOTAL_BADGE_CLASS[weightTotalState(activityWeightSum)]}`}
                       >
                         Activities: {activityWeightSum}% of phase
                       </div>
@@ -234,21 +234,21 @@ export function GanttChart({
             return (
               <div
                 key={activity.id}
-                className={`${ACTIVITY_ROW_HEIGHT} flex items-center gap-2 border-b border-l-4 py-1 pl-8 ${color.accentBorder}`}
+                className={`${ACTIVITY_ROW_HEIGHT} flex items-center gap-2 border-b border-l-4 py-2 pl-8 ${color.accentBorder}`}
               >
-                <div className="min-w-0 flex-1 space-y-1">
-                  <div className="truncate text-xs text-muted-foreground">{activity.name}</div>
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <div className="truncate text-sm text-muted-foreground">{activity.name}</div>
                   <div className="flex items-center gap-2">
                     <Progress
                       value={activity.percentComplete}
-                      className="h-1 flex-1"
+                      className="h-1.5 flex-1"
                       indicatorClassName={color.fill}
                     />
-                    <span className="shrink-0 text-[10px] font-medium text-muted-foreground">
+                    <span className="shrink-0 text-xs font-medium text-muted-foreground">
                       {activity.percentComplete}%
                     </span>
                   </div>
-                  <div className="text-[10px] text-muted-foreground">
+                  <div className="text-xs text-muted-foreground">
                     {durationDays(activity)} days · {activity.weightPercent ?? 0}% of phase
                   </div>
                 </div>
@@ -337,7 +337,7 @@ export function GanttChart({
                 return (
                   <div key={phase.id} className={`relative ${ROW_HEIGHT} border-b`}>
                     <div
-                      className={`absolute top-1/2 h-4 -translate-y-1/2 overflow-hidden rounded ${color.track}`}
+                      className={`absolute top-1/2 h-5 -translate-y-1/2 overflow-hidden rounded ${color.track}`}
                       style={{ left: `${leftPercent}%`, width: `${widthPercent}%` }}
                     >
                       <div
@@ -355,7 +355,7 @@ export function GanttChart({
               return (
                 <div key={activity.id} className={`relative ${ACTIVITY_ROW_HEIGHT} border-b`}>
                   <div
-                    className={`absolute top-1/2 h-2.5 -translate-y-1/2 overflow-hidden rounded ${color.track}`}
+                    className={`absolute top-1/2 h-3 -translate-y-1/2 overflow-hidden rounded ${color.track}`}
                     style={{ left: `${leftPercent}%`, width: `${widthPercent}%` }}
                   >
                     <div
