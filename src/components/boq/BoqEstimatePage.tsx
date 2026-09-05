@@ -115,6 +115,7 @@ export function BoqEstimatePage() {
                         unit: '',
                         materialUnitCost: 0,
                         laborUnitCost: 0,
+                        remark: '',
                       })
                     }
                   >
@@ -164,6 +165,7 @@ function BoqLineTable({ category, categoryIndex, canEdit, onUpdateLine, onDelete
           <th className="w-28 py-1">Material/Unit</th>
           <th className="w-28 py-1">Labor/Unit</th>
           <th className="w-28 py-1 text-right">Total</th>
+          <th className="w-32 py-1 pl-2">Remark</th>
           {canEdit && <th className="w-8 py-1" />}
         </tr>
       </thead>
@@ -239,6 +241,17 @@ function BoqLineTable({ category, categoryIndex, canEdit, onUpdateLine, onDelete
               )}
             </td>
             <td className="py-1 text-right font-medium">{formatCurrency(lineTotal(line))}</td>
+            <td className="py-1 pl-2">
+              {canEdit ? (
+                <EditableField
+                  value={line.remark ?? ''}
+                  onCommit={(remark) => onUpdateLine(line.id, { remark })}
+                  ariaLabel={`Item ${categoryIndex + 1}.${lineIndex + 1} remark`}
+                />
+              ) : (
+                line.remark ?? ''
+              )}
+            </td>
             {canEdit && (
               <td className="py-1">
                 <Button

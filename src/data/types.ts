@@ -259,6 +259,10 @@ export interface BoqLine {
   unit: string // short text, e.g. "set", "m", "ea"
   materialUnitCost: number
   laborUnitCost: number
+  // Free-text reviewer remark, shown as the "หมายเหตุ" column in the BOQ
+  // Excel export (src/domain/export/boqExcelExport.ts). Optional for
+  // backward-compat with lines created before this field existed.
+  remark?: string
 }
 
 export interface BoqCategory {
