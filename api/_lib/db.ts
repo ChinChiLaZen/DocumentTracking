@@ -95,6 +95,14 @@ export function ensureSchema(): Promise<void> {
         `,
       )
       .then(
+        // BOQ Estimate tab — same self-migrating posture as `schedule` above.
+        // Opaque JSONB from the server's perspective.
+        () => sql`
+          ALTER TABLE project_records
+          ADD COLUMN IF NOT EXISTS boq JSONB NOT NULL DEFAULT '{"categories":[],"vatPercent":7}'::jsonb
+        `,
+      )
+      .then(
         // Daily digest cron (api/cron/daily-digest.ts) — the per-item
         // effective-status snapshot from the *previous* run, so the next run
         // can diff against it and report which items actually changed status.

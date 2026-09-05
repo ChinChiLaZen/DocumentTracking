@@ -29,7 +29,6 @@ export function DashboardPage() {
           <ByPriorityTable rollup={rollup} />
         </div>
         <div>
-          <h2 className="mb-2 text-sm font-semibold">Critical Sequence</h2>
           <CriticalSequenceList />
         </div>
       </div>

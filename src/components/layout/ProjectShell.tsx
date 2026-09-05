@@ -18,6 +18,11 @@ interface TabDef {
 // unlike the MAR-only tabs below.
 const PROJECT_MANAGEMENT_TAB: TabDef = { to: '/schedule', label: 'Project Management' }
 
+// BOQ Estimate — generic project-costing data independent of checklist
+// structure — shown for every templateKind, same posture as Project
+// Management above.
+const BOQ_ESTIMATE_TAB: TabDef = { to: '/boq', label: 'BOQ Estimate' }
+
 const MAR_TABS: TabDef[] = [
   { to: '', label: 'Dashboard', end: true },
   { to: '/tracker', label: 'Tracker' },
@@ -27,14 +32,20 @@ const MAR_TABS: TabDef[] = [
   { to: '/items', label: 'Item Details' },
   { to: '/phase', label: 'Phase Progress' },
   PROJECT_MANAGEMENT_TAB,
+  BOQ_ESTIMATE_TAB,
   { to: '/guidelines', label: 'Guidelines' },
 ]
 
 // AOT/DOA/adsb projects have no Group/Priority/checkbox detail sheets (§7) —
 // the single Dashboard tab IS the full Phase Progress-style register, so
 // Tracker/Priority/Item Details/Guidelines aren't linked. Project Management
-// is still generic scheduling data, so it's included here too.
-const SINGLE_TAB: TabDef[] = [{ to: '', label: 'Dashboard', end: true }, PROJECT_MANAGEMENT_TAB]
+// and BOQ Estimate are still generic project-level data, so both are
+// included here too.
+const SINGLE_TAB: TabDef[] = [
+  { to: '', label: 'Dashboard', end: true },
+  PROJECT_MANAGEMENT_TAB,
+  BOQ_ESTIMATE_TAB,
+]
 
 function formatPreparedDate(iso: string): string {
   const date = new Date(`${iso}T00:00:00`)

@@ -14,14 +14,14 @@ export function SubmissionProgress({ rollup }: { rollup: Rollup }) {
         <p className="mb-1 text-sm font-medium">
           Overall Submission — {rollup.byStatus.Submitted} of {rollup.totalItems} ({submittedPct}%)
         </p>
-        <Progress value={submittedPct} />
+        <Progress value={submittedPct} indicatorClassName="bg-emerald-500" />
       </div>
       <div>
         <p className="mb-1 text-sm font-medium">
           Checkbox Roll-up — {rollup.checkboxRollup.done} of {rollup.checkboxRollup.req} (
           {checkboxPct}%)
         </p>
-        <Progress value={checkboxPct} />
+        <Progress value={checkboxPct} indicatorClassName="bg-sky-500" />
       </div>
     </div>
   )

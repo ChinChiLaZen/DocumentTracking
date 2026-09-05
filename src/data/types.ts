@@ -244,12 +244,41 @@ export interface ProjectSchedule {
   contractStartDate?: string // ISO yyyy-mm-dd — dashed reference line on the timeline
 }
 
+// BOQ Estimate tab (Bill-of-Quantities cost estimate, styled after the real
+// ปร.4/ปร.5 Thai government forms) — generic project-costing data,
+// independent of checklist structure, shown for every TemplateKind alike,
+// same posture as ProjectSchedule above. Only the reference site's
+// structural format (categories, per-line qty×rate math, VAT) is modeled;
+// its placeholder item content is never reproduced — every project starts
+// with zero categories/lines. Category/line numbering ("1.1", "2.3") is
+// derived at render time from array order, never stored.
+export interface BoqLine {
+  id: string
+  description: string
+  quantity: number
+  unit: string // short text, e.g. "set", "m", "ea"
+  materialUnitCost: number
+  laborUnitCost: number
+}
+
+export interface BoqCategory {
+  id: string
+  name: string // e.g. "Category 1" — user-renamable
+  lines: BoqLine[]
+}
+
+export interface BoqEstimate {
+  categories: BoqCategory[]
+  vatPercent: number // default 7, editable
+}
+
 export interface ProjectRecord {
   meta: ProjectMeta
   items: Item[]
   sheets: DetailSheet[]
   history: HistoryEntry[]
   schedule?: ProjectSchedule // optional for backward-compat — pre-existing rows predate this field
+  boq?: BoqEstimate // optional for backward-compat — pre-existing rows predate this field
 }
 
 // A row from a captured e-GP (gprocurement.go.th) search-results snapshot —

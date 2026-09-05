@@ -60,7 +60,7 @@ export const WEIGHT_BANNER_HEX: Record<PhaseWeightTotalState, WeightBannerHex> =
 /** Structural colors for the schedule export — a small, generic palette
  *  (not project-specific, unlike ADSB_COLORS in adsbFormat.ts). */
 export const SCHEDULE_COLORS = {
-  headerBg: 'FF1F2937', // slate-800
+  headerBg: 'FF0F766E', // teal-700 — matches the site's header-band color
   headerText: 'FFFFFFFF',
   border: 'FFCBD5E1', // slate-300
   labelBg: 'FFF1F5F9', // slate-100

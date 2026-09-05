@@ -1,5 +1,8 @@
 import { useParams } from 'react-router-dom'
 import type {
+  BoqCategory,
+  BoqEstimate,
+  BoqLine,
   CheckRow,
   DetailSheet,
   HistoryEntry,
@@ -54,6 +57,14 @@ export interface ActiveProject {
   updateScheduleMilestone(milestoneId: string, patch: Partial<Omit<ScheduleMilestone, 'id'>>): void
   deleteScheduleMilestone(milestoneId: string): void
   updateScheduleMeta(patch: Partial<Pick<ProjectSchedule, 'contractStartDate'>>): void
+  boq: BoqEstimate
+  addBoqCategory(input: Omit<BoqCategory, 'id' | 'lines'>): void
+  updateBoqCategory(categoryId: string, patch: Partial<Omit<BoqCategory, 'id' | 'lines'>>): void
+  deleteBoqCategory(categoryId: string): void
+  addBoqLine(categoryId: string, input: Omit<BoqLine, 'id'>): void
+  updateBoqLine(categoryId: string, lineId: string, patch: Partial<Omit<BoqLine, 'id'>>): void
+  deleteBoqLine(categoryId: string, lineId: string): void
+  updateBoqMeta(patch: Partial<Pick<BoqEstimate, 'vatPercent'>>): void
 }
 
 /**
@@ -88,6 +99,13 @@ export function useActiveProject(): ActiveProject {
   const updateScheduleMilestoneAction = useTrackerStore((s) => s.updateScheduleMilestone)
   const deleteScheduleMilestoneAction = useTrackerStore((s) => s.deleteScheduleMilestone)
   const updateScheduleMetaAction = useTrackerStore((s) => s.updateScheduleMeta)
+  const addBoqCategoryAction = useTrackerStore((s) => s.addBoqCategory)
+  const updateBoqCategoryAction = useTrackerStore((s) => s.updateBoqCategory)
+  const deleteBoqCategoryAction = useTrackerStore((s) => s.deleteBoqCategory)
+  const addBoqLineAction = useTrackerStore((s) => s.addBoqLine)
+  const updateBoqLineAction = useTrackerStore((s) => s.updateBoqLine)
+  const deleteBoqLineAction = useTrackerStore((s) => s.deleteBoqLine)
+  const updateBoqMetaAction = useTrackerStore((s) => s.updateBoqMeta)
 
   const basePath = `/projects/${projectId}`
 
@@ -100,6 +118,7 @@ export function useActiveProject(): ActiveProject {
     selectedRowIds: project?.selectedRowIds ?? {},
     history: project?.history ?? [],
     schedule: project?.schedule ?? { phases: [], milestones: [] },
+    boq: project?.boq ?? { categories: [], vatPercent: 7 },
     basePath,
     toggleCell: (sheetId, rowId, columnKey) => toggleCellAction(projectId, sheetId, rowId, columnKey),
     setRowRemark: (sheetId, rowId, remark) => setRowRemarkAction(projectId, sheetId, rowId, remark),
@@ -130,5 +149,12 @@ export function useActiveProject(): ActiveProject {
       updateScheduleMilestoneAction(projectId, milestoneId, patch),
     deleteScheduleMilestone: (milestoneId) => deleteScheduleMilestoneAction(projectId, milestoneId),
     updateScheduleMeta: (patch) => updateScheduleMetaAction(projectId, patch),
+    addBoqCategory: (input) => addBoqCategoryAction(projectId, input),
+    updateBoqCategory: (categoryId, patch) => updateBoqCategoryAction(projectId, categoryId, patch),
+    deleteBoqCategory: (categoryId) => deleteBoqCategoryAction(projectId, categoryId),
+    addBoqLine: (categoryId, input) => addBoqLineAction(projectId, categoryId, input),
+    updateBoqLine: (categoryId, lineId, patch) => updateBoqLineAction(projectId, categoryId, lineId, patch),
+    deleteBoqLine: (categoryId, lineId) => deleteBoqLineAction(projectId, categoryId, lineId),
+    updateBoqMeta: (patch) => updateBoqMetaAction(projectId, patch),
   }
 }

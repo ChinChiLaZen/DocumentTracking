@@ -9,6 +9,8 @@ import type {
   Status,
   WorkflowStatus,
 } from '../../data/types'
+import type { LucideIcon } from 'lucide-react'
+import { CheckCircle2, Clock, Circle, AlertTriangle, XCircle, ClipboardList } from 'lucide-react'
 
 /**
  * Matches the actual rendered palette of the two Lovable reference prototypes
@@ -29,6 +31,42 @@ export const STATUS_BADGE_CLASS: Record<Status, string> = {
   Pending: 'border-slate-200 bg-slate-100 text-slate-600',
   'Needs Revision': 'border-rose-200 bg-rose-50 text-rose-700',
   'Not Available': 'border-slate-300 bg-slate-200 text-slate-700',
+}
+
+/**
+ * Dashboard tab's per-card accent (icon + bold number color + left-border
+ * color) — reuses STATUS_BADGE_CLASS's exact hue-per-status assignment
+ * above, just applied as a left-border/icon/number treatment instead of a
+ * pastel badge, so the two never drift out of sync.
+ */
+export interface StatCardAccent {
+  icon: LucideIcon
+  textClass: string // bold stat-number color, e.g. 'text-emerald-600'
+  borderClass: string // left-border accent, e.g. 'border-l-emerald-500'
+}
+
+export const STATUS_CARD_ACCENT: Record<Status, StatCardAccent> = {
+  Submitted: { icon: CheckCircle2, textClass: 'text-emerald-600', borderClass: 'border-l-emerald-500' },
+  'In Progress': { icon: Clock, textClass: 'text-amber-600', borderClass: 'border-l-amber-500' },
+  Pending: { icon: Circle, textClass: 'text-slate-600', borderClass: 'border-l-slate-400' },
+  'Needs Revision': { icon: AlertTriangle, textClass: 'text-rose-600', borderClass: 'border-l-rose-500' },
+  'Not Available': { icon: XCircle, textClass: 'text-slate-700', borderClass: 'border-l-slate-500' },
+}
+
+/** The Dashboard's "Total" tile has no Status of its own — a neutral accent, matching the
+ *  reference site's neutral black "total" stat tile. */
+export const TOTAL_CARD_ACCENT: StatCardAccent = {
+  icon: ClipboardList,
+  textClass: 'text-foreground',
+  borderClass: 'border-l-slate-300',
+}
+
+/** Bold-number color for the By-Priority table's Submitted count — same hues as
+ *  PRIORITY_BADGE_CLASS, one shade darker for legibility as plain text (no badge chrome). */
+export const PRIORITY_TEXT_CLASS: Record<Priority, string> = {
+  A: 'text-rose-800',
+  B: 'text-amber-800',
+  C: 'text-emerald-800',
 }
 
 /**
@@ -120,6 +158,7 @@ export interface PhaseColorSlot {
   accentBorder: string // border-l-{hue}-500 — kept as its own literal class, not derived
   // from `fill` at runtime, since Tailwind's build-time scanner only picks up
   // classes that appear as literal strings in source, not string-concatenated ones.
+  icon: string // text-{hue}-500 — same hue as fill/accentBorder, kept literal for the same reason
 }
 
 /**
@@ -133,14 +172,14 @@ export interface PhaseColorSlot {
  * array position, so deleting/reordering other phases can't repaint one.
  */
 export const PHASE_COLOR_SLOTS: PhaseColorSlot[] = [
-  { fill: 'bg-blue-500', track: 'bg-blue-100', badge: 'border-blue-300 bg-blue-100 text-blue-800', accentBorder: 'border-l-blue-500' },
-  { fill: 'bg-orange-500', track: 'bg-orange-100', badge: 'border-orange-300 bg-orange-100 text-orange-800', accentBorder: 'border-l-orange-500' },
-  { fill: 'bg-green-500', track: 'bg-green-100', badge: 'border-green-300 bg-green-100 text-green-800', accentBorder: 'border-l-green-500' },
-  { fill: 'bg-fuchsia-500', track: 'bg-fuchsia-100', badge: 'border-fuchsia-300 bg-fuchsia-100 text-fuchsia-800', accentBorder: 'border-l-fuchsia-500' },
-  { fill: 'bg-yellow-600', track: 'bg-yellow-100', badge: 'border-yellow-300 bg-yellow-100 text-yellow-800', accentBorder: 'border-l-yellow-600' },
-  { fill: 'bg-indigo-500', track: 'bg-indigo-100', badge: 'border-indigo-300 bg-indigo-100 text-indigo-800', accentBorder: 'border-l-indigo-500' },
-  { fill: 'bg-red-500', track: 'bg-red-100', badge: 'border-red-300 bg-red-100 text-red-800', accentBorder: 'border-l-red-500' },
-  { fill: 'bg-teal-500', track: 'bg-teal-100', badge: 'border-teal-300 bg-teal-100 text-teal-800', accentBorder: 'border-l-teal-500' },
+  { fill: 'bg-blue-500', track: 'bg-blue-100', badge: 'border-blue-300 bg-blue-100 text-blue-800', accentBorder: 'border-l-blue-500', icon: 'text-blue-500' },
+  { fill: 'bg-orange-500', track: 'bg-orange-100', badge: 'border-orange-300 bg-orange-100 text-orange-800', accentBorder: 'border-l-orange-500', icon: 'text-orange-500' },
+  { fill: 'bg-green-500', track: 'bg-green-100', badge: 'border-green-300 bg-green-100 text-green-800', accentBorder: 'border-l-green-500', icon: 'text-green-500' },
+  { fill: 'bg-fuchsia-500', track: 'bg-fuchsia-100', badge: 'border-fuchsia-300 bg-fuchsia-100 text-fuchsia-800', accentBorder: 'border-l-fuchsia-500', icon: 'text-fuchsia-500' },
+  { fill: 'bg-yellow-600', track: 'bg-yellow-100', badge: 'border-yellow-300 bg-yellow-100 text-yellow-800', accentBorder: 'border-l-yellow-600', icon: 'text-yellow-600' },
+  { fill: 'bg-indigo-500', track: 'bg-indigo-100', badge: 'border-indigo-300 bg-indigo-100 text-indigo-800', accentBorder: 'border-l-indigo-500', icon: 'text-indigo-500' },
+  { fill: 'bg-red-500', track: 'bg-red-100', badge: 'border-red-300 bg-red-100 text-red-800', accentBorder: 'border-l-red-500', icon: 'text-red-500' },
+  { fill: 'bg-teal-500', track: 'bg-teal-100', badge: 'border-teal-300 bg-teal-100 text-teal-800', accentBorder: 'border-l-teal-500', icon: 'text-teal-500' },
 ]
 
 /** Find Projects page's e-GP status badge — the 4 real Thai status strings the portal itself uses. */

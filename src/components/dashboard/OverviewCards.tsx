@@ -1,6 +1,7 @@
+import { cn } from '@/lib/utils'
 import { Card, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import type { Rollup } from '../../domain/derive'
-import { STATUS_BADGE_CLASS } from '../shared/statusStyles'
+import { STATUS_CARD_ACCENT, TOTAL_CARD_ACCENT } from '../shared/statusStyles'
 
 const CARDS: { label: string; key: keyof Rollup['byStatus'] | 'total' }[] = [
   { label: 'Total', key: 'total' },
@@ -16,12 +17,16 @@ export function OverviewCards({ rollup }: { rollup: Rollup }) {
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
       {CARDS.map(({ label, key }) => {
         const value = key === 'total' ? rollup.totalItems : rollup.byStatus[key]
-        const colorClass = key === 'total' ? '' : STATUS_BADGE_CLASS[key].split(' ').pop()
+        const accent = key === 'total' ? TOTAL_CARD_ACCENT : STATUS_CARD_ACCENT[key]
+        const Icon = accent.icon
         return (
-          <Card key={label}>
+          <Card key={label} className={cn('border-l-4', accent.borderClass)}>
             <CardHeader>
-              <CardDescription>{label}</CardDescription>
-              <CardTitle className={`text-2xl ${colorClass ?? ''}`}>{value}</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardDescription>{label}</CardDescription>
+                <Icon className={cn('size-4', accent.textClass)} aria-hidden="true" />
+              </div>
+              <CardTitle className={cn('text-2xl font-bold', accent.textClass)}>{value}</CardTitle>
             </CardHeader>
           </Card>
         )

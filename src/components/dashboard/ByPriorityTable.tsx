@@ -1,8 +1,9 @@
+import { cn } from '@/lib/utils'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
 import { Badge } from '../ui/badge'
 import type { Rollup } from '../../domain/derive'
 import { PRIORITY_DEFS } from '../../domain/rules'
-import { PRIORITY_BADGE_CLASS } from '../shared/statusStyles'
+import { PRIORITY_BADGE_CLASS, PRIORITY_TEXT_CLASS } from '../shared/statusStyles'
 
 export function ByPriorityTable({ rollup }: { rollup: Rollup }) {
   return (
@@ -25,7 +26,7 @@ export function ByPriorityTable({ rollup }: { rollup: Rollup }) {
                 </Badge>
               </TableCell>
               <TableCell>{total}</TableCell>
-              <TableCell>{done}</TableCell>
+              <TableCell className={cn('font-semibold', PRIORITY_TEXT_CLASS[def.id])}>{done}</TableCell>
             </TableRow>
           )
         })}

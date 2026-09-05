@@ -8,7 +8,7 @@
   /* Matches the reference prototypes' actual font stack (system-ui, no webfont load). */
   --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
-  --color-header-band: #34495e;
+  --color-header-band: #0f766e;
 }
 
 @layer base {

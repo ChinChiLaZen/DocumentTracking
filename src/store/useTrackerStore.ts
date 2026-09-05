@@ -1,5 +1,8 @@
 import { create } from 'zustand'
 import type {
+  BoqCategory,
+  BoqEstimate,
+  BoqLine,
   CheckRow,
   DetailSheet,
   HistoryEntry,
@@ -30,9 +33,11 @@ export interface ProjectRuntime {
   selectedRowIds: Record<string, Set<string>>
   history: HistoryEntry[]
   schedule: ProjectSchedule
+  boq: BoqEstimate
 }
 
 const EMPTY_SCHEDULE: ProjectSchedule = { phases: [], milestones: [] }
+const EMPTY_BOQ: BoqEstimate = { categories: [], vatPercent: 7 }
 
 export interface CreateProjectInput {
   title: string
@@ -150,11 +155,31 @@ export interface TrackerState {
   ): void
   deleteScheduleMilestone(projectId: string, milestoneId: string): void
   updateScheduleMeta(projectId: string, patch: Partial<Pick<ProjectSchedule, 'contractStartDate'>>): void
+  addBoqCategory(projectId: string, input: Omit<BoqCategory, 'id' | 'lines'>): void
+  updateBoqCategory(
+    projectId: string,
+    categoryId: string,
+    patch: Partial<Omit<BoqCategory, 'id' | 'lines'>>,
+  ): void
+  deleteBoqCategory(projectId: string, categoryId: string): void
+  addBoqLine(projectId: string, categoryId: string, input: Omit<BoqLine, 'id'>): void
+  updateBoqLine(
+    projectId: string,
+    categoryId: string,
+    lineId: string,
+    patch: Partial<Omit<BoqLine, 'id'>>,
+  ): void
+  deleteBoqLine(projectId: string, categoryId: string, lineId: string): void
+  updateBoqMeta(projectId: string, patch: Partial<Pick<BoqEstimate, 'vatPercent'>>): void
   hydrate(): Promise<void>
 }
 
 function clampPercent(value: number): number {
   return Math.max(0, Math.min(100, value))
+}
+
+function clampNonNegative(value: number): number {
+  return Math.max(0, value)
 }
 
 function cloneItems(items: Item[]): Item[] {
@@ -177,6 +202,14 @@ function cloneSchedule(schedule: ProjectSchedule | undefined): ProjectSchedule {
   }
 }
 
+function cloneBoq(boq: BoqEstimate | undefined): BoqEstimate {
+  if (!boq) return EMPTY_BOQ
+  return {
+    categories: boq.categories.map((c) => ({ ...c, lines: c.lines.map((l) => ({ ...l })) })),
+    vatPercent: boq.vatPercent,
+  }
+}
+
 function toRuntime(record: ProjectRecord): ProjectRuntime {
   return {
     meta: { ...record.meta },
@@ -185,6 +218,7 @@ function toRuntime(record: ProjectRecord): ProjectRuntime {
     selectedRowIds: {},
     history: [...record.history],
     schedule: cloneSchedule(record.schedule),
+    boq: cloneBoq(record.boq),
   }
 }
 
@@ -249,6 +283,7 @@ export function createTrackerStore(persistence: PersistencePort = createApiPersi
         sheets: project.sheets,
         history: project.history,
         schedule: project.schedule,
+        boq: project.boq,
       })
     }
 
@@ -421,6 +456,7 @@ export function createTrackerStore(persistence: PersistencePort = createApiPersi
           selectedRowIds: {},
           history: [],
           schedule: EMPTY_SCHEDULE,
+          boq: EMPTY_BOQ,
         }))
         persistProject(projectId)
       },
@@ -449,6 +485,7 @@ export function createTrackerStore(persistence: PersistencePort = createApiPersi
           selectedRowIds: {},
           history: [],
           schedule: EMPTY_SCHEDULE,
+          boq: EMPTY_BOQ,
         }
         set((state) => ({
           projects: { ...state.projects, [id]: project },
@@ -685,6 +722,110 @@ export function createTrackerStore(persistence: PersistencePort = createApiPersi
         persistProject(projectId)
       },
 
+      addBoqCategory(projectId, input) {
+        const category: BoqCategory = { ...input, id: generateId('boq-category'), lines: [] }
+        updateProject(projectId, (project) => ({
+          ...project,
+          boq: { ...project.boq, categories: [...project.boq.categories, category] },
+        }))
+        persistProject(projectId)
+      },
+
+      updateBoqCategory(projectId, categoryId, patch) {
+        updateProject(projectId, (project) => ({
+          ...project,
+          boq: {
+            ...project.boq,
+            categories: project.boq.categories.map((c) => (c.id !== categoryId ? c : { ...c, ...patch })),
+          },
+        }))
+        persistProject(projectId)
+      },
+
+      deleteBoqCategory(projectId, categoryId) {
+        updateProject(projectId, (project) => ({
+          ...project,
+          boq: { ...project.boq, categories: project.boq.categories.filter((c) => c.id !== categoryId) },
+        }))
+        persistProject(projectId)
+      },
+
+      addBoqLine(projectId, categoryId, input) {
+        const line: BoqLine = {
+          ...input,
+          id: generateId('boq-line'),
+          quantity: clampNonNegative(input.quantity),
+          materialUnitCost: clampNonNegative(input.materialUnitCost),
+          laborUnitCost: clampNonNegative(input.laborUnitCost),
+        }
+        updateProject(projectId, (project) => ({
+          ...project,
+          boq: {
+            ...project.boq,
+            categories: project.boq.categories.map((c) =>
+              c.id !== categoryId ? c : { ...c, lines: [...c.lines, line] },
+            ),
+          },
+        }))
+        persistProject(projectId)
+      },
+
+      updateBoqLine(projectId, categoryId, lineId, patch) {
+        updateProject(projectId, (project) => ({
+          ...project,
+          boq: {
+            ...project.boq,
+            categories: project.boq.categories.map((c) => {
+              if (c.id !== categoryId) return c
+              return {
+                ...c,
+                lines: c.lines.map((l) =>
+                  l.id !== lineId
+                    ? l
+                    : {
+                        ...l,
+                        ...patch,
+                        quantity: patch.quantity === undefined ? l.quantity : clampNonNegative(patch.quantity),
+                        materialUnitCost:
+                          patch.materialUnitCost === undefined
+                            ? l.materialUnitCost
+                            : clampNonNegative(patch.materialUnitCost),
+                        laborUnitCost:
+                          patch.laborUnitCost === undefined ? l.laborUnitCost : clampNonNegative(patch.laborUnitCost),
+                      },
+                ),
+              }
+            }),
+          },
+        }))
+        persistProject(projectId)
+      },
+
+      deleteBoqLine(projectId, categoryId, lineId) {
+        updateProject(projectId, (project) => ({
+          ...project,
+          boq: {
+            ...project.boq,
+            categories: project.boq.categories.map((c) =>
+              c.id !== categoryId ? c : { ...c, lines: c.lines.filter((l) => l.id !== lineId) },
+            ),
+          },
+        }))
+        persistProject(projectId)
+      },
+
+      updateBoqMeta(projectId, patch) {
+        updateProject(projectId, (project) => ({
+          ...project,
+          boq: {
+            ...project.boq,
+            ...patch,
+            vatPercent: patch.vatPercent === undefined ? project.boq.vatPercent : clampNonNegative(patch.vatPercent),
+          },
+        }))
+        persistProject(projectId)
+      },
+
       async hydrate() {
         if (get().hydrating || get().hydrated) return
         set({ hydrating: true })
@@ -699,6 +840,7 @@ export function createTrackerStore(persistence: PersistencePort = createApiPersi
               selectedRowIds: {},
               history: record.history ?? [],
               schedule: cloneSchedule(record.schedule),
+              boq: cloneBoq(record.boq),
             }
           }
           set({ projects, projectOrder: loaded.projectOrder, hydrated: true, hydrating: false })

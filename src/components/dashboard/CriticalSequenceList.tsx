@@ -1,11 +1,14 @@
+import { ListOrdered } from 'lucide-react'
 import { CRITICAL_SEQUENCE } from '../../domain/rules'
+import { OrderedRuleBanner } from '../shared/OrderedRuleBanner'
 
 export function CriticalSequenceList() {
   return (
-    <ol className="list-decimal space-y-2 pl-5 text-sm">
-      {CRITICAL_SEQUENCE.map((step) => (
-        <li key={step}>{step}</li>
-      ))}
-    </ol>
+    <OrderedRuleBanner
+      heading="Follow this order — do not skip a step"
+      lines={CRITICAL_SEQUENCE}
+      tone="amber"
+      icon={ListOrdered}
+    />
   )
 }

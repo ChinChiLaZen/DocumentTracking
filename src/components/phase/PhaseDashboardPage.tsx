@@ -108,7 +108,7 @@ export function PhaseDashboardPage() {
           <p className="text-sm text-muted-foreground">
             {overall.done} of {overall.total} items submitted ({overall.percent}%)
           </p>
-          <Progress value={overall.percent} className="mt-2 w-64" />
+          <Progress value={overall.percent} className="mt-2 w-64" indicatorClassName="bg-emerald-500" />
         </div>
         <div className="flex items-center gap-2">
           {meta && <ExportMenu project={{ meta, items, sheets: [] }} />}
