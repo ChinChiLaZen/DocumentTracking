@@ -2,13 +2,17 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { ensureSchema, sql } from '../_lib/db.js'
 import { EMAIL_RE, hashPassword, requireAdmin, ROLES, type Role } from '../_lib/auth.js'
 
-// Merges the old separate users.ts (list+create) and users/[id].ts
-// (patch+delete) into one file, addressing a specific user via ?id= instead
+type TaskStatus = 'ToDo' | 'InProgress' | 'AwaitingReview' | 'Done'
+
+// Merges the old separate users.ts (list+create), users/[id].ts
+// (patch+delete), and team.ts (per-user task-count rollup, now reached via
+// ?resource=team) into one file, addressing a specific user via ?id= instead
 // of a /:id path segment — Vercel's plain (non-Next.js) Functions caps a
 // deployment at 12 serverless functions, and dynamic path-segment files
-// ([id].ts) reliably populate req.query, so this frees a route slot without
+// ([id].ts) reliably populate req.query, so this frees route slots without
 // relying on catch-all routing (see CLAUDE.md §10's note on why
-// [[...path]].ts silently failed to route project/task requests).
+// [[...path]].ts silently failed to route project/task requests). The
+// team.ts merge specifically freed the slot api/templates/index.ts now uses.
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET' && req.method !== 'POST' && req.method !== 'PATCH' && req.method !== 'DELETE') {
     res.status(405).json({ error: 'Method not allowed' })
@@ -20,6 +24,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const caller = await requireAdmin(req)
   if (!caller) {
     res.status(403).json({ error: 'Admin access required' })
+    return
+  }
+
+  if (req.method === 'GET' && req.query.resource === 'team') {
+    const result = await sql`
+      SELECT u.id, u.email, t.status, COUNT(t.id) AS count
+      FROM users u
+      LEFT JOIN tasks t ON t.user_id = u.id
+      GROUP BY u.id, u.email, t.status
+      ORDER BY u.id ASC
+    `
+
+    const byUser = new Map<number, { id: number; email: string; counts: Record<string, number> }>()
+    for (const row of result.rows) {
+      const id = row.id as number
+      if (!byUser.has(id)) {
+        byUser.set(id, {
+          id,
+          email: row.email as string,
+          counts: { toDo: 0, inProgress: 0, awaitingReview: 0, done: 0 },
+        })
+      }
+      const status = row.status as TaskStatus | null
+      const count = Number(row.count)
+      if (status === 'ToDo') byUser.get(id)!.counts.toDo = count
+      else if (status === 'InProgress') byUser.get(id)!.counts.inProgress = count
+      else if (status === 'AwaitingReview') byUser.get(id)!.counts.awaitingReview = count
+      else if (status === 'Done') byUser.get(id)!.counts.done = count
+    }
+
+    res.status(200).json({ team: Array.from(byUser.values()) })
     return
   }
 

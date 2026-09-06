@@ -33,7 +33,7 @@ export const useTeamStore = create<TeamState>((set) => ({
 
   async fetchTeam() {
     set({ loading: true, error: null })
-    const res = await fetch('/api/auth/team')
+    const res = await fetch('/api/auth/users?resource=team')
     const data = await parseJson(res)
     if (!res.ok) {
       set({ loading: false, error: (data.error as string) ?? 'Failed to load team' })

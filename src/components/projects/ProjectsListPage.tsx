@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useTrackerStore } from '../../store/useTrackerStore'
+import { useTemplateStore } from '../../store/useTemplateStore'
 import { useAuthStore } from '../../store/useAuthStore'
 import { selectAllProjectsSummary } from '../../store/selectors'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
@@ -17,7 +18,8 @@ export function ProjectsListPage() {
   const isAdmin = role === 'admin'
   // Add/Edit are open to Admin and Project Manager; Delete stays Admin-only.
   const canManageProjects = isAdmin || role === 'ProjectManager'
-  const summaries = selectAllProjectsSummary({ projects, projectOrder })
+  const templates = useTemplateStore((s) => s.templates)
+  const summaries = selectAllProjectsSummary({ projects, projectOrder }, templates)
 
   return (
     <div className="h-full overflow-auto p-6">

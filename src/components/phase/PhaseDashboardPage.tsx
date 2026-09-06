@@ -2,8 +2,6 @@ import { useEffect, useState } from 'react'
 import { useActiveProject } from '../../store/useActiveProject'
 import { useAuthStore } from '../../store/useAuthStore'
 import { selectOverallPhaseProgress, selectPhaseSummary } from '../../store/selectors'
-import { CRITICAL_SEQUENCE } from '../../domain/rules'
-import { AOT_CRITICAL_NOTICE } from '../../data/aotTemplate'
 import { Progress } from '../ui/progress'
 import { Button } from '../ui/button'
 import { ExportMenu } from '../shared/ExportMenu'
@@ -46,7 +44,7 @@ const META_PATCH_KEYS = [
 ] as const
 
 export function PhaseDashboardPage() {
-  const { items, history, meta, setWorkflowStatus, setPhase, updateItemMeta } = useActiveProject()
+  const { items, history, meta, template, setWorkflowStatus, setPhase, updateItemMeta } = useActiveProject()
   // AppShell gates this whole tree behind a signed-in session, so a user
   // email is always present here — the fallback is defensive only.
   const changedBy = useAuthStore((s) => s.user?.email) ?? 'Reviewer'
@@ -90,15 +88,11 @@ export function PhaseDashboardPage() {
 
   const summaries = selectPhaseSummary(items)
   const overall = selectOverallPhaseProgress(items)
-  const isAot = meta?.templateKind === 'aot'
-  // DOA/adsb's reference trackers have no equivalent critical-cutoff notice to
-  // transcribe (§ "never fabricate standards") — their banner is simply omitted.
-  const isDoa = meta?.templateKind === 'doa'
-  const isAdsb = meta?.templateKind === 'adsb'
-  const bannerHeading = isAot
-    ? 'จุดตัดสิทธิ์สำคัญ — Critical eligibility cutoff'
-    : 'Critical cutoff — review sequence must not be skipped'
-  const bannerLines = isAot ? AOT_CRITICAL_NOTICE : CRITICAL_SEQUENCE
+  // DOA/adsb (and any custom template that doesn't define one) have no
+  // equivalent critical-cutoff notice to transcribe (§ "never fabricate
+  // standards") — their banner is simply omitted, driven by the resolved
+  // template's own criticalNotice rather than a hardcoded per-kind literal.
+  const criticalNotice = template.criticalNotice
 
   return (
     <div className="h-full space-y-6 overflow-auto p-6">
@@ -111,7 +105,9 @@ export function PhaseDashboardPage() {
           <Progress value={overall.percent} className="mt-2 w-64" indicatorClassName="bg-emerald-500" />
         </div>
         <div className="flex items-center gap-2">
-          {meta && <ExportMenu project={{ meta, items, sheets: [] }} />}
+          {meta && (
+            <ExportMenu project={{ meta, items, sheets: [], hasDetailSheets: template.hasDetailSheets }} />
+          )}
           <Button
             variant="ghost"
             disabled={pendingCount === 0}
@@ -126,7 +122,7 @@ export function PhaseDashboardPage() {
         </div>
       </div>
 
-      {!isDoa && !isAdsb && <CriticalCutoffBanner heading={bannerHeading} lines={bannerLines} />}
+      {criticalNotice && <CriticalCutoffBanner heading={criticalNotice.heading} lines={criticalNotice.lines} />}
 
       <PhaseCards summaries={summaries} />
 

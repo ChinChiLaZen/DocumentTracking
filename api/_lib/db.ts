@@ -131,6 +131,31 @@ export function ensureSchema(): Promise<void> {
           )
         `,
       )
+      .then(
+        // Admin-editable checklist templates (api/templates/index.ts) — only
+        // override rows (an admin's edit of one of the 4 built-in templates)
+        // and brand-new custom templates ever live here; the 4 shipped
+        // templates themselves stay static TS files (src/domain/
+        // templateRegistry.ts) and are merged with these rows client-side
+        // (mergeTemplates) — see CLAUDE.md for why. `definition` holds the
+        // rest of TemplateDefinition (tabSet, hasGroups/hasPriority/
+        // hasDetailSheets, supportsDefaultPhase, groups, priorities,
+        // criticalNotice, items, sheets) as one opaque JSONB blob, same
+        // posture as project_records.items/sheets.
+        () => sql`
+          CREATE TABLE IF NOT EXISTS checklist_templates (
+            seq SERIAL PRIMARY KEY,
+            id TEXT UNIQUE NOT NULL,
+            is_builtin BOOLEAN NOT NULL DEFAULT false,
+            label TEXT NOT NULL,
+            description TEXT NOT NULL,
+            definition JSONB NOT NULL,
+            created_by TEXT,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+          )
+        `,
+      )
       .then(() => undefined)
   }
   return schemaReady

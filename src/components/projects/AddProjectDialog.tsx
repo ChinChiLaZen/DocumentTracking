@@ -22,6 +22,8 @@ import {
   SelectValue,
 } from '../ui/select'
 import { useTrackerStore } from '../../store/useTrackerStore'
+import { useTemplateStore } from '../../store/useTemplateStore'
+import { useAuthStore } from '../../store/useAuthStore'
 import { LIFECYCLE_PHASE_DEFS } from '../../domain/rules'
 import { CSI_MASTER_FORMAT, formatCsiEntry, groupCsiByDivision } from '../../data/csiMasterFormat'
 import type { LifecyclePhase, TemplateKind } from '../../data/types'
@@ -29,32 +31,6 @@ import type { LifecyclePhase, TemplateKind } from '../../data/types'
 const CSI_DIVISION_GROUPS = groupCsiByDivision(CSI_MASTER_FORMAT)
 
 const DEFAULT_PHASE: LifecyclePhase = 'AfterContract'
-
-const TEMPLATE_OPTIONS: { id: TemplateKind; label: string; description: string }[] = [
-  {
-    id: 'mar',
-    label: 'MAR — Vendor Approval Checklist',
-    description: 'Starts from the same 28-item MAR checklist structure used by every MAR project, fully unticked.',
-  },
-  {
-    id: 'aot',
-    label: 'AOT — Bid Submission Checklist',
-    description:
-      "Clones the 94-item AOT (Airports of Thailand) bid-submission checklist across Phases 0-3 — Suvarnabhumi/AOT format. Each item keeps its own real phase and importance; there's no checkbox detail-sheet or Group/Priority for this template.",
-  },
-  {
-    id: 'doa',
-    label: 'DOA — 3-Airport Document Tracker',
-    description:
-      "Clones the 64-item DOA (Department of Airports) document tracker spanning Khon Kaen, Udon Thani and Surat Thani airports. Each item keeps its own real phase, document-type badge (Shared/Mandatory/Site-specific) and airport assignment; there's no checkbox detail-sheet or Group/Priority for this template.",
-  },
-  {
-    id: 'adsb',
-    label: 'ADS-B Installation Checklist — CATM Ground Station & Vehicle Terminal',
-    description:
-      "Clones the 96-item ADS-B ground-station/vehicle-terminal (CATM) installation checklist across 5 real phases (Design & Approval, Site Readiness, Installation, Testing & Commissioning, As-built & Handover). Each item carries bilingual (Thai/English) text plus its own real installation phase; 80 of the 96 also carry the Employer ITP's Required-evidence and Hold/Witness-point fields. No checkbox detail-sheet or Group/Priority for this template.",
-  },
-]
 
 function today(): string {
   return new Date().toISOString().slice(0, 10)
@@ -70,6 +46,11 @@ export function AddProjectDialog() {
   const [defaultPhase, setDefaultPhase] = useState<LifecyclePhase>(DEFAULT_PHASE)
   const [projectType, setProjectType] = useState<string | undefined>(undefined)
   const createProject = useTrackerStore((s) => s.createProject)
+  // Sourced from the (possibly admin-extended) template registry rather than
+  // a hardcoded array — any template an admin adds via /templates shows up
+  // here automatically.
+  const templateOptions = useTemplateStore((s) => s.templates)
+  const isAdmin = useAuthStore((s) => s.user?.role) === 'admin'
   const navigate = useNavigate()
 
   function reset() {
@@ -96,7 +77,7 @@ export function AddProjectDialog() {
       scope: scope.trim(),
       preparedDate,
       templateKind,
-      defaultPhase: templateKind === 'mar' ? defaultPhase : undefined,
+      defaultPhase: selectedTemplate?.supportsDefaultPhase ? defaultPhase : undefined,
       projectType,
     })
     setOpen(false)
@@ -104,7 +85,13 @@ export function AddProjectDialog() {
     navigate(`/projects/${id}`)
   }
 
-  const selectedTemplate = TEMPLATE_OPTIONS.find((t) => t.id === templateKind)!
+  function handleManageTemplates() {
+    setOpen(false)
+    reset()
+    navigate('/templates')
+  }
+
+  const selectedTemplate = templateOptions.find((t) => t.id === templateKind)
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -115,7 +102,7 @@ export function AddProjectDialog() {
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Add a new project</DialogTitle>
-            <DialogDescription>{selectedTemplate.description}</DialogDescription>
+            <DialogDescription>{selectedTemplate?.description}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-3 py-2">
             <div className="grid gap-1.5">
@@ -128,7 +115,7 @@ export function AddProjectDialog() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {TEMPLATE_OPTIONS.map((t) => (
+                  {templateOptions.map((t) => (
                     <SelectItem key={t.id} value={t.id}>
                       {t.label}
                     </SelectItem>
@@ -185,7 +172,7 @@ export function AddProjectDialog() {
                 onChange={(e) => setPreparedDate(e.target.value)}
               />
             </div>
-            {templateKind === 'mar' && (
+            {selectedTemplate?.supportsDefaultPhase && (
               <div className="grid gap-1.5">
                 <Label htmlFor="project-phase">Default phase</Label>
                 <Select
@@ -207,6 +194,11 @@ export function AddProjectDialog() {
             )}
           </div>
           <DialogFooter>
+            {isAdmin && (
+              <Button type="button" variant="link" className="mr-auto px-0" onClick={handleManageTemplates}>
+                Manage Templates
+              </Button>
+            )}
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>

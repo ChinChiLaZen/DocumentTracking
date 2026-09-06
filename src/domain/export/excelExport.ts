@@ -1,13 +1,7 @@
 import * as XLSX from 'xlsx'
-import type { DetailSheet, Item, ProjectMeta } from '../../data/types'
+import type { DetailSheet, GroupDef, Item, PriorityDef, ProjectMeta } from '../../data/types'
 import { effectiveStatus, item3Remark, rollup } from '../derive'
-import {
-  CRITICAL_SEQUENCE,
-  DETAIL_SHEET_ORDER,
-  GROUP_DEFS,
-  LIFECYCLE_PHASE_DEFS,
-  PRIORITY_DEFS,
-} from '../rules'
+import { CRITICAL_SEQUENCE, GROUP_DEFS, LIFECYCLE_PHASE_DEFS, PRIORITY_DEFS } from '../rules'
 import { selectPhaseSummary } from '../../store/selectors'
 import { DOA_SITE_LABEL } from '../../data/doaTemplate'
 import { downloadBlob } from './download'
@@ -32,10 +26,10 @@ function displayRemark(item: Item, sheet: DetailSheet | undefined): string {
 // MAR
 // ---------------------------------------------------------------------------
 
-function buildMarTrackerRows(items: Item[], sheetByItemNo: Map<number, DetailSheet>): AOA {
+function buildMarTrackerRows(items: Item[], sheetByItemNo: Map<number, DetailSheet>, groups: GroupDef[]): AOA {
   const header = ['#', 'Group', 'Document Name', 'Standard', 'Requirement', 'Priority', 'Status', 'Remark']
   const rows: AOA = [header]
-  for (const group of GROUP_DEFS) {
+  for (const group of groups) {
     const groupItems = items.filter((item) => item.group === group.id)
     if (groupItems.length === 0) continue
     rows.push([`${group.label} (Items ${group.itemRange})`])
@@ -56,7 +50,12 @@ function buildMarTrackerRows(items: Item[], sheetByItemNo: Map<number, DetailShe
   return rows
 }
 
-function buildMarSummaryRows(items: Item[], sheets: DetailSheet[]): AOA {
+function buildMarSummaryRows(
+  items: Item[],
+  sheets: DetailSheet[],
+  priorities: PriorityDef[],
+  criticalSequence: string[],
+): AOA {
   const r = rollup(items, sheets)
   const rows: AOA = [
     ['Dashboard Summary'],
@@ -67,7 +66,7 @@ function buildMarSummaryRows(items: Item[], sheets: DetailSheet[]): AOA {
     ...(Object.entries(r.byStatus) as [string, number][]).map(([status, count]) => [status, count]),
     [],
     ['By priority', 'Total', 'Submitted'],
-    ...PRIORITY_DEFS.map((def) => [def.label, r.byPriority[def.id].total, r.byPriority[def.id].done]),
+    ...priorities.map((def) => [def.label, r.byPriority[def.id].total, r.byPriority[def.id].done]),
     [],
     ['Checkbox roll-up'],
     ['Required', r.checkboxRollup.req],
@@ -82,7 +81,7 @@ function buildMarSummaryRows(items: Item[], sheets: DetailSheet[]): AOA {
     ['Integrity check', r.integrityOK ? 'PASS' : 'FAIL'],
     [],
     ['Critical sequence'],
-    ...CRITICAL_SEQUENCE.map((line) => [line]),
+    ...criticalSequence.map((line) => [line]),
   ]
   return rows
 }
@@ -102,16 +101,26 @@ function buildDetailSheetRows(sheet: DetailSheet): AOA {
   return rows
 }
 
-export function buildMarWorkbook(items: Item[], sheets: DetailSheet[]): XLSX.WorkBook {
+export function buildMarWorkbook(
+  items: Item[],
+  sheets: DetailSheet[],
+  groups: GroupDef[] = GROUP_DEFS,
+  priorities: PriorityDef[] = PRIORITY_DEFS,
+  criticalSequence: string[] = CRITICAL_SEQUENCE,
+): XLSX.WorkBook {
   const sheetByItemNo = new Map(sheets.map((s) => [s.itemNo, s]))
   const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, sheetFromRows(buildMarTrackerRows(items, sheetByItemNo)), 'Tracker')
+  XLSX.utils.book_append_sheet(wb, sheetFromRows(buildMarTrackerRows(items, sheetByItemNo, groups)), 'Tracker')
   XLSX.utils.book_append_sheet(
     wb,
-    sheetFromRows(buildMarSummaryRows(items, sheets)),
+    sheetFromRows(buildMarSummaryRows(items, sheets, priorities, criticalSequence)),
     safeSheetName('Dashboard Summary'),
   )
-  for (const itemNo of DETAIL_SHEET_ORDER) {
+  // Ordered by the items that actually declare a detailSheetId (in item
+  // order), not a hardcoded MAR-specific item-number list — so a custom
+  // full-MAR-style template's own detail sheets export correctly too.
+  const detailSheetOrder = items.filter((item) => item.detailSheetId !== undefined).map((item) => item.no)
+  for (const itemNo of detailSheetOrder) {
     const sheet = sheetByItemNo.get(itemNo)
     if (!sheet) continue
     XLSX.utils.book_append_sheet(
@@ -200,12 +209,24 @@ export interface ExportableProject {
   meta: ProjectMeta
   items: Item[]
   sheets: DetailSheet[]
+  // The active project's resolved template shape — optional, defaults to the
+  // built-in MAR posture (hasDetailSheets: true, GROUP_DEFS/PRIORITY_DEFS/
+  // CRITICAL_SEQUENCE) so existing call sites that don't pass these keep
+  // working unchanged. Callers with a resolved TemplateDefinition (e.g.
+  // TrackerPage.tsx) should pass its groups/priorities/criticalNotice/
+  // hasDetailSheets through so a custom template's own labels export
+  // correctly instead of always rendering MAR's.
+  hasDetailSheets?: boolean
+  groups?: GroupDef[]
+  priorities?: PriorityDef[]
+  criticalSequence?: string[]
 }
 
 function buildWorkbook(project: ExportableProject): XLSX.WorkBook {
   const kind = project.meta.templateKind ?? 'mar'
-  if (kind === 'aot' || kind === 'doa') return buildPhaseWorkbook(project.items)
-  return buildMarWorkbook(project.items, project.sheets)
+  const hasDetailSheets = project.hasDetailSheets ?? (kind !== 'aot' && kind !== 'doa')
+  if (!hasDetailSheets) return buildPhaseWorkbook(project.items)
+  return buildMarWorkbook(project.items, project.sheets, project.groups, project.priorities, project.criticalSequence)
 }
 
 /**

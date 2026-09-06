@@ -14,15 +14,24 @@ import type {
   ScheduleMilestone,
   SchedulePhase,
   Status,
+  TemplateDefinition,
   WorkflowStatus,
 } from '../data/types'
+import { resolveTemplate } from '../domain/templateRegistry'
 import type { ItemMetaPatch } from './useTrackerStore'
 import { useTrackerStore } from './useTrackerStore'
+import { useTemplateStore } from './useTemplateStore'
 
 export interface ActiveProject {
   projectId: string
   notFound: boolean
   meta: ProjectMeta | undefined
+  /** The (possibly admin-overridden) template this project was cloned from —
+   *  resolved live from useTemplateStore, so its groups/priorities/
+   *  criticalNotice/tabSet reflect the current registry, not what existed at
+   *  creation time. Falls back to the built-in 'mar' definition when
+   *  meta is undefined (project not found) or templateKind is unset. */
+  template: TemplateDefinition
   items: Item[]
   sheets: DetailSheet[]
   selectedRowIds: Record<string, Set<string>>
@@ -75,6 +84,7 @@ export interface ActiveProject {
 export function useActiveProject(): ActiveProject {
   const { projectId = '' } = useParams<{ projectId: string }>()
   const project = useTrackerStore((s) => s.projects[projectId])
+  const templates = useTemplateStore((s) => s.templates)
   const toggleCellAction = useTrackerStore((s) => s.toggleCell)
   const setRowRemarkAction = useTrackerStore((s) => s.setRowRemark)
   const updateRowTextAction = useTrackerStore((s) => s.updateRowText)
@@ -113,6 +123,7 @@ export function useActiveProject(): ActiveProject {
     projectId,
     notFound: !project,
     meta: project?.meta,
+    template: resolveTemplate(templates, project?.meta.templateKind),
     items: project?.items ?? [],
     sheets: project?.sheets ?? [],
     selectedRowIds: project?.selectedRowIds ?? {},

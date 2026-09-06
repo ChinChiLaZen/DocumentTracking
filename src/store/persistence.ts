@@ -1,4 +1,4 @@
-import type { ProjectRecord } from '../data/types'
+import type { ProjectRecord, TemplateDefinition } from '../data/types'
 
 export interface ChecklistState {
   projects: ProjectRecord[]
@@ -13,6 +13,11 @@ export interface PersistencePort {
   /** Awaited, not debounced — the caller needs to know whether it actually
    *  succeeded (e.g. to roll back an optimistic local removal on failure). */
   deleteProject(projectId: string): Promise<{ error?: string }>
+  /** Only override/custom template rows — the 4 built-ins never round-trip
+   *  through the DB (see domain/templateRegistry.ts's mergeTemplates). */
+  loadTemplateOverrides(): Promise<TemplateDefinition[]>
+  saveTemplate(def: TemplateDefinition): Promise<{ id?: string; error?: string }>
+  deleteTemplateOverride(id: string): Promise<{ error?: string }>
 }
 
 async function parseJson(res: Response): Promise<Record<string, unknown>> {
@@ -93,6 +98,47 @@ export function createApiPersistence(debounceMs = 600): PersistencePort {
         return { error: 'Failed to delete project — check your connection and try again' }
       }
     },
+
+    async loadTemplateOverrides() {
+      try {
+        const res = await fetch('/api/templates')
+        if (!res.ok) return []
+        const data = await parseJson(res)
+        return (data.templates as TemplateDefinition[] | undefined) ?? []
+      } catch {
+        return []
+      }
+    },
+
+    async saveTemplate(def) {
+      try {
+        const res = await fetch(`/api/templates?id=${encodeURIComponent(def.id)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ definition: def }),
+        })
+        if (!res.ok) {
+          const data = await parseJson(res)
+          return { error: (data.error as string) ?? 'Failed to save template' }
+        }
+        return {}
+      } catch {
+        return { error: 'Failed to save template — check your connection and try again' }
+      }
+    },
+
+    async deleteTemplateOverride(id) {
+      try {
+        const res = await fetch(`/api/templates?id=${encodeURIComponent(id)}`, { method: 'DELETE' })
+        if (!res.ok) {
+          const data = await parseJson(res)
+          return { error: (data.error as string) ?? 'Failed to delete template' }
+        }
+        return {}
+      } catch {
+        return { error: 'Failed to delete template — check your connection and try again' }
+      }
+    },
   }
 }
 
@@ -131,6 +177,7 @@ async function putProjectSeed(record: ProjectRecord): Promise<boolean> {
  *  being wiped to empty. */
 export function createMemoryPersistence(): PersistencePort {
   let stored: ChecklistState | null = null
+  let templateOverrides: TemplateDefinition[] = []
 
   function ensureStored(): ChecklistState {
     if (!stored) stored = { projects: [], projectOrder: [] }
@@ -159,6 +206,20 @@ export function createMemoryPersistence(): PersistencePort {
         projects: state.projects.filter((p) => p.meta.id !== projectId),
         projectOrder: state.projectOrder.filter((id) => id !== projectId),
       }
+      return {}
+    },
+
+    async loadTemplateOverrides() {
+      return templateOverrides
+    },
+    async saveTemplate(def) {
+      const idx = templateOverrides.findIndex((t) => t.id === def.id)
+      if (idx >= 0) templateOverrides = templateOverrides.map((t, i) => (i === idx ? def : t))
+      else templateOverrides = [...templateOverrides, def]
+      return {}
+    },
+    async deleteTemplateOverride(id) {
+      templateOverrides = templateOverrides.filter((t) => t.id !== id)
       return {}
     },
   }

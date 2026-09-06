@@ -4,8 +4,9 @@ import { Badge } from '../ui/badge'
 import type { Rollup } from '../../domain/derive'
 import { PRIORITY_DEFS } from '../../domain/rules'
 import { PRIORITY_BADGE_CLASS, PRIORITY_TEXT_CLASS } from '../shared/statusStyles'
+import type { PriorityDef } from '../../data/types'
 
-export function ByPriorityTable({ rollup }: { rollup: Rollup }) {
+export function ByPriorityTable({ rollup, priorities = PRIORITY_DEFS }: { rollup: Rollup; priorities?: PriorityDef[] }) {
   return (
     <Table>
       <TableHeader>
@@ -16,7 +17,7 @@ export function ByPriorityTable({ rollup }: { rollup: Rollup }) {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {PRIORITY_DEFS.map((def) => {
+        {priorities.map((def) => {
           const { total, done } = rollup.byPriority[def.id]
           return (
             <TableRow key={def.id}>

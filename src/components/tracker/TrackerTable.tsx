@@ -10,7 +10,7 @@ import { GROUP_DEFS, PRIORITY_DEFS } from '../../domain/rules'
 import { GroupHeaderRow } from './GroupHeaderRow'
 import { PRIORITY_BADGE_CLASS, STATUS_BADGE_CLASS } from '../shared/statusStyles'
 import type { ItemMetaPatch } from '../../store/useTrackerStore'
-import type { GroupId, Priority } from '../../data/types'
+import type { GroupDef, GroupId, Priority, PriorityDef } from '../../data/types'
 
 const COLUMN_COUNT = 8
 
@@ -22,9 +22,22 @@ interface TrackerTableProps {
   /** Admin-only inline editing of Group/Name/Standard/Requirement/Priority — omit for read-only views (e.g. Priority A/B/C). */
   editable?: boolean
   onFieldCommit?(itemNo: number, patch: ItemMetaPatch): void
+  /** The active project's own group/priority defs (from its resolved
+   *  template) — defaults to the built-in MAR G1-G5/A-B-C defs so existing
+   *  callers that don't pass these keep working unchanged. */
+  groups?: GroupDef[]
+  priorities?: PriorityDef[]
 }
 
-export function TrackerTable({ items, basePath, dirtyNos, editable, onFieldCommit }: TrackerTableProps) {
+export function TrackerTable({
+  items,
+  basePath,
+  dirtyNos,
+  editable,
+  onFieldCommit,
+  groups = GROUP_DEFS,
+  priorities = PRIORITY_DEFS,
+}: TrackerTableProps) {
   const byNo = new Map(items.map((item) => [item.no, item]))
 
   return (
@@ -42,7 +55,7 @@ export function TrackerTable({ items, basePath, dirtyNos, editable, onFieldCommi
         </TableRow>
       </TableHeader>
       <TableBody>
-        {GROUP_DEFS.map((group) => {
+        {groups.map((group) => {
           const groupItems = items.filter((item) => item.group === group.id)
           if (groupItems.length === 0) return null
           return (
@@ -67,7 +80,7 @@ export function TrackerTable({ items, basePath, dirtyNos, editable, onFieldCommi
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {GROUP_DEFS.map((def) => (
+                            {groups.map((def) => (
                               <SelectItem key={def.id} value={def.id}>
                                 {def.id}
                               </SelectItem>
@@ -141,7 +154,7 @@ export function TrackerTable({ items, basePath, dirtyNos, editable, onFieldCommi
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {PRIORITY_DEFS.map((def) => (
+                            {priorities.map((def) => (
                               <SelectItem key={def.id} value={def.id}>
                                 {def.id}
                               </SelectItem>

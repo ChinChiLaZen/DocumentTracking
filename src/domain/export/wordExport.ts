@@ -9,7 +9,7 @@ import {
   TextRun,
   WidthType,
 } from 'docx'
-import type { DetailSheet, Item, ProjectMeta } from '../../data/types'
+import type { DetailSheet, GroupDef, Item, ProjectMeta } from '../../data/types'
 import { effectiveStatus, item3Remark } from '../derive'
 import { GROUP_DEFS, LIFECYCLE_PHASE_DEFS } from '../rules'
 import { DOA_SITE_LABEL } from '../../data/doaTemplate'
@@ -55,11 +55,11 @@ function displayRemark(item: Item, sheet: DetailSheet | undefined): string {
 // MAR — one table per group
 // ---------------------------------------------------------------------------
 
-function buildMarBody(items: Item[], sheets: DetailSheet[]): (Paragraph | Table)[] {
+function buildMarBody(items: Item[], sheets: DetailSheet[], groups: GroupDef[]): (Paragraph | Table)[] {
   const sheetByItemNo = new Map(sheets.map((s) => [s.itemNo, s]))
   const header = ['#', 'Document Name', 'Standard', 'Requirement', 'Priority', 'Status', 'Remark']
   const body: (Paragraph | Table)[] = []
-  for (const group of GROUP_DEFS) {
+  for (const group of groups) {
     const groupItems = items.filter((item) => item.group === group.id)
     if (groupItems.length === 0) continue
     body.push(new Paragraph({ text: `${group.label} (Items ${group.itemRange})`, heading: HeadingLevel.HEADING_2 }))
@@ -82,9 +82,14 @@ function buildMarBody(items: Item[], sheets: DetailSheet[]): (Paragraph | Table)
   return body
 }
 
-export async function buildMarDocx(items: Item[], sheets: DetailSheet[], meta: ProjectMeta): Promise<Blob> {
+export async function buildMarDocx(
+  items: Item[],
+  sheets: DetailSheet[],
+  meta: ProjectMeta,
+  groups: GroupDef[] = GROUP_DEFS,
+): Promise<Blob> {
   const doc = new Document({
-    sections: [{ children: [...headerParagraphs(meta), ...buildMarBody(items, sheets)] }],
+    sections: [{ children: [...headerParagraphs(meta), ...buildMarBody(items, sheets, groups)] }],
   })
   return Packer.toBlob(doc)
 }
@@ -150,6 +155,10 @@ export interface ExportableProject {
   meta: ProjectMeta
   items: Item[]
   sheets: DetailSheet[]
+  // See excelExport.ts's ExportableProject — same optional resolved-template
+  // fields, same backward-compat defaults.
+  hasDetailSheets?: boolean
+  groups?: GroupDef[]
 }
 
 /**
@@ -162,9 +171,9 @@ export interface ExportableProject {
  */
 export async function exportProjectWord(project: ExportableProject): Promise<void> {
   const kind = project.meta.templateKind ?? 'mar'
-  const blob =
-    kind === 'aot' || kind === 'doa'
-      ? await buildPhaseDocx(project.items, project.meta)
-      : await buildMarDocx(project.items, project.sheets, project.meta)
+  const hasDetailSheets = project.hasDetailSheets ?? (kind !== 'aot' && kind !== 'doa')
+  const blob = !hasDetailSheets
+    ? await buildPhaseDocx(project.items, project.meta)
+    : await buildMarDocx(project.items, project.sheets, project.meta, project.groups)
   downloadBlob(blob, `${projectFileSlug(project.meta)}-tracker.docx`)
 }

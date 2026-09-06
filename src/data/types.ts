@@ -1,4 +1,8 @@
-export type GroupId = 'G1' | 'G2' | 'G3' | 'G4' | 'G5'
+// Was a closed 'G1'..'G5' union; widened to plain string so admin-authored
+// templates can define their own group ids (§ TemplateDefinition below).
+// Cosmetic-only — read for display grouping (TrackerTable.tsx, excelExport.ts,
+// wordExport.ts, DetailPanelHeader.tsx), never in derive.ts's status/rollup math.
+export type GroupId = string
 
 export type Priority = 'A' | 'B' | 'C'
 
@@ -32,7 +36,12 @@ export type LifecyclePhase =
 // 3 airports (see DoaDocType/DoaSite below). 'adsb' = the real ADS-B ground
 // station/vehicle terminal (CATM) 96-item installation checklist (see
 // AdsbResult/AdsbEmployerResult/AdsbHwPoint/AdsbInstallPhase below).
-export type TemplateKind = 'mar' | 'aot' | 'doa' | 'adsb'
+//
+// Widened (the "(string & {})" branded-string trick) beyond these 4 literals
+// so an admin-authored custom template's generated slug (§ TemplateDefinition
+// below) remains assignable without an `as` cast, while the 4 built-in
+// literals still autocomplete.
+export type TemplateKind = 'mar' | 'aot' | 'doa' | 'adsb' | (string & {})
 
 // AOT's own criticality marker (⚠️สำคัญ/ปกติ/📌ประกอบ/ด่านสำคัญ) — independent
 // of Priority (A/B/C), which is MAR-specific and doesn't apply to AOT items.
@@ -147,6 +156,68 @@ export interface ProjectMeta {
   // into derive.ts. Optional; absent for projects created before this field
   // existed or left unset at creation time.
   projectType?: string
+}
+
+// Moved here (from domain/rules.ts) so both rules.ts (the built-in MAR
+// definitions) and templateRegistry.ts (the generic template registry) can
+// share one definition without rules.ts -> types.ts -> rules.ts circularity.
+export interface GroupDef {
+  id: GroupId
+  label: string
+  itemRange?: string
+}
+
+export interface PriorityDef {
+  id: Priority
+  label: string
+  description: string
+}
+
+// A template's own free-text "critical cutoff" notice — generalizes the
+// pattern already used ad hoc by CRITICAL_SEQUENCE (MAR, domain/rules.ts) and
+// AOT_CRITICAL_NOTICE (data/aotTemplate.ts). Absent entirely for templates
+// with no equivalent real notice to show (DOA, ADS-B, and any custom template
+// that doesn't define one) — never fabricated.
+export interface CriticalNotice {
+  heading: string
+  lines: string[]
+}
+
+/**
+ * The full shape of a checklist template — what "Add Project" clones into a
+ * brand-new ProjectRecord (§ createProject). The 4 shipped kinds (mar/aot/
+ * doa/adsb) are represented as built-in TemplateDefinitions (see
+ * domain/templateRegistry.ts, built from their existing static data files);
+ * an admin can override one of those, or create an entirely new one, via the
+ * /templates admin section — those are persisted in the checklist_templates
+ * table and merged over the built-ins at read time (mergeTemplates).
+ *
+ * Deliberately reuses Item/DetailSheet/CheckColumn/CheckRow as-is rather than
+ * inventing a parallel "template item" shape — a template's `items`/`sheets`
+ * are exactly the blank blueprint arrays a new ProjectRecord's own
+ * items/sheets start as.
+ */
+export interface TemplateDefinition {
+  id: TemplateKind
+  isBuiltin: boolean
+  label: string
+  description: string
+  // 'full' = the MAR-style tab set (Tracker/Priority A-B-C/Item Details/Phase
+  // Progress/Guidelines, plus Project Management/BOQ Estimate). 'single' = the
+  // AOT/DOA/adsb-style set (Dashboard + Project Management + BOQ Estimate only).
+  tabSet: 'full' | 'single'
+  hasDetailSheets: boolean
+  hasGroups: boolean
+  // When true, priorities is always exactly 3 entries with fixed ids A/B/C —
+  // see CLAUDE.md/plan notes on why priority count itself isn't generalized.
+  hasPriority: boolean
+  // Whether "Add Project"'s MAR-only "Default phase" picker applies to this template.
+  supportsDefaultPhase: boolean
+  groups: GroupDef[] // [] when hasGroups is false
+  priorities: PriorityDef[] // [] when hasPriority is false, else exactly 3 (A/B/C)
+  criticalNotice?: CriticalNotice
+  items: Item[] // the blank/unticked blueprint cloned by createProject/resetToSeed
+  sheets: DetailSheet[] // the blank blueprint sheets ([] when hasDetailSheets is false)
 }
 
 export type HistoryField =

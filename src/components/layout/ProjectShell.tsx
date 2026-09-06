@@ -56,7 +56,7 @@ function formatPreparedDate(iso: string): string {
 }
 
 export function ProjectShell() {
-  const { notFound, meta, basePath } = useActiveProject()
+  const { notFound, meta, basePath, template } = useActiveProject()
 
   // The on-screen header is `no-print`, so the project's title only reaches a
   // printed page via the browser's own print header, which is drawn from
@@ -81,10 +81,7 @@ export function ProjectShell() {
     )
   }
 
-  const tabs =
-    meta.templateKind === 'aot' || meta.templateKind === 'doa' || meta.templateKind === 'adsb'
-      ? SINGLE_TAB
-      : MAR_TABS
+  const tabs = template.tabSet === 'full' ? MAR_TABS : SINGLE_TAB
   const csiEntry = findCsiEntry(meta.projectType)
 
   return (

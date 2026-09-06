@@ -10,6 +10,8 @@ import { ProjectLeadDetailPage } from './components/procurement/ProjectLeadDetai
 import { MyTasksPage } from './components/tasks/MyTasksPage'
 import { TeamPage } from './components/team/TeamPage'
 import { UserManagementPage } from './components/users/UserManagementPage'
+import { TemplatesListPage } from './components/templates/TemplatesListPage'
+import { TemplateEditorPage } from './components/templates/TemplateEditorPage'
 import { TrackerPage } from './components/tracker/TrackerPage'
 import { PriorityPage } from './components/priority/PriorityPage'
 import { ItemDetailsPage } from './components/itemDetails/ItemDetailsPage'
@@ -35,6 +37,11 @@ export const router = createBrowserRouter([
           { path: 'tasks', element: <MyTasksPage /> },
           { path: 'team', element: <TeamPage /> },
           { path: 'users', element: <UserManagementPage /> },
+          // Admin-only — reached via AddProjectDialog's "Manage Templates"
+          // link, deliberately not a persistent DashboardShell nav item.
+          { path: 'templates', element: <TemplatesListPage /> },
+          { path: 'templates/new', element: <TemplateEditorPage /> },
+          { path: 'templates/:templateId', element: <TemplateEditorPage /> },
         ],
       },
       {

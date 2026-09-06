@@ -1,6 +1,7 @@
-import type { DetailSheet, HistoryEntry, Item, ProjectMeta, Status } from '../data/types'
+import type { DetailSheet, HistoryEntry, Item, ProjectMeta, Status, TemplateDefinition } from '../data/types'
 import { effectiveStatus, item3Remark, rollup as deriveRollup, type Rollup } from '../domain/derive'
 import { LIFECYCLE_PHASE_DEFS, type LifecyclePhaseDef } from '../domain/rules'
+import { resolveTemplate } from '../domain/templateRegistry'
 
 export interface DataSlice {
   items: Item[]
@@ -39,19 +40,25 @@ export interface ProjectSummary {
 }
 
 /**
- * Per-project summary for the Projects Summary cards. Branches per
- * `templateKind`: AOT/DOA projects have no Group/Priority (§5.2), so
+ * Per-project summary for the Projects Summary cards. Branches per the
+ * resolved template's `hasDetailSheets`: templates without detail sheets
+ * (AOT/DOA-shaped, built-in or custom) have no Group/Priority (§5.2), so
  * `rollup()` (which indexes by Priority) is never called on them — they use
  * the same workflowStatus-based progress as the Phase Progress tab instead.
- * adsb projects never set workflowStatus (their own dedicated checklist page
- * uses `result`/`employerResult` instead), so they get their own branch using
- * `selectAdsbProgress` — `done` = Contractor Pass count, matching every other
- * template's "done" meaning "fully complete," not merely "reviewed."
+ * adsb stays a hardcoded literal check (accepted exception — see
+ * domain/templateRegistry.ts) since it never sets workflowStatus at all
+ * (its own dedicated checklist page uses `result`/`employerResult` instead)
+ * and gets its own branch using `selectAdsbProgress` — `done` = Contractor
+ * Pass count, matching every other template's "done" meaning "fully
+ * complete," not merely "reviewed."
  */
-export function selectAllProjectsSummary(state: {
-  projects: Record<string, DataSlice & { meta: ProjectMeta }>
-  projectOrder: string[]
-}): ProjectSummary[] {
+export function selectAllProjectsSummary(
+  state: {
+    projects: Record<string, DataSlice & { meta: ProjectMeta }>
+    projectOrder: string[]
+  },
+  templates: TemplateDefinition[],
+): ProjectSummary[] {
   return state.projectOrder.map((id) => {
     const project = state.projects[id]
     if (project.meta.templateKind === 'adsb') {
@@ -61,7 +68,8 @@ export function selectAllProjectsSummary(state: {
       const percent = total === 0 ? 0 : Math.round((done / total) * 100)
       return { meta: project.meta, done, total, percent }
     }
-    if (project.meta.templateKind === 'aot' || project.meta.templateKind === 'doa') {
+    const template = resolveTemplate(templates, project.meta.templateKind)
+    if (!template.hasDetailSheets) {
       const progress = selectOverallPhaseProgress(project.items)
       return { meta: project.meta, ...progress }
     }

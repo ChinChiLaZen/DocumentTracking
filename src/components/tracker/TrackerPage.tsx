@@ -10,7 +10,7 @@ import type { Item } from '../../data/types'
 type PendingPatch = Partial<Pick<Item, 'group' | 'name' | 'standard' | 'requirement' | 'priority'>>
 
 export function TrackerPage() {
-  const { items: rawItems, sheets, meta, basePath, updateItemMeta } = useActiveProject()
+  const { items: rawItems, sheets, meta, template, basePath, updateItemMeta } = useActiveProject()
   const role = useAuthStore((s) => s.user?.role)
   const changedBy = useAuthStore((s) => s.user?.email) ?? 'Reviewer'
   const items = useMemo(
@@ -53,7 +53,19 @@ export function TrackerPage() {
       <div className="mb-4 flex items-center justify-between gap-4">
         <h1 className="text-lg font-semibold">Tracker</h1>
         <div className="flex items-center gap-2">
-          {meta && <ExportMenu project={{ meta, items: rawItems, sheets }} />}
+          {meta && (
+            <ExportMenu
+              project={{
+                meta,
+                items: rawItems,
+                sheets,
+                hasDetailSheets: template.hasDetailSheets,
+                groups: template.groups,
+                priorities: template.priorities,
+                criticalSequence: template.criticalNotice?.lines,
+              }}
+            />
+          )}
           <Button variant="ghost" disabled={pendingCount === 0} onClick={() => setPending({})}>
             Discard
           </Button>
@@ -68,6 +80,8 @@ export function TrackerPage() {
         dirtyNos={dirtyNos}
         editable={role === 'admin'}
         onFieldCommit={(itemNo, patch) => stage(itemNo, patch)}
+        groups={template.groups}
+        priorities={template.priorities}
       />
     </div>
   )

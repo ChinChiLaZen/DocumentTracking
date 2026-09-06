@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useActiveProject } from '../../store/useActiveProject'
 import { useAuthStore } from '../../store/useAuthStore'
-import { DETAIL_SHEET_ORDER } from '../../domain/rules'
 import { effectiveStatus } from '../../domain/derive'
 import { Button } from '../ui/button'
 import { SheetSidebar } from './SheetSidebar'
@@ -51,11 +50,21 @@ export function ItemDetailsPage() {
   const isAdmin = useAuthStore((s) => s.user?.role) === 'admin'
 
   const sheetsByItemNo = useMemo(() => new Map(sheets.map((s) => [s.itemNo, s])), [sheets])
+  // Which items have a detail sheet, and their sidebar order — derived from
+  // the project's own items (in item order), not a hardcoded MAR-specific
+  // item-number list, so a custom template's own detail-sheet items show up
+  // correctly (§8.1: "build the table generically... never hard-code").
+  const detailSheetOrder = useMemo(
+    () =>
+      items
+        .filter((item) => item.detailSheetId !== undefined)
+        .map((item) => item.no)
+        .sort((a, b) => a - b),
+    [items],
+  )
 
   const requestedItem = Number(searchParams.get('item'))
-  const selectedItemNo = DETAIL_SHEET_ORDER.includes(requestedItem)
-    ? requestedItem
-    : DETAIL_SHEET_ORDER[0]
+  const selectedItemNo = detailSheetOrder.includes(requestedItem) ? requestedItem : detailSheetOrder[0]
 
   const sheet = sheetsByItemNo.get(selectedItemNo)
   const item = items.find((i) => i.no === selectedItemNo)
@@ -225,6 +234,7 @@ export function ItemDetailsPage() {
     <div className="flex h-full">
       <SheetSidebar
         sheetsByItemNo={sheetsByItemNo}
+        detailSheetOrder={detailSheetOrder}
         selectedItemNo={selectedItemNo}
         basePath={basePath}
       />

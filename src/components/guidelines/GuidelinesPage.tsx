@@ -1,12 +1,9 @@
-import {
-  COLOUR_LEGEND,
-  CRITICAL_SEQUENCE,
-  DISCLAIMER,
-  DOCUMENT_QUALITY_RULES,
-  PRIORITY_DEFS,
-} from '../../domain/rules'
+import { useActiveProject } from '../../store/useActiveProject'
+import { COLOUR_LEGEND, DISCLAIMER, DOCUMENT_QUALITY_RULES } from '../../domain/rules'
 
 export function GuidelinesPage() {
+  const { template } = useActiveProject()
+
   return (
     <div className="h-full space-y-6 overflow-auto p-6">
       <h1 className="text-lg font-semibold">Guidelines</h1>
@@ -14,7 +11,7 @@ export function GuidelinesPage() {
       <section>
         <h2 className="mb-2 text-sm font-semibold">Priority Definitions</h2>
         <dl className="space-y-1 text-sm">
-          {PRIORITY_DEFS.map((def) => (
+          {template.priorities.map((def) => (
             <div key={def.id}>
               <dt className="inline font-medium">{def.label}: </dt>
               <dd className="inline text-muted-foreground">{def.description}</dd>
@@ -23,14 +20,16 @@ export function GuidelinesPage() {
         </dl>
       </section>
 
-      <section>
-        <h2 className="mb-2 text-sm font-semibold">Critical Sequence</h2>
-        <ol className="list-decimal space-y-1 pl-5 text-sm">
-          {CRITICAL_SEQUENCE.map((step) => (
-            <li key={step}>{step}</li>
-          ))}
-        </ol>
-      </section>
+      {template.criticalNotice && (
+        <section>
+          <h2 className="mb-2 text-sm font-semibold">{template.criticalNotice.heading}</h2>
+          <ol className="list-decimal space-y-1 pl-5 text-sm">
+            {template.criticalNotice.lines.map((step) => (
+              <li key={step}>{step}</li>
+            ))}
+          </ol>
+        </section>
+      )}
 
       <section>
         <h2 className="mb-2 text-sm font-semibold">Document Quality</h2>

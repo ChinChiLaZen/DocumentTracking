@@ -1,17 +1,13 @@
 import type {
   AdsbInstallPhase,
-  GroupId,
+  GroupDef,
   LifecyclePhase,
   MilestoneType,
-  Priority,
+  PriorityDef,
   WorkflowStatus,
 } from '../data/types'
 
-export interface GroupDef {
-  id: GroupId
-  label: string
-  itemRange: string
-}
+export type { GroupDef, PriorityDef }
 
 export const GROUP_DEFS: GroupDef[] = [
   { id: 'G1', label: 'Group 1 — Fixture Certificates / LM-79 / LM-80 / TM-21', itemRange: '1–8' },
@@ -20,12 +16,6 @@ export const GROUP_DEFS: GroupDef[] = [
   { id: 'G4', label: 'Group 4', itemRange: '22–27' },
   { id: 'G5', label: 'Group 5 — MAR Submission Letter', itemRange: '28' },
 ]
-
-export interface PriorityDef {
-  id: Priority
-  label: string
-  description: string
-}
 
 export const PRIORITY_DEFS: PriorityDef[] = [
   {

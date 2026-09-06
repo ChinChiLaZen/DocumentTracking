@@ -18,13 +18,12 @@ import type {
   TemplateKind,
   WorkflowStatus,
 } from '../data/types'
-import { TEMPLATE_ITEMS, TEMPLATE_SHEETS } from '../data/checklistTemplate'
-import { AOT_TEMPLATE_ITEMS } from '../data/aotTemplate'
-import { DOA_TEMPLATE_ITEMS } from '../data/doaTemplate'
-import { ADSB_TEMPLATE_ITEMS } from '../data/adsbTemplate'
 import { INITIAL_PROJECTS } from '../data/initialProjects'
+import { cloneItems, cloneSheets } from '../domain/cloneChecklist'
+import { resolveTemplate } from '../domain/templateRegistry'
 import type { PersistencePort } from './persistence'
 import { createApiPersistence } from './persistence'
+import { useTemplateStore } from './useTemplateStore'
 
 export interface ProjectRuntime {
   meta: ProjectMeta
@@ -45,7 +44,7 @@ export interface CreateProjectInput {
   scope: string
   preparedDate: string
   templateKind: TemplateKind
-  defaultPhase?: LifecyclePhase // only meaningful when templateKind === 'mar'; ignored for 'aot'/'doa'/'adsb'
+  defaultPhase?: LifecyclePhase // only meaningful when the resolved template's supportsDefaultPhase is true
   projectType?: string // CSI MasterFormat code, e.g. "26 51 13" — see ProjectMeta.projectType
 }
 
@@ -182,17 +181,6 @@ function clampNonNegative(value: number): number {
   return Math.max(0, value)
 }
 
-function cloneItems(items: Item[]): Item[] {
-  return items.map((item) => ({ ...item }))
-}
-
-function cloneSheets(sheets: DetailSheet[]): DetailSheet[] {
-  return sheets.map((sheet) => ({
-    ...sheet,
-    rows: sheet.rows.map((row) => ({ ...row, cells: { ...row.cells } })),
-  }))
-}
-
 function cloneSchedule(schedule: ProjectSchedule | undefined): ProjectSchedule {
   if (!schedule) return EMPTY_SCHEDULE
   return {
@@ -259,17 +247,17 @@ function makeHistoryEntry(
 
 /** The seed a given project resets to: its recorded initial data if it's one of
  *  the projects shipped with the app, otherwise the blank template for its own
- *  templateKind (the state every user-created project started at). */
+ *  templateKind (the state every user-created project started at) — resolved
+ *  from the (possibly admin-overridden) template registry, not a hardcoded
+ *  4-way switch. */
 function seedFor(
   projectId: string,
   templateKind: TemplateKind | undefined,
 ): { items: Item[]; sheets: DetailSheet[] } {
   const initial = INITIAL_PROJECTS.find((p) => p.meta.id === projectId)
   if (initial) return { items: cloneItems(initial.items), sheets: cloneSheets(initial.sheets) }
-  if (templateKind === 'aot') return { items: cloneItems(AOT_TEMPLATE_ITEMS), sheets: [] }
-  if (templateKind === 'doa') return { items: cloneItems(DOA_TEMPLATE_ITEMS), sheets: [] }
-  if (templateKind === 'adsb') return { items: cloneItems(ADSB_TEMPLATE_ITEMS), sheets: [] }
-  return { items: cloneItems(TEMPLATE_ITEMS), sheets: cloneSheets(TEMPLATE_SHEETS) }
+  const def = resolveTemplate(useTemplateStore.getState().templates, templateKind)
+  return { items: cloneItems(def.items), sheets: cloneSheets(def.sheets) }
 }
 
 export function createTrackerStore(persistence: PersistencePort = createApiPersistence()) {
@@ -463,21 +451,11 @@ export function createTrackerStore(persistence: PersistencePort = createApiPersi
 
       createProject({ title, vendor, scope, preparedDate, templateKind, defaultPhase, projectType }) {
         const id = generateId('project')
-        const items =
-          templateKind === 'aot'
-            ? cloneItems(AOT_TEMPLATE_ITEMS) // each item keeps its own real phase — no bulk override
-            : templateKind === 'doa'
-              ? cloneItems(DOA_TEMPLATE_ITEMS) // each item keeps its own real phase — no bulk override
-              : templateKind === 'adsb'
-                ? cloneItems(ADSB_TEMPLATE_ITEMS) // each item keeps its own real installPhase — no bulk override
-                : cloneItems(TEMPLATE_ITEMS).map((item) => ({
-                    ...item,
-                    phase: defaultPhase ?? 'AfterContract',
-                  }))
-        const sheets =
-          templateKind === 'aot' || templateKind === 'doa' || templateKind === 'adsb'
-            ? []
-            : cloneSheets(TEMPLATE_SHEETS)
+        const def = resolveTemplate(useTemplateStore.getState().templates, templateKind)
+        const items = def.supportsDefaultPhase
+          ? cloneItems(def.items).map((item) => ({ ...item, phase: defaultPhase ?? 'AfterContract' }))
+          : cloneItems(def.items) // each item keeps its own real phase/installPhase — no bulk override
+        const sheets = def.hasDetailSheets ? cloneSheets(def.sheets) : []
         const project: ProjectRuntime = {
           meta: { id, title, vendor, scope, preparedDate, templateKind, projectType },
           items,

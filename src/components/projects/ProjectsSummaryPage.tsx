@@ -1,4 +1,5 @@
 import { useTrackerStore } from '../../store/useTrackerStore'
+import { useTemplateStore } from '../../store/useTemplateStore'
 import { selectAllProjectsSummary, selectDashboardStats } from '../../store/selectors'
 import { DashboardStatCards } from './DashboardStatCards'
 import { UserMenu } from '../auth/UserMenu'
@@ -6,7 +7,8 @@ import { UserMenu } from '../auth/UserMenu'
 export function ProjectsSummaryPage() {
   const projects = useTrackerStore((s) => s.projects)
   const projectOrder = useTrackerStore((s) => s.projectOrder)
-  const summaries = selectAllProjectsSummary({ projects, projectOrder })
+  const templates = useTemplateStore((s) => s.templates)
+  const summaries = selectAllProjectsSummary({ projects, projectOrder }, templates)
   const stats = selectDashboardStats(summaries)
 
   return (
