@@ -71,6 +71,38 @@ describe('TemplateEditorPage', () => {
     expect(created!.items[0]).toMatchObject({ no: 1, name: 'First item', standard: 'Some standard' })
   })
 
+  it('linking an item to a detail sheet sets sheet.itemNo — the actual runtime link (detailSheetId is presence-only)', async () => {
+    // Regression test: ItemDetailsPage.tsx/selectors.ts/excelExport.ts/
+    // wordExport.ts all look a sheet up via `sheet.itemNo === item.no`, never
+    // by dereferencing `item.detailSheetId` against `sheet.id` (that field is
+    // only ever checked for presence). Picking a sheet in the Items tab must
+    // therefore also stamp the sheet's itemNo, or the link silently does
+    // nothing at render time even though the picker looks "connected".
+    useAuthStore.setState({ user: { email: 'admin@example.com', role: 'admin' } })
+    const user = userEvent.setup()
+    renderEditor('/templates/new')
+
+    await user.type(screen.getByLabelText('Label'), 'Linked Sheet Template')
+    await user.type(screen.getByLabelText('Description'), 'Checks the item-sheet link')
+    await user.click(screen.getByLabelText('Items can have a checkbox detail sheet'))
+
+    await user.click(screen.getByRole('tab', { name: 'Detail sheets' }))
+    await user.click(screen.getByRole('button', { name: 'Add sheet' }))
+
+    await user.click(screen.getByRole('tab', { name: 'Items' }))
+    await user.click(screen.getByRole('button', { name: 'Add item' }))
+    await user.type(screen.getByLabelText('Item 1 name'), 'Linked item')
+
+    await user.click(screen.getByLabelText('Item 1 detail sheet'))
+    await user.click(await screen.findByRole('option', { name: 'New sheet' }))
+
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    const created = useTemplateStore.getState().templates.find((t) => t.label === 'Linked Sheet Template')!
+    expect(created.items[0].detailSheetId).toBe(created.sheets[0].id)
+    expect(created.sheets[0].itemNo).toBe(created.items[0].no)
+  })
+
   it('builds a detail-sheet template: adding a column gives every row a fresh cell, removing one drops it', async () => {
     useAuthStore.setState({ user: { email: 'admin@example.com', role: 'admin' } })
     const user = userEvent.setup()

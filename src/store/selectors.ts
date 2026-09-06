@@ -41,10 +41,12 @@ export interface ProjectSummary {
 
 /**
  * Per-project summary for the Projects Summary cards. Branches per the
- * resolved template's `hasDetailSheets`: templates without detail sheets
- * (AOT/DOA-shaped, built-in or custom) have no Group/Priority (§5.2), so
- * `rollup()` (which indexes by Priority) is never called on them — they use
- * the same workflowStatus-based progress as the Phase Progress tab instead.
+ * resolved template's `tabSet` (NOT `hasDetailSheets` — see
+ * ProjectIndexPage.tsx's comment on why the two must stay in lockstep):
+ * 'single' templates (AOT/DOA-shaped, built-in or custom) have no
+ * Group/Priority (§5.2), so `rollup()` (which indexes by Priority and
+ * requires every item to carry one) is never called on them — they use the
+ * same workflowStatus-based progress as the Phase Progress tab instead.
  * adsb stays a hardcoded literal check (accepted exception — see
  * domain/templateRegistry.ts) since it never sets workflowStatus at all
  * (its own dedicated checklist page uses `result`/`employerResult` instead)
@@ -69,7 +71,7 @@ export function selectAllProjectsSummary(
       return { meta: project.meta, done, total, percent }
     }
     const template = resolveTemplate(templates, project.meta.templateKind)
-    if (!template.hasDetailSheets) {
+    if (template.tabSet !== 'full') {
       const progress = selectOverallPhaseProgress(project.items)
       return { meta: project.meta, ...progress }
     }

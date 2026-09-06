@@ -3,7 +3,7 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useAuthStore } from '../../store/useAuthStore'
 import { useTemplateStore } from '../../store/useTemplateStore'
 import { BUILTIN_TEMPLATE_DEFS } from '../../domain/templateRegistry'
-import type { PriorityDef, TemplateDefinition } from '../../data/types'
+import type { Item, PriorityDef, TemplateDefinition } from '../../data/types'
 import { Button } from '../ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs'
 import { TemplateMetaPanel } from './TemplateMetaPanel'
@@ -64,6 +64,30 @@ export function TemplateEditorPage() {
       if (p.hasPriority && next.priorities.length !== 3) next.priorities = BLANK_PRIORITIES
       return next
     })
+  }
+
+  /**
+   * The runtime link between an item and its checkbox sheet is
+   * `sheet.itemNo === item.no` (see ItemDetailsPage.tsx, selectors.ts's
+   * selectItemsWithStatus, excelExport.ts, wordExport.ts — every one of them
+   * looks a sheet up via `new Map(sheets.map(s => [s.itemNo, s]))`).
+   * `item.detailSheetId` itself is only ever checked for presence
+   * (`!== undefined`) — its string value is never dereferenced against
+   * `sheet.id` anywhere. So the "Detail sheet" picker in the Items tab (which
+   * sets `detailSheetId`) doesn't by itself create a working link; this
+   * derives each sheet's `itemNo` from whichever item currently references
+   * it, keeping the two in sync every time items change.
+   */
+  function handleItemsChange(items: Item[]) {
+    const itemNoBySheetId = new Map<string, number>()
+    for (const item of items) {
+      if (item.detailSheetId) itemNoBySheetId.set(item.detailSheetId, item.no)
+    }
+    const sheets = draft.sheets.map((sheet) => ({
+      ...sheet,
+      itemNo: itemNoBySheetId.get(sheet.id) ?? sheet.itemNo,
+    }))
+    patch({ items, sheets })
   }
 
   async function handleSave() {
@@ -160,7 +184,7 @@ export function TemplateEditorPage() {
           <TabsContent value="items" className="pt-4">
             <TemplateItemsEditor
               items={draft.items}
-              onChange={(items) => patch({ items })}
+              onChange={handleItemsChange}
               hasGroups={draft.hasGroups}
               hasPriority={draft.hasPriority}
               hasDetailSheets={draft.hasDetailSheets}
