@@ -1,0 +1,8 @@
+# Test files should never ship in a deployment. This matters beyond hygiene:
+# a *.test.ts file living directly under api/ (not under an underscore-
+# prefixed dir like api/_lib/) gets picked up by Vercel's zero-config
+# function detection just like a real route handler, which can silently
+# push a deployment over the Hobby plan's 12-function cap (see CLAUDE.md
+# §10's note on that cap — this bit us for real with api/templates/index.test.ts).
+**/*.test.ts
+**/*.test.tsx
