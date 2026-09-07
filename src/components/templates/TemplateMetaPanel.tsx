@@ -46,7 +46,7 @@ export function TemplateMetaPanel({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="full">Full (Dashboard, Tracker, Priority A/B/C, Item Details, Phase Progress, Guidelines)</SelectItem>
+            <SelectItem value="full">Full (Dashboard, Tracker, Priority A/B/C, Item Details, Phase Progress)</SelectItem>
             <SelectItem value="single">Flat (Dashboard only, workflow-status driven)</SelectItem>
           </SelectContent>
         </Select>

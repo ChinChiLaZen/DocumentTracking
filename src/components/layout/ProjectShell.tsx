@@ -33,7 +33,6 @@ const MAR_TABS: TabDef[] = [
   { to: '/phase', label: 'Phase Progress' },
   PROJECT_MANAGEMENT_TAB,
   BOQ_ESTIMATE_TAB,
-  { to: '/guidelines', label: 'Guidelines' },
 ]
 
 // AOT/DOA/adsb projects have no Group/Priority/checkbox detail sheets (§7) —

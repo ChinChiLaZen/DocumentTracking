@@ -10,7 +10,6 @@ const LINKS: { to: string; label: string; className?: string }[] = [
   { to: '/priority/c', label: 'Priority C', className: PRIORITY_BADGE_CLASS.C },
   { to: '/items', label: 'Item Details' },
   { to: '/phase', label: 'Phase Progress' },
-  { to: '/guidelines', label: 'Guidelines' },
 ]
 
 export function QuickNavigation({ basePath }: { basePath: string }) {
