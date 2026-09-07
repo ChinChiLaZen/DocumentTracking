@@ -20,7 +20,7 @@ export function OverviewCards({ rollup }: { rollup: Rollup }) {
         const accent = key === 'total' ? TOTAL_CARD_ACCENT : STATUS_CARD_ACCENT[key]
         const Icon = accent.icon
         return (
-          <Card key={label} className={cn('border-l-4', accent.borderClass)}>
+          <Card key={label}>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardDescription>{label}</CardDescription>

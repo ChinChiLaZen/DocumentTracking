@@ -18,7 +18,7 @@ export function ResetToSeedDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="text-white/80 hover:bg-white/10">
+        <Button variant="ghost" size="sm">
           Reset to seed
         </Button>
       </DialogTrigger>

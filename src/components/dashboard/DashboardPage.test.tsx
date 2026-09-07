@@ -15,7 +15,8 @@ describe('DashboardPage', () => {
     )
 
     expect(screen.getByText('28')).toBeInTheDocument()
-    expect(screen.getByText(/Checkbox Roll-up — 120 of 282/)).toBeInTheDocument()
+    expect(screen.getByText('Checkbox Roll-up')).toBeInTheDocument()
+    expect(screen.getByText(/120 \/ 282 individual checks ticked/)).toBeInTheDocument()
     expect(screen.getByText(/Data integrity check passed/)).toBeInTheDocument()
   })
 })

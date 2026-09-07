@@ -1,3 +1,4 @@
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Progress } from '../ui/progress'
 import type { Rollup } from '../../domain/derive'
 
@@ -10,19 +11,34 @@ export function SubmissionProgress({ rollup }: { rollup: Rollup }) {
 
   return (
     <div className="grid gap-4 sm:grid-cols-2">
-      <div>
-        <p className="mb-1 text-sm font-medium">
-          Overall Submission — {rollup.byStatus.Submitted} of {rollup.totalItems} ({submittedPct}%)
-        </p>
-        <Progress value={submittedPct} indicatorClassName="bg-emerald-500" />
-      </div>
-      <div>
-        <p className="mb-1 text-sm font-medium">
-          Checkbox Roll-up — {rollup.checkboxRollup.done} of {rollup.checkboxRollup.req} (
-          {checkboxPct}%)
-        </p>
-        <Progress value={checkboxPct} indicatorClassName="bg-sky-500" />
-      </div>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm font-medium">Overall Submission</CardTitle>
+            <span className="text-2xl font-bold">{submittedPct}%</span>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="mb-1 text-xs text-muted-foreground">
+            {rollup.byStatus.Submitted} / {rollup.totalItems} items submitted
+          </p>
+          <Progress value={submittedPct} indicatorClassName="bg-foreground" />
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm font-medium">Checkbox Roll-up</CardTitle>
+            <span className="text-2xl font-bold">{checkboxPct}%</span>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="mb-1 text-xs text-muted-foreground">
+            {rollup.checkboxRollup.done} / {rollup.checkboxRollup.req} individual checks ticked
+          </p>
+          <Progress value={checkboxPct} indicatorClassName="bg-foreground" />
+        </CardContent>
+      </Card>
     </div>
   )
 }

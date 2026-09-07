@@ -86,32 +86,47 @@ export function ProjectShell() {
 
   return (
     <div className="flex h-svh flex-col">
-      <header className="no-print bg-header-band text-white">
+      <header className="no-print border-b border-border bg-background">
         <div className="flex items-start justify-between px-6 py-4">
           <div>
-            <Link to="/" className="text-xs text-white/70 hover:underline">
+            <Link to="/" className="text-xs text-muted-foreground hover:underline">
               ← All Projects
             </Link>
-            <h1 className="text-base font-semibold">{meta.title}</h1>
-            <p className="text-xs text-white/70">
-              {meta.scope} · {meta.vendor} · Prepared {formatPreparedDate(meta.preparedDate)}
+            <p className="mt-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              {meta.scope}
               {csiEntry && <> · {formatCsiEntry(csiEntry)}</>}
             </p>
+            <h1 className="text-xl font-semibold text-foreground sm:text-2xl">{meta.title}</h1>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {meta.vendor} · Prepared {formatPreparedDate(meta.preparedDate)}
+            </p>
           </div>
-          <div className="flex items-center gap-3">
-            <ResetToSeedDialog />
-            <UserMenu dark />
+          <div className="flex flex-col items-end gap-2">
+            <div className="text-right">
+              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                Preparation Date
+              </p>
+              <p className="text-sm font-medium text-foreground">
+                {formatPreparedDate(meta.preparedDate)}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <ResetToSeedDialog />
+              <UserMenu />
+            </div>
           </div>
         </div>
-        <nav className="flex gap-1 px-6" aria-label="Tabs">
+        <nav className="flex gap-4 px-6" aria-label="Tabs">
           {tabs.map((tab) => (
             <NavLink
               key={tab.to}
               to={`${basePath}${tab.to}`}
               end={tab.end}
               className={({ isActive }) =>
-                `rounded-t px-3 py-2 text-sm ${
-                  isActive ? 'bg-background text-foreground' : 'text-white/80 hover:bg-white/10'
+                `border-b-2 px-1 py-2 text-sm ${
+                  isActive
+                    ? 'border-foreground font-medium text-foreground'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
                 }`
               }
             >
