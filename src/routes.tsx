@@ -18,6 +18,7 @@ import { ItemDetailsPage } from './components/itemDetails/ItemDetailsPage'
 import { PhaseDashboardPage } from './components/phase/PhaseDashboardPage'
 import { ProjectManagementPage } from './components/schedule/ProjectManagementPage'
 import { BoqEstimatePage } from './components/boq/BoqEstimatePage'
+import { TaskBoardPage } from './components/board/TaskBoardPage'
 import { GuidelinesPage } from './components/guidelines/GuidelinesPage'
 import { AuthPage } from './components/auth/AuthPage'
 
@@ -57,6 +58,7 @@ export const router = createBrowserRouter([
           { path: 'phase', element: <PhaseDashboardPage /> },
           { path: 'schedule', element: <ProjectManagementPage /> },
           { path: 'boq', element: <BoqEstimatePage /> },
+          { path: 'board', element: <TaskBoardPage /> },
           { path: 'guidelines', element: <GuidelinesPage /> },
         ],
       },

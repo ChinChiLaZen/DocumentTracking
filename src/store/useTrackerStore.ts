@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type {
+  BoardTask,
   BoqCategory,
   BoqEstimate,
   BoqLine,
@@ -12,9 +13,11 @@ import type {
   ProjectMeta,
   ProjectRecord,
   ProjectSchedule,
+  ProjectTaskBoard,
   ScheduleMilestone,
   SchedulePhase,
   Status,
+  TaskGroup,
   TemplateKind,
   WorkflowStatus,
 } from '../data/types'
@@ -33,10 +36,12 @@ export interface ProjectRuntime {
   history: HistoryEntry[]
   schedule: ProjectSchedule
   boq: BoqEstimate
+  taskBoard: ProjectTaskBoard
 }
 
 const EMPTY_SCHEDULE: ProjectSchedule = { phases: [], milestones: [] }
 const EMPTY_BOQ: BoqEstimate = { categories: [], vatPercent: 7 }
+const EMPTY_TASK_BOARD: ProjectTaskBoard = { groups: [] }
 
 export interface CreateProjectInput {
   title: string
@@ -170,6 +175,17 @@ export interface TrackerState {
   ): void
   deleteBoqLine(projectId: string, categoryId: string, lineId: string): void
   updateBoqMeta(projectId: string, patch: Partial<Pick<BoqEstimate, 'vatPercent'>>): void
+  addTaskGroup(projectId: string, input: Omit<TaskGroup, 'id' | 'tasks'>): void
+  updateTaskGroup(projectId: string, groupId: string, patch: Partial<Omit<TaskGroup, 'id' | 'tasks'>>): void
+  deleteTaskGroup(projectId: string, groupId: string): void
+  addBoardTask(projectId: string, groupId: string, input: Omit<BoardTask, 'id'>): void
+  updateBoardTask(
+    projectId: string,
+    groupId: string,
+    taskId: string,
+    patch: Partial<Omit<BoardTask, 'id'>>,
+  ): void
+  deleteBoardTask(projectId: string, groupId: string, taskId: string): void
   hydrate(): Promise<void>
 }
 
@@ -198,6 +214,11 @@ function cloneBoq(boq: BoqEstimate | undefined): BoqEstimate {
   }
 }
 
+function cloneTaskBoard(taskBoard: ProjectTaskBoard | undefined): ProjectTaskBoard {
+  if (!taskBoard) return EMPTY_TASK_BOARD
+  return { groups: taskBoard.groups.map((g) => ({ ...g, tasks: g.tasks.map((t) => ({ ...t })) })) }
+}
+
 function toRuntime(record: ProjectRecord): ProjectRuntime {
   return {
     meta: { ...record.meta },
@@ -207,6 +228,7 @@ function toRuntime(record: ProjectRecord): ProjectRuntime {
     history: [...record.history],
     schedule: cloneSchedule(record.schedule),
     boq: cloneBoq(record.boq),
+    taskBoard: cloneTaskBoard(record.taskBoard),
   }
 }
 
@@ -272,6 +294,7 @@ export function createTrackerStore(persistence: PersistencePort = createApiPersi
         history: project.history,
         schedule: project.schedule,
         boq: project.boq,
+        taskBoard: project.taskBoard,
       })
     }
 
@@ -445,6 +468,7 @@ export function createTrackerStore(persistence: PersistencePort = createApiPersi
           history: [],
           schedule: EMPTY_SCHEDULE,
           boq: EMPTY_BOQ,
+          taskBoard: EMPTY_TASK_BOARD,
         }))
         persistProject(projectId)
       },
@@ -464,6 +488,7 @@ export function createTrackerStore(persistence: PersistencePort = createApiPersi
           history: [],
           schedule: EMPTY_SCHEDULE,
           boq: EMPTY_BOQ,
+          taskBoard: EMPTY_TASK_BOARD,
         }
         set((state) => ({
           projects: { ...state.projects, [id]: project },
@@ -804,6 +829,87 @@ export function createTrackerStore(persistence: PersistencePort = createApiPersi
         persistProject(projectId)
       },
 
+      addTaskGroup(projectId, input) {
+        const group: TaskGroup = { ...input, id: generateId('task-group'), tasks: [] }
+        updateProject(projectId, (project) => ({
+          ...project,
+          taskBoard: { ...project.taskBoard, groups: [...project.taskBoard.groups, group] },
+        }))
+        persistProject(projectId)
+      },
+
+      updateTaskGroup(projectId, groupId, patch) {
+        updateProject(projectId, (project) => ({
+          ...project,
+          taskBoard: {
+            ...project.taskBoard,
+            groups: project.taskBoard.groups.map((g) => (g.id !== groupId ? g : { ...g, ...patch })),
+          },
+        }))
+        persistProject(projectId)
+      },
+
+      deleteTaskGroup(projectId, groupId) {
+        updateProject(projectId, (project) => ({
+          ...project,
+          taskBoard: { ...project.taskBoard, groups: project.taskBoard.groups.filter((g) => g.id !== groupId) },
+        }))
+        persistProject(projectId)
+      },
+
+      addBoardTask(projectId, groupId, input) {
+        const task: BoardTask = { ...input, id: generateId('task'), progressPercent: clampPercent(input.progressPercent) }
+        updateProject(projectId, (project) => ({
+          ...project,
+          taskBoard: {
+            ...project.taskBoard,
+            groups: project.taskBoard.groups.map((g) =>
+              g.id !== groupId ? g : { ...g, tasks: [...g.tasks, task] },
+            ),
+          },
+        }))
+        persistProject(projectId)
+      },
+
+      updateBoardTask(projectId, groupId, taskId, patch) {
+        updateProject(projectId, (project) => ({
+          ...project,
+          taskBoard: {
+            ...project.taskBoard,
+            groups: project.taskBoard.groups.map((g) => {
+              if (g.id !== groupId) return g
+              return {
+                ...g,
+                tasks: g.tasks.map((t) =>
+                  t.id !== taskId
+                    ? t
+                    : {
+                        ...t,
+                        ...patch,
+                        progressPercent:
+                          patch.progressPercent === undefined ? t.progressPercent : clampPercent(patch.progressPercent),
+                      },
+                ),
+              }
+            }),
+          },
+        }))
+        persistProject(projectId)
+      },
+
+      deleteBoardTask(projectId, groupId, taskId) {
+        updateProject(projectId, (project) => ({
+          ...project,
+          taskBoard: {
+            ...project.taskBoard,
+            groups: project.taskBoard.groups.map((g) =>
+              g.id !== groupId ? g : { ...g, tasks: g.tasks.filter((t) => t.id !== taskId) },
+            ),
+          },
+        }))
+        persistProject(projectId)
+      },
+
       async hydrate() {
         if (get().hydrating || get().hydrated) return
         set({ hydrating: true })
@@ -819,6 +925,7 @@ export function createTrackerStore(persistence: PersistencePort = createApiPersi
               history: record.history ?? [],
               schedule: cloneSchedule(record.schedule),
               boq: cloneBoq(record.boq),
+              taskBoard: cloneTaskBoard(record.taskBoard),
             }
           }
           set({ projects, projectOrder: loaded.projectOrder, hydrated: true, hydrating: false })

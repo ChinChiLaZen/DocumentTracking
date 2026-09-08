@@ -347,6 +347,46 @@ export interface BoqEstimate {
   vatPercent: number // default 7, editable
 }
 
+export type TaskStatus = 'NotStarted' | 'InProgress' | 'PendingReview' | 'Done' | 'Blocked'
+export type TaskPriority = 'Low' | 'Medium' | 'High' | 'Critical'
+
+// A task's due date is either a fixed calendar date or relative to one of the
+// project's own ProjectSchedule.milestones (reused, not duplicated — see
+// domain/board.ts's resolveTaskDueDate). Explicit discriminant rather than
+// inferring the mode from which optional fields happen to be set.
+export type TaskDueDateMode = 'none' | 'fixed' | 'milestone'
+
+export interface BoardTask {
+  id: string
+  name: string
+  assignee?: string
+  status: TaskStatus
+  priority: TaskPriority
+  progressPercent: number // 0-100, manual — never derived from status
+  dueDateMode: TaskDueDateMode
+  dueDate?: string // ISO yyyy-mm-dd — set only when dueDateMode === 'fixed'
+  dueMilestoneId?: string // ScheduleMilestone.id — set only when dueDateMode === 'milestone'
+  dueOffsetDays?: number // signed; days before(-)/after(+) the milestone date
+}
+
+export interface TaskGroup {
+  id: string
+  name: string // free-form, no relation to LifecyclePhase/GroupId
+  tasks: BoardTask[]
+}
+
+// Task Board tab — a Monday.com-style free-form task tracker (layout/
+// interaction modeled on careful-code.lovable.app, colors are this app's
+// own — see statusStyles.ts). Generic, independent of checklist structure —
+// shown for every TemplateKind alike, same posture as ProjectSchedule/
+// BoqEstimate above. Entirely unrelated to Item[]/effectiveStatus/§6 — these
+// are ad-hoc, reviewer-defined tasks, not checklist rows. Deliberately
+// reuses ProjectSchedule.milestones for "due date based on milestone" rather
+// than duplicating a second milestone concept (see domain/board.ts).
+export interface ProjectTaskBoard {
+  groups: TaskGroup[]
+}
+
 export interface ProjectRecord {
   meta: ProjectMeta
   items: Item[]
@@ -354,6 +394,7 @@ export interface ProjectRecord {
   history: HistoryEntry[]
   schedule?: ProjectSchedule // optional for backward-compat — pre-existing rows predate this field
   boq?: BoqEstimate // optional for backward-compat — pre-existing rows predate this field
+  taskBoard?: ProjectTaskBoard // optional for backward-compat — pre-existing rows predate this field
 }
 
 // A row from a captured e-GP (gprocurement.go.th) search-results snapshot —

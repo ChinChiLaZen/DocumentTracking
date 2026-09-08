@@ -7,6 +7,8 @@ import type {
   MilestoneType,
   Priority,
   Status,
+  TaskPriority,
+  TaskStatus,
   WorkflowStatus,
 } from '../../data/types'
 import type { LucideIcon } from 'lucide-react'
@@ -181,6 +183,35 @@ export const PHASE_COLOR_SLOTS: PhaseColorSlot[] = [
   { fill: 'bg-red-500', track: 'bg-red-100', badge: 'border-red-300 bg-red-100 text-red-800', accentBorder: 'border-l-red-500', icon: 'text-red-500' },
   { fill: 'bg-teal-500', track: 'bg-teal-100', badge: 'border-teal-300 bg-teal-100 text-teal-800', accentBorder: 'border-l-teal-500', icon: 'text-teal-500' },
 ]
+
+/**
+ * Task Board tab's status pipeline badges. Reuses WORKFLOW_STATUS_BADGE_CLASS's
+ * slate/amber/sky/emerald mapping for the structurally-equivalent 5-state
+ * pipeline (NotStarted≈Pending, InProgress≈active-work, PendingReview≈
+ * under-review, Done≈Submitted), adding rose for Blocked — a hard-stop
+ * problem state distinct from the softer "delay" amber already used for
+ * InProgress. No new hues invented.
+ */
+export const TASK_STATUS_BADGE_CLASS: Record<TaskStatus, string> = {
+  NotStarted: 'border-slate-200 bg-slate-100 text-slate-600',
+  InProgress: 'border-amber-200 bg-amber-50 text-amber-700',
+  PendingReview: 'border-sky-200 bg-sky-50 text-sky-700',
+  Done: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  Blocked: 'border-rose-200 bg-rose-50 text-rose-700',
+}
+
+/**
+ * Task Board tab's priority badges — an ascending 4-step escalation
+ * (Low→Critical) extending PRIORITY_BADGE_CLASS's rose="most important" and
+ * IMPORTANCE_BADGE_CLASS's existing rose→violet "critical→more than
+ * critical" convention (CriticalCheckpoint is already violet there).
+ */
+export const TASK_PRIORITY_BADGE_CLASS: Record<TaskPriority, string> = {
+  Low: 'border-emerald-200 bg-emerald-100 text-emerald-800',
+  Medium: 'border-amber-200 bg-amber-100 text-amber-800',
+  High: 'border-rose-200 bg-rose-100 text-rose-800',
+  Critical: 'border-violet-200 bg-violet-100 text-violet-800',
+}
 
 /** Find Projects page's e-GP status badge — the 4 real Thai status strings the portal itself uses. */
 export const PROCUREMENT_STATUS_BADGE_CLASS: Record<string, string> = {

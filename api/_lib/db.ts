@@ -103,6 +103,18 @@ export function ensureSchema(): Promise<void> {
         `,
       )
       .then(
+        // Task Board tab — same self-migrating posture as `schedule`/`boq`
+        // above. Opaque JSONB from the server's perspective. Column is
+        // snake_case (task_board) per this file's multi-word-column
+        // convention (updated_by, created_at, etc.) — schedule/boq needed no
+        // case translation only because they're single words;
+        // api/projects/index.ts maps task_board <-> taskBoard explicitly.
+        () => sql`
+          ALTER TABLE project_records
+          ADD COLUMN IF NOT EXISTS task_board JSONB NOT NULL DEFAULT '{"groups":[]}'::jsonb
+        `,
+      )
+      .then(
         // Daily digest cron (api/cron/daily-digest.ts) — the per-item
         // effective-status snapshot from the *previous* run, so the next run
         // can diff against it and report which items actually changed status.

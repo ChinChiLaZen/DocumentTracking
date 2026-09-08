@@ -4,6 +4,8 @@ import type {
   LifecyclePhase,
   MilestoneType,
   PriorityDef,
+  TaskPriority,
+  TaskStatus,
   WorkflowStatus,
 } from '../data/types'
 
@@ -109,6 +111,35 @@ export const MILESTONE_TYPE_DEFS: MilestoneTypeDef[] = [
   { id: 'Committee', label: 'Committee' },
   { id: 'Extension', label: 'Extension' },
   { id: 'Other', label: 'Other' },
+]
+
+export interface TaskStatusDef {
+  id: TaskStatus
+  label: string
+}
+
+/** Task Board tab's status pipeline — independent of WorkflowStatus (Phase
+ *  Progress) and Status (§6's checkbox-derived status). Order drives the
+ *  status dropdown and the board's status-breakdown row. */
+export const TASK_STATUS_DEFS: TaskStatusDef[] = [
+  { id: 'NotStarted', label: 'Not Started' },
+  { id: 'InProgress', label: 'In Progress' },
+  { id: 'PendingReview', label: 'Pending Review' },
+  { id: 'Done', label: 'Done' },
+  { id: 'Blocked', label: 'Blocked' },
+]
+
+export interface TaskPriorityDef {
+  id: TaskPriority
+  label: string
+}
+
+/** Task Board tab's priority scale — independent of Priority (A/B/C, MAR-only). */
+export const TASK_PRIORITY_DEFS: TaskPriorityDef[] = [
+  { id: 'Low', label: 'Low' },
+  { id: 'Medium', label: 'Medium' },
+  { id: 'High', label: 'High' },
+  { id: 'Critical', label: 'Critical' },
 ]
 
 export interface AdsbInstallPhaseDef {

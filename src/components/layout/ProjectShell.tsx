@@ -23,6 +23,11 @@ const PROJECT_MANAGEMENT_TAB: TabDef = { to: '/schedule', label: 'Project Manage
 // Management above.
 const BOQ_ESTIMATE_TAB: TabDef = { to: '/boq', label: 'BOQ Estimate' }
 
+// Task Board — Monday.com-style free-form task tracker, independent of
+// checklist structure — shown for every templateKind, same posture as
+// Project Management/BOQ Estimate above.
+const TASK_BOARD_TAB: TabDef = { to: '/board', label: 'Task Board' }
+
 const MAR_TABS: TabDef[] = [
   { to: '', label: 'Dashboard', end: true },
   { to: '/tracker', label: 'Tracker' },
@@ -33,6 +38,7 @@ const MAR_TABS: TabDef[] = [
   { to: '/phase', label: 'Phase Progress' },
   PROJECT_MANAGEMENT_TAB,
   BOQ_ESTIMATE_TAB,
+  TASK_BOARD_TAB,
 ]
 
 // AOT/DOA/adsb projects have no Group/Priority/checkbox detail sheets (§7) —
@@ -44,6 +50,7 @@ const SINGLE_TAB: TabDef[] = [
   { to: '', label: 'Dashboard', end: true },
   PROJECT_MANAGEMENT_TAB,
   BOQ_ESTIMATE_TAB,
+  TASK_BOARD_TAB,
 ]
 
 function formatPreparedDate(iso: string): string {

@@ -26,10 +26,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return
     }
     const result = await sql`
-      SELECT meta, items, sheets, history, schedule, boq FROM project_records ORDER BY seq ASC
+      SELECT meta, items, sheets, history, schedule, boq, task_board FROM project_records ORDER BY seq ASC
     `
     const projects = result.rows.map((row) => ({
       meta: row.meta, items: row.items, sheets: row.sheets, history: row.history, schedule: row.schedule, boq: row.boq,
+      taskBoard: row.task_board,
     }))
     res.status(200).json({ projects })
     return
@@ -79,7 +80,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const r = record as ProjectRecordInput
 
   const upserted = await sql`
-    INSERT INTO project_records (id, meta, items, sheets, history, schedule, boq, updated_by)
+    INSERT INTO project_records (id, meta, items, sheets, history, schedule, boq, task_board, updated_by)
     VALUES (
       ${id},
       ${JSON.stringify(r.meta)}::jsonb,
@@ -88,6 +89,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ${JSON.stringify(r.history ?? [])}::jsonb,
       ${JSON.stringify(r.schedule ?? { phases: [], milestones: [] })}::jsonb,
       ${JSON.stringify(r.boq ?? { categories: [], vatPercent: 7 })}::jsonb,
+      ${JSON.stringify(r.taskBoard ?? { groups: [] })}::jsonb,
       ${user.email}
     )
     ON CONFLICT (id) DO UPDATE SET
@@ -97,9 +99,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       history = EXCLUDED.history,
       schedule = EXCLUDED.schedule,
       boq = EXCLUDED.boq,
+      task_board = EXCLUDED.task_board,
       updated_by = EXCLUDED.updated_by,
       updated_at = now()
-    RETURNING meta, items, sheets, history, schedule, boq
+    RETURNING meta, items, sheets, history, schedule, boq, task_board
   `
   const row = upserted.rows[0]
   res.status(200).json({
@@ -110,6 +113,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       history: row.history,
       schedule: row.schedule,
       boq: row.boq,
+      taskBoard: row.task_board,
     },
   })
 }

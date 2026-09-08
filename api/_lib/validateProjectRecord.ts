@@ -18,6 +18,7 @@ export interface ProjectRecordInput {
   history?: unknown[]
   schedule?: unknown
   boq?: unknown
+  taskBoard?: unknown
 }
 
 export function isValidProjectRecord(value: unknown): value is ProjectRecordInput {
@@ -29,6 +30,7 @@ export function isValidProjectRecord(value: unknown): value is ProjectRecordInpu
     history?: unknown
     schedule?: unknown
     boq?: unknown
+    taskBoard?: unknown
   }
 
   if (typeof record.meta !== 'object' || record.meta === null) return false
@@ -61,6 +63,17 @@ export function isValidProjectRecord(value: unknown): value is ProjectRecordInpu
     if (Array.isArray(boq.categories)) {
       for (const category of boq.categories as Record<string, unknown>[]) {
         if (category.lines !== undefined && !Array.isArray(category.lines)) return false
+      }
+    }
+  }
+
+  if (record.taskBoard !== undefined) {
+    if (typeof record.taskBoard !== 'object' || record.taskBoard === null) return false
+    const taskBoard = record.taskBoard as Record<string, unknown>
+    if (taskBoard.groups !== undefined && !Array.isArray(taskBoard.groups)) return false
+    if (Array.isArray(taskBoard.groups)) {
+      for (const group of taskBoard.groups as Record<string, unknown>[]) {
+        if (group.tasks !== undefined && !Array.isArray(group.tasks)) return false
       }
     }
   }

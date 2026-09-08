@@ -1,5 +1,6 @@
 import { useParams } from 'react-router-dom'
 import type {
+  BoardTask,
   BoqCategory,
   BoqEstimate,
   BoqLine,
@@ -11,9 +12,11 @@ import type {
   PhaseActivity,
   ProjectMeta,
   ProjectSchedule,
+  ProjectTaskBoard,
   ScheduleMilestone,
   SchedulePhase,
   Status,
+  TaskGroup,
   TemplateDefinition,
   WorkflowStatus,
 } from '../data/types'
@@ -74,6 +77,13 @@ export interface ActiveProject {
   updateBoqLine(categoryId: string, lineId: string, patch: Partial<Omit<BoqLine, 'id'>>): void
   deleteBoqLine(categoryId: string, lineId: string): void
   updateBoqMeta(patch: Partial<Pick<BoqEstimate, 'vatPercent'>>): void
+  taskBoard: ProjectTaskBoard
+  addTaskGroup(input: Omit<TaskGroup, 'id' | 'tasks'>): void
+  updateTaskGroup(groupId: string, patch: Partial<Omit<TaskGroup, 'id' | 'tasks'>>): void
+  deleteTaskGroup(groupId: string): void
+  addBoardTask(groupId: string, input: Omit<BoardTask, 'id'>): void
+  updateBoardTask(groupId: string, taskId: string, patch: Partial<Omit<BoardTask, 'id'>>): void
+  deleteBoardTask(groupId: string, taskId: string): void
 }
 
 /**
@@ -116,6 +126,12 @@ export function useActiveProject(): ActiveProject {
   const updateBoqLineAction = useTrackerStore((s) => s.updateBoqLine)
   const deleteBoqLineAction = useTrackerStore((s) => s.deleteBoqLine)
   const updateBoqMetaAction = useTrackerStore((s) => s.updateBoqMeta)
+  const addTaskGroupAction = useTrackerStore((s) => s.addTaskGroup)
+  const updateTaskGroupAction = useTrackerStore((s) => s.updateTaskGroup)
+  const deleteTaskGroupAction = useTrackerStore((s) => s.deleteTaskGroup)
+  const addBoardTaskAction = useTrackerStore((s) => s.addBoardTask)
+  const updateBoardTaskAction = useTrackerStore((s) => s.updateBoardTask)
+  const deleteBoardTaskAction = useTrackerStore((s) => s.deleteBoardTask)
 
   const basePath = `/projects/${projectId}`
 
@@ -130,6 +146,7 @@ export function useActiveProject(): ActiveProject {
     history: project?.history ?? [],
     schedule: project?.schedule ?? { phases: [], milestones: [] },
     boq: project?.boq ?? { categories: [], vatPercent: 7 },
+    taskBoard: project?.taskBoard ?? { groups: [] },
     basePath,
     toggleCell: (sheetId, rowId, columnKey) => toggleCellAction(projectId, sheetId, rowId, columnKey),
     setRowRemark: (sheetId, rowId, remark) => setRowRemarkAction(projectId, sheetId, rowId, remark),
@@ -167,5 +184,11 @@ export function useActiveProject(): ActiveProject {
     updateBoqLine: (categoryId, lineId, patch) => updateBoqLineAction(projectId, categoryId, lineId, patch),
     deleteBoqLine: (categoryId, lineId) => deleteBoqLineAction(projectId, categoryId, lineId),
     updateBoqMeta: (patch) => updateBoqMetaAction(projectId, patch),
+    addTaskGroup: (input) => addTaskGroupAction(projectId, input),
+    updateTaskGroup: (groupId, patch) => updateTaskGroupAction(projectId, groupId, patch),
+    deleteTaskGroup: (groupId) => deleteTaskGroupAction(projectId, groupId),
+    addBoardTask: (groupId, input) => addBoardTaskAction(projectId, groupId, input),
+    updateBoardTask: (groupId, taskId, patch) => updateBoardTaskAction(projectId, groupId, taskId, patch),
+    deleteBoardTask: (groupId, taskId) => deleteBoardTaskAction(projectId, groupId, taskId),
   }
 }

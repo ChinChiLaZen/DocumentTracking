@@ -10,7 +10,9 @@ export interface DateRange {
   end: Date
 }
 
-function parseIsoDate(iso: string): Date {
+/** Exported for reuse by domain/board.ts (Task Board due-date resolution),
+ *  which depends on the same ISO yyyy-mm-dd parsing this file already uses. */
+export function parseIsoDate(iso: string): Date {
   return new Date(`${iso}T00:00:00`)
 }
 
