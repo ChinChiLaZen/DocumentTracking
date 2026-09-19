@@ -131,6 +131,27 @@ export function ensureSchema(): Promise<void> {
         `,
       )
       .then(
+        // Awarded Contracts view (api/procurement/leads.ts's `?resource=contracts`
+        // branch) — a single shared row (id=1), same team-wide-not-per-browser
+        // posture as procurement_leads_snapshot above, holding the last
+        // EGP-CONTRACT API fetch (see govspending.data.go.th/doc-api). Distinct
+        // from procurement_leads_snapshot: that one is open bid opportunities
+        // (manually pasted, since e-GP's own search is Cloudflare-gated); this one
+        // is already-awarded contracts (live-fetched, since EGP-CONTRACT is a
+        // real public open-data API with no such gate) — the two are not
+        // interchangeable, see CLAUDE.md.
+        () => sql`
+          CREATE TABLE IF NOT EXISTS procurement_contracts_snapshot (
+            id INTEGER PRIMARY KEY,
+            contracts JSONB NOT NULL,
+            keyword TEXT NOT NULL,
+            year INTEGER NOT NULL,
+            updated_by TEXT NOT NULL,
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+          )
+        `,
+      )
+      .then(
         // Tiny generic key/value store, currently just one row
         // ('daily_digest') recording when the digest cron last ran
         // successfully, so each run's "what changed" window is exactly

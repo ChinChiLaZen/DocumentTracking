@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { ensureSchema, sql } from '../_lib/db.js'
 import { getCurrentUser } from '../_lib/auth.js'
+import { fetchEgpContracts } from '../_lib/egpContract.js'
 
 // Mirrors src/data/types.ts's ProcurementLead — kept as a local, loosely-typed
 // shape (not imported) since api/ and src/ are separate TS project references
@@ -40,6 +41,105 @@ function isValidLead(value: unknown): value is Required<ProcurementLeadInput> & 
 
 const SNAPSHOT_ID = 1
 
+// Awarded Contracts (EGP-CONTRACT, live-fetched) — a separate concern from the
+// open-bid-opportunity leads below (manually pasted, since e-GP's own search
+// is Cloudflare-gated). Folded into this same file rather than a new
+// api/procurement/contracts.ts to stay under Vercel Hobby's 12-function cap
+// (see CLAUDE.md §10) — dispatched via `?resource=contracts`.
+async function handleContractsResource(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'GET' && req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' })
+    return
+  }
+
+  const user = await getCurrentUser(req)
+  if (!user) {
+    res.status(401).json({ error: 'Not signed in' })
+    return
+  }
+
+  if (req.method === 'GET') {
+    const result = await sql`
+      SELECT contracts, keyword, year, updated_by, updated_at
+      FROM procurement_contracts_snapshot WHERE id = ${SNAPSHOT_ID}
+    `
+    const row = result.rows[0] as
+      | { contracts: unknown; keyword: string; year: number; updated_by: string; updated_at: string | Date }
+      | undefined
+    if (!row) {
+      res.status(200).json({ snapshot: null })
+      return
+    }
+    res.status(200).json({
+      snapshot: {
+        leads: row.contracts,
+        keyword: row.keyword,
+        year: row.year,
+        updatedBy: row.updated_by,
+        updatedAt: new Date(row.updated_at).toISOString(),
+      },
+    })
+    return
+  }
+
+  // POST — live-fetch from EGP-CONTRACT and save. Only admin/ProjectManager
+  // may trigger this (unlike the GET above, open to any signed-in user):
+  // this route spends a shared secret API key on an outbound call, so it
+  // gets a real server-side role check rather than this repo's usual
+  // client-side-only gating posture for create/edit actions (see CLAUDE.md §10).
+  if (user.role !== 'admin' && user.role !== 'ProjectManager') {
+    res.status(403).json({ error: 'Only admin/ProjectManager may refresh awarded contracts' })
+    return
+  }
+
+  const apiKey = process.env.EGP_CONTRACT_API_KEY
+  if (!apiKey) {
+    res.status(500).json({ error: 'EGP_CONTRACT_API_KEY is not configured' })
+    return
+  }
+
+  const { keyword, year } = (req.body ?? {}) as { keyword?: unknown; year?: unknown }
+  if (typeof keyword !== 'string' || keyword.trim() === '') {
+    res.status(400).json({ error: 'keyword is required' })
+    return
+  }
+  if (typeof year !== 'number' || !Number.isInteger(year)) {
+    res.status(400).json({ error: 'year (Buddhist calendar, e.g. 2569) is required' })
+    return
+  }
+
+  let fetched: Awaited<ReturnType<typeof fetchEgpContracts>>
+  try {
+    fetched = await fetchEgpContracts({ apiKey, keyword, year })
+  } catch (err) {
+    res.status(502).json({ error: err instanceof Error ? err.message : 'EGP-CONTRACT API request failed' })
+    return
+  }
+
+  const upserted = await sql`
+    INSERT INTO procurement_contracts_snapshot (id, contracts, keyword, year, updated_by, updated_at)
+    VALUES (${SNAPSHOT_ID}, ${JSON.stringify(fetched.leads)}::jsonb, ${keyword}, ${year}, ${user.email}, now())
+    ON CONFLICT (id) DO UPDATE SET
+      contracts = EXCLUDED.contracts,
+      keyword = EXCLUDED.keyword,
+      year = EXCLUDED.year,
+      updated_by = EXCLUDED.updated_by,
+      updated_at = EXCLUDED.updated_at
+    RETURNING contracts, keyword, year, updated_by, updated_at
+  `
+  const row = upserted.rows[0] as { contracts: unknown; keyword: string; year: number; updated_by: string; updated_at: string | Date }
+  res.status(200).json({
+    snapshot: {
+      leads: row.contracts,
+      keyword: row.keyword,
+      year: row.year,
+      updatedBy: row.updated_by,
+      updatedAt: new Date(row.updated_at).toISOString(),
+    },
+    total: fetched.total,
+  })
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET' && req.method !== 'POST' && req.method !== 'DELETE') {
     res.status(405).json({ error: 'Method not allowed' })
@@ -47,6 +147,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   await ensureSchema()
+
+  if (req.query.resource === 'contracts') {
+    await handleContractsResource(req, res)
+    return
+  }
 
   const user = await getCurrentUser(req)
   if (!user) {

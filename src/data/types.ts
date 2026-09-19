@@ -408,3 +408,25 @@ export interface ProcurementLead {
   budgetTHB: number // วงเงินงบประมาณ (บาท)
   status: string // สถานะโครงการ — one of the real Thai status strings e-GP uses
 }
+
+// A row from a live EGP-CONTRACT API fetch (api/procurement/leads.ts's
+// `?resource=contracts` branch) — Thailand's official open-data API for
+// already-*awarded* government procurement contracts (govspending.data.go.th).
+// Distinct from ProcurementLead above: that's open bid opportunities
+// (manually captured, since e-GP's own search is Cloudflare-gated); this is
+// awarded/contracted projects (live-fetched, no such gate) — not
+// interchangeable, see CLAUDE.md.
+export interface AwardedContractLead {
+  no: number
+  projectId: string
+  projectName: string
+  deptName: string // หน่วยงาน
+  deptSubName: string // หน่วยงานย่อย
+  budgetTHB: number // วงเงินงบประมาณ
+  status: string // สถานะโครงการ — EGP-CONTRACT's own vocabulary, distinct from ProcurementLead's
+  announceDate: string
+  winnerName: string // ชื่อผู้ชนะการเสนอราคา
+  contractNo: string
+  contractDate: string
+  priceAgreeTHB: number // ราคาที่ตกลงจ้าง
+}

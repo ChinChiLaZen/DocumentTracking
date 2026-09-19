@@ -34,3 +34,5 @@ dist-ssr
 
 # Local reference files (e.g. source spreadsheets for generated data files) — not shipped
 masterfile/
+
+.env*

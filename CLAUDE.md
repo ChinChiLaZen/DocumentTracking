@@ -78,11 +78,17 @@ api/
     index.ts                 # GET/POST /api/tasks (list/create); PATCH/DELETE /api/tasks?id=X — merged from a separate tasks/[id].ts 2026-08-29 to free a route slot for cron/daily-digest.ts under the 12-function cap (§10)
   cron/
     daily-digest.ts           # GET /api/cron/daily-digest, Vercel Cron-only (CRON_SECRET bearer check) — added 2026-08-29, see §10's Daily digest cron note
+  procurement/
+    leads.ts                 # GET/POST/DELETE /api/procurement/leads (Find Projects' open-bid-opportunity snapshot, §5.3f); GET/POST /api/procurement/leads?resource=contracts (Awarded Contracts' live EGP-CONTRACT snapshot, §5.3f) — folded into one file to stay under the 12-function cap (§10)
+    documents.ts              # GET/POST /api/procurement/documents?leadId=X — files attached to a Find Projects lead
+    documents/[id].ts         # GET/DELETE one attached document by id
   _lib/
     db.ts                    # @vercel/postgres `sql`, ensureSchema() (idempotent CREATE TABLE IF NOT EXISTS)
     auth.ts                  # password hashing, JWT sign/verify, cookie helpers, requireAdmin (§10)
     validateProjectRecord.ts # shallow ProjectRecord shape validator — can't deep-validate against src/data/types.ts (api/ can't import src/**)
     rollup.ts                 # shallow re-implementation of domain/derive.ts's checksRequired/checksDone/effectiveStatus, for api/cron/daily-digest.ts only (api/ can't import src/**)
+    egpContract.ts             # EGP-CONTRACT API client (fetch + response mapping) for the Awarded Contracts view (§5.3f) — api/procurement/leads.ts's only consumer
+    egpContract.test.ts        # unit tests for the pure mapping function, against a real captured sample payload
 src/
   data/
     checklistTemplate.ts     # vendor-neutral 28 items + 14 detail sheets, blank (§5.4)
@@ -92,7 +98,8 @@ src/
     doaTemplate.test.ts      # locks the 64-item / 17-17-15-15 site-split + 12-21-31 docType-split invariants
     initialProjects.ts       # the 2 seeded ProjectRecords (real U-Tapao data + blank demo), templateKind:'mar'
     csiMasterFormat.ts       # CSI MasterFormat divisions + sections for the "Project Type" picker — generated from masterfile/*.xlsx, see below
-    types.ts                 # domain types incl. ProjectMeta/ProjectRecord (§5.1–5.3)
+    procurementLeads.ts       # Find Projects' built-in fallback snapshot (§5.3f) — a manually-transcribed e-GP search-results capture, plus buildEgpSearchUrl/EGP_SEARCH_KEYWORD
+    types.ts                 # domain types incl. ProjectMeta/ProjectRecord (§5.1–5.3), ProcurementLead/AwardedContractLead (§5.3f)
   domain/
     derive.ts                # ALL derived-value logic (§6) — pure, framework-free
     derive.test.ts           # unit tests locking the numbers in §6.4
@@ -107,11 +114,17 @@ src/
     thaiDate.test.ts          # unit tests for thaiDate.ts
     board.ts                  # Task Board tab's due-date/overdue/progress/stat math (§5.3e) — pure, framework-free, unrelated to §6
     board.test.ts             # unit tests for board.ts
+    procurementLeadId.ts       # stable content-derived id for a ProcurementLead row (§5.3f)
+    procurementLeadId.test.ts
+    parseProcurementPaste.ts   # parses tab-separated rows copied from the e-GP results table into ProcurementLead[] (§5.3f)
+    parseProcurementPaste.test.ts
   store/
     useTrackerStore.ts       # Zustand store, multi-project (projects/projectOrder) + selectors
     useActiveProject.ts      # resolves :projectId, pre-curries store actions for pages
     useAuthStore.ts          # Zustand store wrapping fetch calls to api/auth/* (§10)
     persistence.ts           # PersistencePort + Postgres-backed adapter (createApiPersistence) + memory adapter for tests (§10)
+    useProcurementLeadsStore.ts  # wraps api/procurement/leads.ts — Find Projects' shared snapshot (§5.3f)
+    useAwardedContractsStore.ts  # wraps api/procurement/leads.ts?resource=contracts — Awarded Contracts' shared snapshot (§5.3f)
   components/
     auth/
       AuthPage.tsx            # /auth route — sign in / create account (email+password only, no OAuth)
@@ -147,6 +160,11 @@ src/
       BoardStatCards.tsx       # Total/Done/In Progress/Overdue tiles
       TaskGroupSection.tsx     # one group: name, progress bar, Add Task, delete group
       TaskTable.tsx            # dense always-editable task rows (name/assignee/status/priority/due date/progress)
+    procurement/             # Find Projects + Awarded Contracts (§7, §5.3f) — not tied to any one tracked project
+      FindProjectsPage.tsx     # open bid opportunities — manually-pasted e-GP snapshot (Cloudflare-gated, no live fetch)
+      RefreshLeadsDialog.tsx   # "Update snapshot" — paste-parse dialog for FindProjectsPage
+      ProjectLeadDetailPage.tsx # one lead's detail + attached documents
+      AwardedContractsPage.tsx  # already-awarded contracts — live EGP-CONTRACT fetch, "Refresh from EGP-CONTRACT" button
     dashboard/…
     tracker/…
     priority/…
@@ -417,6 +435,52 @@ interface ProjectTaskBoard {
 ```
 `ProjectRecord.taskBoard?: ProjectTaskBoard` — optional for backward-compat with rows that predate this field (`toRuntime()`/`hydrate()` default a missing value to `{ groups: [] }`, same posture as `schedule`/`boq`). Generic, **independent of checklist structure** — shown for every `TemplateKind` alike, same posture as Project Management/BOQ Estimate above. Entirely unrelated to `Item[]`/`effectiveStatus`/§6 — these are ad-hoc, reviewer-defined tasks, not checklist rows; every task's `name`/group is free text the reviewer types, not a template-defined register row (unlike every other tab in this app). Deliberately **reuses `ProjectSchedule.milestones`** for "due date based on milestone" rather than duplicating a second milestone concept — the `dueDateMode: 'milestone'` picker is disabled with a hint when the project has zero schedule milestones yet, and a task referencing a since-deleted milestone resolves its due date to `undefined` (shown as "— (milestone removed)") rather than crashing. `domain/board.ts` (pure, framework-free, unrelated to §6) provides `resolveTaskDueDate`/`isTaskOverdue`/`groupProgressPercent` (rounded average of a group's tasks' own `progressPercent`, not a done/total ratio) /`computeBoardStats`/`statusBreakdown`. Add/Edit/Delete group and task are gated to `admin`/`ProjectManager` roles (`canEdit`), **client-side only** — same accepted-risk posture as Schedule/BOQ/Add-Edit-Project (§10); the whole tab renders read-only (plain text/badges, no inputs) for other roles, same posture as BOQ. Editing is instant-commit, not staged/batch-save — `Select` fields commit on change, numeric/date inputs commit on change, free text (`EditableField`) commits on blur — matching the reference site's own "auto-saved after edit" behaviour and this app's existing Project Management/BOQ idiom, not Phase Progress's/Tracker's staged "Save changes" pattern. No audit trail — same reasoning as §5.3c/§5.3d (`HistoryField`/`HistoryEntry` are keyed by `itemNo` and don't fit group/task edits). `resetToSeed` also clears `taskBoard` back to `{ groups: [] }`, consistent with `schedule`/`boq`/`history`. Status badges (`TASK_STATUS_BADGE_CLASS`) and priority badges (`TASK_PRIORITY_BADGE_CLASS`) live in `statusStyles.ts` — see §9.
 
+### 5.3f Find Projects & Awarded Contracts (`procurement/`) — not tied to any one tracked project
+
+Two related but distinct features, both scoped to Thailand's e-GP (Electronic Government
+Procurement) ecosystem and both airport/aviation-oriented, neither part of the
+`ProjectRecord` checklist model in §5.1–§5.3:
+
+**Find Projects** (`/find-projects`, existed before this section was written; documented
+here for the first time) — surfaces **open bid opportunities** a reviewer might turn into
+a tracked project via "Add Project". `ProcurementLead` rows (`no`, `agency`,
+`purchasingUnit`, `projectName`, `budgetTHB`, `status`) come from Thailand's real e-GP
+search UI (`gprocurement.go.th`), filtered client-side to purchasing units containing
+"ท่าอากาศยาน" (airport). **e-GP's own search results are not fetchable automatically** —
+its API sits behind Cloudflare Turnstile bot-detection; a plain server-side fetch to it
+returns `{"validateCfTurnTile": false}` (confirmed live, 2026-09-18). So `src/data/procurementLeads.ts`
+ships a manually-transcribed fallback snapshot (25 rows, keyword "ลานจอดอากาศยาน",
+FY2569, captured 2026-08-04), and "Update snapshot" (`RefreshLeadsDialog.tsx`) asks the
+reviewer to open "Search live on e-GP", copy the results table themselves, and paste it —
+`domain/parseProcurementPaste.ts` parses the pasted tab-separated rows, appended
+(renumbered) onto the existing list and saved server-side (`api/procurement/leads.ts`,
+single shared row `procurement_leads_snapshot`, team-wide). `domain/procurementLeadId.ts`
+derives a stable id per lead (prefers the real เลขที่โครงการ embedded in `projectName`,
+falls back to a content hash) so links/attached documents (`api/procurement/documents.ts`,
+`api/procurement/documents/[id].ts`) survive re-pastes. Every roughly-2-day-stale badge is
+purely a visual nudge, not an SLA (`stalenessBadgeClass` in `FindProjectsPage.tsx`).
+
+**Awarded Contracts** (`/awarded-contracts`, added 2026-09-18) — a **separate, genuinely
+live-fetched** view of already-*awarded* government contracts, for market intelligence
+(who's winning airport-related work, at what price) — explicitly **not** a substitute for
+Find Projects, since it can never show a project before it's too late to bid on it (see
+below). Backed by Thailand's official open-data **EGP-CONTRACT** API
+(`govspending.data.go.th/doc-api`, `https://opend.data.go.th/govspending/service/egp-contract`,
+free self-registered API key) — a real public REST/JSON endpoint with no Cloudflare gate,
+unlike e-GP's own search. A live test call during this feature's development
+(`keyword=ลานจอดอากาศยาน`, `year=2569`, 2026-09-18) confirmed **every returned record
+already has an awarded `contract[]` with a named winner** — i.e. this API is
+post-award/contract-transparency data, never open invitations, which is exactly why it's
+a separate feature rather than an automatic replacement for Find Projects' manual-paste
+flow. `AwardedContractLead` rows (`api/_lib/egpContract.ts`'s `mapEgpContractRecord`,
+tested against a real captured sample payload) flatten each project's first `contract[]`
+entry. "Refresh from EGP-CONTRACT" (`admin`/`ProjectManager` only, enforced **server-side**
+in `api/procurement/leads.ts`'s `?resource=contracts` POST branch — unlike this app's
+usual client-side-only gating posture for create/edit actions, §10 — because this route
+spends a shared secret API key on an outbound call) fetches live and upserts a second
+single shared row, `procurement_contracts_snapshot`. Requires the `EGP_CONTRACT_API_KEY`
+env var (§10); with it unset, the route 500s rather than silently returning empty.
+
 ### 5.4 Seed data (`checklistTemplate.ts` + `initialProjects.ts`)
 
 Ship the full register as typed seed data. Exact shape below — **these counts are load-bearing; the tests in §6.4 assert them.**
@@ -686,6 +750,8 @@ interface PersistencePort {
   - **First attempt (wrong): optional catch-all files (`[[...path]].ts`) don't actually work on plain (non-Next.js) Vercel Functions.** They deployed and matched requests under the path, but `req.query.<name>` came back empty for every request regardless of how many URL segments were actually present, and the bare zero-segment URL (`/api/projects`) 404'd at the platform level instead of matching at all. This silently broke admin project-delete in production (confirmed via curl: `DELETE /api/projects/demo-placeholder` reached the function but always fell into the "zero segments" branch). **Do not use `[...x].ts` or `[[...x]].ts` catch-all files for API routing in this repo.**
   - **What actually works, and what's live:** single dynamic-segment files (`[id].ts`, exactly one path segment) are proven and used throughout (`procurement/documents/[id].ts`) — keep using those freely. To consolidate two routes into one file without a path segment at all, dispatch by HTTP method plus an ordinary `?id=` query string param instead (see `api/projects/index.ts`, `api/auth/users.ts`, and `api/tasks/index.ts` — the last merged from a separate `tasks/[id].ts` on 2026-08-29 specifically to free a slot for `api/cron/daily-digest.ts` without breaking this cap) — query params are parsed reliably, unlike catch-all segments.
   - **Before adding any new `api/**` route file, count existing ones first** (`find api -name "*.ts" -not -path "*/_lib/*" | wc -l`, must stay ≤ 12) — either fold the new route into an existing file via method/`?id=` dispatch, or consolidate an existing pair the same way to make room.
+  - **Awarded Contracts (added 2026-09-18, §5.3f)** hit this cap exactly — the repo was already at 12 files. Rather than a new `api/procurement/contracts.ts`, it's dispatched from the existing `api/procurement/leads.ts` via a `?resource=contracts` query param (same method-plus-query-param idiom as `?id=` above), keeping the count at 12.
+- **EGP_CONTRACT_API_KEY (added 2026-09-18, §5.3f)** — Awarded Contracts' server-side call to `opend.data.go.th`'s EGP-CONTRACT open-data API needs a free, self-registered API key (`https://opend.data.go.th/register_api`) added to the Vercel project's env vars (and `vercel env pull .env.local` locally, per the same caveat as `CRON_SECRET` below) — no default; the route 500s without it rather than silently returning empty.
 - **Daily digest cron (added 2026-08-29).** `vercel.json`'s `crons` array schedules a daily `GET /api/cron/daily-digest` (`0 1 * * *`, once/day — the max frequency the Hobby plan allows). The route is a Slack digest of what changed across all projects since its last successful run, not user-facing:
   - **Auth:** Vercel Cron automatically sends `Authorization: Bearer <CRON_SECRET>` when a `CRON_SECRET` env var is configured on the project; the route 401s any request without a matching header, so it can't be triggered by hitting the URL directly. `CRON_SECRET` must be added to the Vercel project's env vars (any environment the cron runs in) — there's no default.
   - **What it detects, and how:** (1) *new projects* — a `project_records.id` with no prior row in `project_digest_snapshots`, whose `created_at` falls within the window; (2) *any project touched* — `updated_at` within the window; (3) *checkbox/status changes* — diffs each item's `effectiveStatus` (re-derived server-side, see below) against the **previous run's** per-item snapshot, so it reports exactly which items flipped status (e.g. into `Submitted`), not just an aggregate count; (4) *Phase Progress field changes* — `history` entries (§5.3b) with `timestamp` inside the window. The window is "since the last successful run," tracked in a one-row-per-key `cron_state` table (`key='daily_digest'`), not a hardcoded 24h guess.

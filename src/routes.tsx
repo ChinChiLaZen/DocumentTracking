@@ -7,6 +7,7 @@ import { ProjectsSummaryPage } from './components/projects/ProjectsSummaryPage'
 import { ProjectsListPage } from './components/projects/ProjectsListPage'
 import { FindProjectsPage } from './components/procurement/FindProjectsPage'
 import { ProjectLeadDetailPage } from './components/procurement/ProjectLeadDetailPage'
+import { AwardedContractsPage } from './components/procurement/AwardedContractsPage'
 import { MyTasksPage } from './components/tasks/MyTasksPage'
 import { TeamPage } from './components/team/TeamPage'
 import { UserManagementPage } from './components/users/UserManagementPage'
@@ -35,6 +36,7 @@ export const router = createBrowserRouter([
           { path: 'projects', element: <ProjectsListPage /> },
           { path: 'find-projects', element: <FindProjectsPage /> },
           { path: 'find-projects/:leadId', element: <ProjectLeadDetailPage /> },
+          { path: 'awarded-contracts', element: <AwardedContractsPage /> },
           { path: 'tasks', element: <MyTasksPage /> },
           { path: 'team', element: <TeamPage /> },
           { path: 'users', element: <UserManagementPage /> },
