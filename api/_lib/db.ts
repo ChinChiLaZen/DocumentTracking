@@ -152,6 +152,15 @@ export function ensureSchema(): Promise<void> {
         `,
       )
       .then(
+        // Sub-unit/Agency narrowing filters (api/_lib/egpContractFilters.ts) —
+        // added after the table above, so existing rows get these via ALTER
+        // rather than CREATE. Nullable, no default: NULL means "All (no
+        // filter)", unlike the JSONB columns elsewhere that default to an
+        // empty shape.
+        () => sql`ALTER TABLE procurement_contracts_snapshot ADD COLUMN IF NOT EXISTS sub_unit TEXT`,
+      )
+      .then(() => sql`ALTER TABLE procurement_contracts_snapshot ADD COLUMN IF NOT EXISTS agency TEXT`)
+      .then(
         // Tiny generic key/value store, currently just one row
         // ('daily_digest') recording when the digest cron last ran
         // successfully, so each run's "what changed" window is exactly

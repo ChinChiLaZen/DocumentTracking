@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { ensureSchema, sql } from '../_lib/db.js'
 import { getCurrentUser } from '../_lib/auth.js'
 import { fetchEgpContracts } from '../_lib/egpContract.js'
+import { AGENCY_OPTIONS, SUB_UNIT_OPTIONS, filterContractLeads } from '../_lib/egpContractFilters.js'
 
 // Mirrors src/data/types.ts's ProcurementLead — kept as a local, loosely-typed
 // shape (not imported) since api/ and src/ are separate TS project references
@@ -60,11 +61,19 @@ async function handleContractsResource(req: VercelRequest, res: VercelResponse) 
 
   if (req.method === 'GET') {
     const result = await sql`
-      SELECT contracts, keyword, year, updated_by, updated_at
+      SELECT contracts, keyword, year, sub_unit, agency, updated_by, updated_at
       FROM procurement_contracts_snapshot WHERE id = ${SNAPSHOT_ID}
     `
     const row = result.rows[0] as
-      | { contracts: unknown; keyword: string; year: number; updated_by: string; updated_at: string | Date }
+      | {
+          contracts: unknown
+          keyword: string
+          year: number
+          sub_unit: string | null
+          agency: string | null
+          updated_by: string
+          updated_at: string | Date
+        }
       | undefined
     if (!row) {
       res.status(200).json({ snapshot: null })
@@ -75,6 +84,8 @@ async function handleContractsResource(req: VercelRequest, res: VercelResponse) 
         leads: row.contracts,
         keyword: row.keyword,
         year: row.year,
+        subUnit: row.sub_unit,
+        agency: row.agency,
         updatedBy: row.updated_by,
         updatedAt: new Date(row.updated_at).toISOString(),
       },
@@ -98,7 +109,12 @@ async function handleContractsResource(req: VercelRequest, res: VercelResponse) 
     return
   }
 
-  const { keyword, year } = (req.body ?? {}) as { keyword?: unknown; year?: unknown }
+  const { keyword, year, subUnit, agency } = (req.body ?? {}) as {
+    keyword?: unknown
+    year?: unknown
+    subUnit?: unknown
+    agency?: unknown
+  }
   if (typeof keyword !== 'string' || keyword.trim() === '') {
     res.status(400).json({ error: 'keyword is required' })
     return
@@ -107,6 +123,16 @@ async function handleContractsResource(req: VercelRequest, res: VercelResponse) 
     res.status(400).json({ error: 'year (Buddhist calendar, e.g. 2569) is required' })
     return
   }
+  if (subUnit !== undefined && subUnit !== null && !(SUB_UNIT_OPTIONS as readonly string[]).includes(subUnit as string)) {
+    res.status(400).json({ error: 'subUnit must be one of the known sub-unit options' })
+    return
+  }
+  if (agency !== undefined && agency !== null && !(AGENCY_OPTIONS as readonly string[]).includes(agency as string)) {
+    res.status(400).json({ error: 'agency must be one of the known agency options' })
+    return
+  }
+  const subUnitValue = typeof subUnit === 'string' ? subUnit : null
+  const agencyValue = typeof agency === 'string' ? agency : null
 
   let fetched: Awaited<ReturnType<typeof fetchEgpContracts>>
   try {
@@ -115,28 +141,44 @@ async function handleContractsResource(req: VercelRequest, res: VercelResponse) 
     res.status(502).json({ error: err instanceof Error ? err.message : 'EGP-CONTRACT API request failed' })
     return
   }
+  const leads = filterContractLeads(fetched.leads, {
+    subUnit: subUnitValue ?? undefined,
+    agency: agencyValue ?? undefined,
+  })
 
   const upserted = await sql`
-    INSERT INTO procurement_contracts_snapshot (id, contracts, keyword, year, updated_by, updated_at)
-    VALUES (${SNAPSHOT_ID}, ${JSON.stringify(fetched.leads)}::jsonb, ${keyword}, ${year}, ${user.email}, now())
+    INSERT INTO procurement_contracts_snapshot (id, contracts, keyword, year, sub_unit, agency, updated_by, updated_at)
+    VALUES (${SNAPSHOT_ID}, ${JSON.stringify(leads)}::jsonb, ${keyword}, ${year}, ${subUnitValue}, ${agencyValue}, ${user.email}, now())
     ON CONFLICT (id) DO UPDATE SET
       contracts = EXCLUDED.contracts,
       keyword = EXCLUDED.keyword,
       year = EXCLUDED.year,
+      sub_unit = EXCLUDED.sub_unit,
+      agency = EXCLUDED.agency,
       updated_by = EXCLUDED.updated_by,
       updated_at = EXCLUDED.updated_at
-    RETURNING contracts, keyword, year, updated_by, updated_at
+    RETURNING contracts, keyword, year, sub_unit, agency, updated_by, updated_at
   `
-  const row = upserted.rows[0] as { contracts: unknown; keyword: string; year: number; updated_by: string; updated_at: string | Date }
+  const row = upserted.rows[0] as {
+    contracts: unknown
+    keyword: string
+    year: number
+    sub_unit: string | null
+    agency: string | null
+    updated_by: string
+    updated_at: string | Date
+  }
   res.status(200).json({
     snapshot: {
       leads: row.contracts,
       keyword: row.keyword,
       year: row.year,
+      subUnit: row.sub_unit,
+      agency: row.agency,
       updatedBy: row.updated_by,
       updatedAt: new Date(row.updated_at).toISOString(),
     },
-    total: fetched.total,
+    total: leads.length,
   })
 }
 

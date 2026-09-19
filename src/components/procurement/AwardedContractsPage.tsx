@@ -4,9 +4,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Badge } from '../ui/badge'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 import { useAwardedContractsStore } from '../../store/useAwardedContractsStore'
 import { useAuthStore } from '../../store/useAuthStore'
 import { EGP_SEARCH_KEYWORD } from '../../data/procurementLeads'
+import { AGENCY_OPTIONS, SUB_UNIT_OPTIONS } from '../../data/egpContractFilters'
 
 function formatTHB(amount: number): string {
   return amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -16,9 +18,14 @@ function currentBuddhistYear(): number {
   return new Date().getFullYear() + 543
 }
 
+const ALL_SUB_UNITS = '__all__'
+const ALL_AGENCIES = '__all__'
+
 export function AwardedContractsPage() {
   const [keyword, setKeyword] = useState(EGP_SEARCH_KEYWORD)
   const [year, setYear] = useState(currentBuddhistYear())
+  const [subUnit, setSubUnit] = useState(ALL_SUB_UNITS)
+  const [agency, setAgency] = useState(ALL_AGENCIES)
 
   const snapshot = useAwardedContractsStore((s) => s.snapshot)
   const loaded = useAwardedContractsStore((s) => s.loaded)
@@ -49,7 +56,9 @@ export function AwardedContractsPage() {
               <>
                 {' '}
                 Last refreshed by {snapshot.updatedBy} ({snapshot.leads.length} results for &ldquo;
-                {snapshot.keyword}&rdquo;, FY{snapshot.year}).
+                {snapshot.keyword}&rdquo;, FY{snapshot.year}
+                {snapshot.subUnit && <>, sub-unit &ldquo;{snapshot.subUnit}&rdquo;</>}
+                {snapshot.agency && <>, agency &ldquo;{snapshot.agency}&rdquo;</>}).
               </>
             )}
           </p>
@@ -70,12 +79,45 @@ export function AwardedContractsPage() {
               aria-label="Budget year (Buddhist calendar)"
               className="w-24"
             />
+            <Select value={subUnit} onValueChange={setSubUnit} disabled={refreshing}>
+              <SelectTrigger className="w-auto min-w-40" aria-label="Sub-unit">
+                <SelectValue placeholder="Sub-unit" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_SUB_UNITS}>All sub-units</SelectItem>
+                {SUB_UNIT_OPTIONS.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={agency} onValueChange={setAgency} disabled={refreshing}>
+              <SelectTrigger className="w-auto min-w-40" aria-label="Agency">
+                <SelectValue placeholder="Agency" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_AGENCIES}>All agencies</SelectItem>
+                {AGENCY_OPTIONS.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Button
               type="button"
               variant="outline"
               size="sm"
               disabled={refreshing || keyword.trim() === ''}
-              onClick={() => void refresh(keyword.trim(), year)}
+              onClick={() =>
+                void refresh(
+                  keyword.trim(),
+                  year,
+                  subUnit === ALL_SUB_UNITS ? undefined : subUnit,
+                  agency === ALL_AGENCIES ? undefined : agency,
+                )
+              }
             >
               <RefreshCw className={refreshing ? 'animate-spin' : ''} />
               {refreshing ? 'Refreshing…' : 'Refresh from EGP-CONTRACT'}

@@ -481,6 +481,24 @@ spends a shared secret API key on an outbound call) fetches live and upserts a s
 single shared row, `procurement_contracts_snapshot`. Requires the `EGP_CONTRACT_API_KEY`
 env var (§10); with it unset, the route 500s rather than silently returning empty.
 
+**Sub-unit / Agency filters (added 2026-09-19)** — alongside the free-text `keyword` and
+`year`, the Refresh form has two more dropdowns: **Sub-unit** (`หน่วยงานย่อย`, a fixed list
+of 8 real airport/department names) and **Agency** (`หน่วยงาน`, AOT PCL and the Department
+of Airports) — both defined once in `api/_lib/egpContractFilters.ts` and duplicated in
+`src/data/egpContractFilters.ts` (not imported — `api/` cannot import `src/**`, same
+constraint as `validateProjectRecord.ts`/`rollup.ts`; keep both lists in sync). The upstream
+EGP-CONTRACT API has **no confirmed request-side filter** for `dept_name`/`dept_sub_name` —
+only `api-key`/`year`/`keyword`/`limit` are — so these two are applied as a **server-side
+post-fetch filter** (`filterContractLeads`, substring containment against each already-mapped
+`AwardedContractLead.deptSubName`/`deptName`, not exact equality, since real values may carry
+extra text a fixed list can't predict) on the result of the existing keyword+year fetch,
+*before* the now-narrower set is upserted — so every signed-in user sees the filtered result,
+not just whoever clicked Refresh. `procurement_contracts_snapshot` gained two nullable
+columns, `sub_unit`/`agency` (self-migrating `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` in
+`ensureSchema()`, same idiom as `schedule`/`boq`/`task_board`) — `NULL` means "All (no
+filter)", selected via an `__all__` UI sentinel exactly like Find Projects' existing
+Purchasing Unit dropdown (`FindProjectsPage.tsx`'s `ALL_UNITS`).
+
 ### 5.4 Seed data (`checklistTemplate.ts` + `initialProjects.ts`)
 
 Ship the full register as typed seed data. Exact shape below — **these counts are load-bearing; the tests in §6.4 assert them.**

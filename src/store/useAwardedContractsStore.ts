@@ -5,6 +5,8 @@ export interface AwardedContractsSnapshot {
   leads: AwardedContractLead[]
   keyword: string
   year: number
+  subUnit: string | null
+  agency: string | null
   updatedBy: string
   updatedAt: string
 }
@@ -16,7 +18,7 @@ interface AwardedContractsState {
   loaded: boolean
   error: string | null
   fetchSnapshot(): Promise<void>
-  refresh(keyword: string, year: number): Promise<{ error?: string }>
+  refresh(keyword: string, year: number, subUnit?: string, agency?: string): Promise<{ error?: string }>
 }
 
 async function parseJson(res: Response): Promise<Record<string, unknown>> {
@@ -57,13 +59,13 @@ export const useAwardedContractsStore = create<AwardedContractsState>((set) => (
     }
   },
 
-  async refresh(keyword, year) {
+  async refresh(keyword, year, subUnit, agency) {
     set({ refreshing: true, error: null })
     try {
       const res = await fetch('/api/procurement/leads?resource=contracts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ keyword, year }),
+        body: JSON.stringify({ keyword, year, subUnit, agency }),
       })
       const data = await parseJson(res)
       if (!res.ok) {
