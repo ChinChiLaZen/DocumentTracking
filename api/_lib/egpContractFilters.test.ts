@@ -59,6 +59,6 @@ describe('filterContractLeads', () => {
   })
 
   it('excludes a non-matching sub-unit', () => {
-    expect(filterContractLeads(all, { subUnit: 'ท่าอากาศยานเชียงราย' })).toEqual([])
+    expect(filterContractLeads(all, { subUnit: 'ท่าอากาศยานแม่ฟ้าหลวง เชียงราย' })).toEqual([])
   })
 })
